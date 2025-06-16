@@ -1,5 +1,7 @@
 ﻿import { useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import './App.css'
+import NewPage from './About' // Import your new page
 
 function shuffle(array) {
     let arr = array.slice();
@@ -201,82 +203,97 @@ function App() {
     };
 
     return (
-        <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif" }}>
-            <h2>Commander Pod Creator</h2>
-            <textarea
-                rows={16}
-                style={{ width: "100%", minHeight: "220px", marginTop: 0 }}
-                placeholder="Enter one name per line"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-            />
-            <div style={{ marginTop: "1rem" }}>
-                <button onClick={handleRandomize} style={{ marginRight: "1rem" }}>
-                    Randomize List
-                </button>
-                <button onClick={handleNewRound}>
-                    New Round
-                </button>
-            </div>
-            {rounds.length > 0 && (
-                <div
-                    style={{
-                        display: "flex",
-                        gap: "1rem",
-                        marginTop: "2rem",
-                        overflowX: "auto",
-                        paddingBottom: "1rem"
-                    }}
-                >
-                    {rounds.map((round, roundIdx) => (
-                        <div key={roundIdx} style={{ flex: "0 0 300px", minWidth: 300 }}>
-                            <h3>{round.label}</h3>
-                            {round.groups.map((group, idx) => (
-                                <div key={idx} style={{ marginBottom: "1rem" }}>
-                                    <strong style={{ display: "block", textAlign: "left" }}>
-                                        Group {idx + 1}:
-                                    </strong>
-                                    <ul style={{ textAlign: "left" }}>
-                                        {group.map((name, i) => {
-                                            const winnerName =
-                                                round.winners && round.winners[idx]
-                                                    ? round.winners[idx]
-                                                    : null;
-                                            const isWinner = winnerName === name;
-                                            return (
-                                                <li key={i} style={{ whiteSpace: "nowrap" }}>
-                                                    {name}
-                                                    {isWinner && (
-                                                        <span style={{ marginLeft: 6 }} role="img" aria-label="winner">
-                                                            🏆
-                                                        </span>
-                                                    )}
-                                                    {roundIdx === rounds.length - 1 && (
-                                                        <>
-                                                            <input
-                                                                type="radio"
-                                                                name={`winner-group-${idx}`}
-                                                                value={name}
-                                                                checked={currentWinners[idx] === name}
-                                                                onChange={() => handleWinnerSelect(idx, name)}
-                                                                style={{ marginLeft: 8 }}
-                                                            />
-                                                            <span style={{ marginLeft: 4, fontSize: 12 }}>
-                                                                Winner
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
+        <Router>
+            <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif" }}>
+                {/* Navigation */}
+                <nav style={{ marginBottom: "2rem" }}>
+                    <Link to="/" style={{ marginRight: 16 }}>Home</Link>
+                    <Link to="/new" style={{ marginRight: 16 }}>About</Link>
+                </nav>
+                <Routes>
+                    <Route path="/" element={
+                        <>
+                            {/* Your existing App content */}
+                            <h2>Commander Pod Creator</h2>
+                            <textarea
+                                rows={16}
+                                style={{ width: "100%", minHeight: "220px", marginTop: 0 }}
+                                placeholder="Enter one name per line"
+                                value={input}
+                                onChange={e => setInput(e.target.value)}
+                            />
+                            <div style={{ marginTop: "1rem" }}>
+                                <button onClick={handleRandomize} style={{ marginRight: "1rem" }}>
+                                    Randomize List
+                                </button>
+                                <button onClick={handleNewRound}>
+                                    New Round
+                                </button>
+                            </div>
+                            {rounds.length > 0 && (
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: "1rem",
+                                        marginTop: "2rem",
+                                        overflowX: "auto",
+                                        paddingBottom: "1rem"
+                                    }}
+                                >
+                                    {rounds.map((round, roundIdx) => (
+                                        <div key={roundIdx} style={{ flex: "0 0 300px", minWidth: 300 }}>
+                                            <h3>{round.label}</h3>
+                                            {round.groups.map((group, idx) => (
+                                                <div key={idx} style={{ marginBottom: "1rem" }}>
+                                                    <strong style={{ display: "block", textAlign: "left" }}>
+                                                        Group {idx + 1}:
+                                                    </strong>
+                                                    <ul style={{ textAlign: "left" }}>
+                                                        {group.map((name, i) => {
+                                                            const winnerName =
+                                                                round.winners && round.winners[idx]
+                                                                    ? round.winners[idx]
+                                                                    : null;
+                                                            const isWinner = winnerName === name;
+                                                            return (
+                                                                <li key={i} style={{ whiteSpace: "nowrap" }}>
+                                                                    {name}
+                                                                    {isWinner && (
+                                                                        <span style={{ marginLeft: 6 }} role="img" aria-label="winner">
+                                                                            🏆
+                                                                        </span>
+                                                                    )}
+                                                                    {roundIdx === rounds.length - 1 && (
+                                                                        <>
+                                                                            <input
+                                                                                type="radio"
+                                                                                name={`winner-group-${idx}`}
+                                                                                value={name}
+                                                                                checked={currentWinners[idx] === name}
+                                                                                onChange={() => handleWinnerSelect(idx, name)}
+                                                                                style={{ marginLeft: 8 }}
+                                                                            />
+                                                                            <span style={{ marginLeft: 4, fontSize: 12 }}>
+                                                                                Winner
+                                                                            </span>
+                                                                        </>
+                                                                    )}
+                                                                </li>
+                                                            );
+                                                        })}
+                                                    </ul>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                            )}
+                        </>
+                    } />
+                    <Route path="/new" element={<NewPage />} />
+                </Routes>
+            </div>
+        </Router>
     );
 }
 
