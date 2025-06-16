@@ -1,12 +1,22 @@
-# React + Vite
+A simple mostly Ai generated project to create a website where users can generate random pods for commander games at Local game stores.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
+About
+This page is designed to help with creating semi-randomized pods for Commander using the following rules.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Generate the maximum number of pods of 4, but allow for pods of 3 depending on the number of players.
 
-## Expanding the ESLint configuration
+2. When generating a new round, if winners are selected, they will always be placed in the first pod.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. If there are more than 4 winners, a new winner pod will be generated.
+
+4. If the number of winners in a pod doesn't equal 4, other players will be randomly added.
+
+5. Non-winning players will be randomly sorted into new pods, with priority on grouping players who have not played each other yet.
+
+6. Players in pods of 3 will be prioritized for pods of 4 in future rounds.
+
+To Do.
+Add the option for players to scan a qr code or something to add there name to a session.
+Add custom sessions.
+Add the ability for players to see which pod they are on there own device
