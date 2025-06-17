@@ -11,9 +11,8 @@ function shuffle(array) {
     }
     return arr;
 }
-
+        
 function groupByFlexible(array) {
-    // Only allow groups of 3 or 4, never 1 or 2
     const n = array.length;
     const groups = [];
     let i = 0;
@@ -45,7 +44,6 @@ function groupByFlexible(array) {
     return groups;
 }
 
-// Helper: Always make groups of 4 from winners, filling with non-winners if needed
 function groupWinnersAsFours(winners, rest) {
     let winnerList = shuffle([...winners]);
     let restList = shuffle([...rest]);
@@ -55,7 +53,6 @@ function groupWinnersAsFours(winners, rest) {
         if (winnerList.length >= 4) {
             group = winnerList.splice(0, 4);
         } else {
-            // Fewer than 4 winners left, fill with rest
             group = winnerList.splice(0, winnerList.length);
             while (group.length < 4 && restList.length > 0) {
                 group.push(restList.shift());
@@ -89,17 +86,31 @@ function getNamesInGroupsOfThree(groups) {
     return names;
 }
 
+function checkAllPlayersIncluded(originalNames, groupedNames) {
+    const allPrevNames = new Set(originalNames);
+    const allNextNames = new Set(groupedNames.flat());
+    let missing = [];
+    for (const name of allPrevNames) {
+        if (!allNextNames.has(name)) {
+            missing.push(name);
+        }
+    }
+    if (missing.length > 0) {
+        alert("Error: The following players are missing in the new round: " + missing.join(", "));
+        return false;
+    }
+    return true;
+}
+    
 function App() {
     const [input, setInput] = useState('');
-    // rounds: [{ label: string, groups: array, winners: array }]
     const [rounds, setRounds] = useState([]);
-    // winners for the current round (index by group)
     const [currentWinners, setCurrentWinners] = useState({});
+    const [dropped, setDropped] = useState({}); // Track dropped names
 
-    // Helper to get all names in the current round
     const getCurrentNames = () => {
         if (rounds.length === 0) return [];
-        return rounds[rounds.length - 1].groups.flat();
+        return rounds[rounds.length - 1].groups.flat().filter(name => !dropped[name]);
     };
 
     const handleRandomize = () => {
@@ -108,9 +119,19 @@ function App() {
             .map(name => name.trim())
             .filter(name => name.length > 0);
         const shuffled = shuffle(names);
+        if (names.length == 1 || names.length == 2) {
+            alert("Error: Invalid Number of players");
+            return;
+        }
+
         const groups = groupByFlexible(shuffled);
-        setRounds([{ label: "Round 1", groups, winners: [] }]);
+        checkAllPlayersIncluded(names, groups);
+
+        // Store dropped players at this moment for the round
+
+        setRounds([{ label: "Round 1", groups, winners: []}]);
         setCurrentWinners({});
+        setDropped({});
     };
 
     const handleWinnerSelect = (groupIdx, winner) => {
@@ -118,7 +139,6 @@ function App() {
             ...prev,
             [groupIdx]: winner
         }));
-        // Update winners in the current round for display
         setRounds(prevRounds => {
             if (prevRounds.length === 0) return prevRounds;
             const lastRound = prevRounds[prevRounds.length - 1];
@@ -132,6 +152,13 @@ function App() {
         });
     };
 
+    const handleDropToggle = (name) => {
+        setDropped(prev => ({
+            ...prev,
+            [name]: !prev[name]
+        }));
+    };
+
     const handleNewRound = () => {
         if (rounds.length === 0) return;
         const prevRound = rounds[rounds.length - 1];
@@ -139,31 +166,68 @@ function App() {
         const prevPairs = getPairs(prevGroups);
         const prevGroup3Names = getNamesInGroupsOfThree(prevGroups);
 
-        // Collect winners from the current round
-        const winners = Object.values(currentWinners).filter(Boolean);
+        const winners = Object.values(currentWinners).filter(Boolean).filter(name => !dropped[name]);
 
         let names = getCurrentNames();
         let nextGroups = [];
 
+        let rest = names;
+        let winnerGroups = [];
+
         if (winners.length > 0) {
-            // Remove winners from the rest
-            const rest = names.filter(name => !winners.includes(name));
-            // Always make groups of 4 from winners, filling with rest if needed
-            const { winnerGroups, rest: restLeft } = groupWinnersAsFours(winners, rest);
-            nextGroups = [...winnerGroups];
-            // Group the remaining rest as usual
-            if (restLeft.length > 0) {
-                const restGroups = groupByFlexible(restLeft);
-                nextGroups = [...nextGroups, ...restGroups];
+            let grouped = groupWinnersAsFours(winners, names.filter(name => !winners.includes(name)));
+            let candidateWinnerGroups = grouped.winnerGroups;
+            let usedInWinnerGroups = new Set(candidateWinnerGroups.flat());
+            let restAfterWinners = names.filter(name => !usedInWinnerGroups.has(name));
+
+            const testGroups = groupByFlexible(restAfterWinners);
+            const flatTestGroups = testGroups.flat();
+            const allNamesAccountedFor =
+                flatTestGroups.length === restAfterWinners.length &&
+                flatTestGroups.every(name => restAfterWinners.includes(name)) &&
+                restAfterWinners.every(name => flatTestGroups.includes(name));
+
+            const valid =
+                allNamesAccountedFor &&
+                testGroups.length > 0 &&
+                testGroups.every(g => g.length === 3 || g.length === 4);
+
+            if (valid || restAfterWinners.length === 0) {
+                winnerGroups = candidateWinnerGroups;
+                rest = restAfterWinners;
+            } else {
+                let winnerList = shuffle([...winners]);
+                let restList = shuffle(names.filter(name => !winners.includes(name)));
+                let fallbackWinnerGroups = [];
+                while (winnerList.length > 0) {
+                    let group = [];
+                    if (winnerList.length >= 4) {
+                        group = winnerList.splice(0, 4);
+                    } else if (winnerList.length === 3) {
+                        group = winnerList.splice(0, 3);
+                    } else {
+                        group = winnerList.splice(0, winnerList.length);
+                        while (group.length < 3 && restList.length > 0) {
+                            group.push(restList.shift());
+                        }
+                    }
+                    fallbackWinnerGroups.push(group);
+                }
+                let usedFallback = new Set(fallbackWinnerGroups.flat());
+                let restAfterFallback = names.filter(name => !usedFallback.has(name));
+                winnerGroups = fallbackWinnerGroups;
+                rest = restAfterFallback;
             }
-        } else {
-            // If no winners, just randomize as before
+        }
+
+        let restGroups = [];
+        if (rest.length > 0) {
             let bestGroups = null;
             let minRepeats = Infinity;
             let minGroup3Repeaters = Infinity;
 
             for (let t = 0; t < 1000; t++) {
-                const shuffled = shuffle(names);
+                const shuffled = shuffle(rest);
                 const groups = groupByFlexible(shuffled);
                 const pairs = getPairs(groups);
 
@@ -178,24 +242,30 @@ function App() {
                     if (prevGroup3Names.has(name)) group3Repeaters++;
                 }
 
-                if (
-                    repeats < minRepeats ||
-                    (repeats === minRepeats && group3Repeaters < minGroup3Repeaters)
-                ) {
+                if (repeats < minRepeats || (repeats === minRepeats && group3Repeaters < minGroup3Repeaters)) {
                     minRepeats = repeats;
                     minGroup3Repeaters = group3Repeaters;
                     bestGroups = groups;
                     if (minRepeats === 0 && minGroup3Repeaters === 0) break;
                 }
             }
-            nextGroups = bestGroups;
+            restGroups = bestGroups;
         }
+
+        nextGroups = [...winnerGroups, ...(restGroups || [])];
+
+        if (!checkAllPlayersIncluded(names, nextGroups)) {
+            return;
+        }
+
+        // Store dropped players at this moment for the round
+        const droppedNames = Object.keys(dropped).filter(name => dropped[name]);
 
         setRounds(prev => {
             const nextLabel = `Round ${prev.length + 1}`;
             const next = [
                 ...prev.slice(-4),
-                { label: nextLabel, groups: nextGroups, winners: [] }
+                { label: nextLabel, groups: nextGroups, winners: [], dropped: droppedNames }
             ];
             return next;
         });
@@ -205,7 +275,6 @@ function App() {
     return (
         <Router>
             <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif" }}>
-                {/* Navigation */}
                 <nav style={{ marginBottom: "2rem" }}>
                     <Link to="/" style={{ marginRight: 16 }}>Home</Link>
                     <Link to="/new" style={{ marginRight: 16 }}>About</Link>
@@ -213,7 +282,6 @@ function App() {
                 <Routes>
                     <Route path="/" element={
                         <>
-                            {/* Your existing App content */}
                             <h2>Commander Pod Creator</h2>
                             <textarea
                                 rows={16}
@@ -255,6 +323,7 @@ function App() {
                                                                     ? round.winners[idx]
                                                                     : null;
                                                             const isWinner = winnerName === name;
+                                                            const showDrop = roundIdx === rounds.length - 1;
                                                             return (
                                                                 <li key={i} style={{ whiteSpace: "nowrap" }}>
                                                                     {name}
@@ -274,7 +343,20 @@ function App() {
                                                                                 style={{ marginLeft: 8 }}
                                                                             />
                                                                             <span style={{ marginLeft: 4, fontSize: 12 }}>
-                                                                                Winner
+                                                                                Win
+                                                                            </span>
+                                                                        </>
+                                                                    )}
+                                                                    {showDrop && (
+                                                                        <>
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={!!dropped[name]}
+                                                                                onChange={() => handleDropToggle(name)}
+                                                                                style={{ marginLeft: 12 }}
+                                                                            />
+                                                                            <span style={{ marginLeft: 4, fontSize: 12 }}>
+                                                                                Drop
                                                                             </span>
                                                                         </>
                                                                     )}
@@ -284,6 +366,21 @@ function App() {
                                                     </ul>
                                                 </div>
                                             ))}
+                                            {/* Only show Dropped group if there are dropped names */}
+                                            {round.dropped && round.dropped.length > 0 && (
+                                                <div style={{ marginBottom: "1rem" }}>
+                                                    <strong style={{ display: "block", textAlign: "left" }}>
+                                                        Dropped:
+                                                    </strong>
+                                                    <ul style={{ textAlign: "left", color: "#888" }}>
+                                                        {round.dropped.map((name, i) => (
+                                                            <li key={i} style={{ whiteSpace: "nowrap" }}>
+                                                                {name}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
