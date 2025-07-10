@@ -9,6 +9,15 @@ export default function About() {
             <p>4. If the number of winners in a pod doesn't equal 4, other players will be randomly added.</p>
             <p>5. Non-winning players will be randomly sorted into new pods, with priority on grouping players who have not played each other yet.</p>
             <p>6. Players in pods of 3 will be prioritized for pods of 4 in future rounds.</p>
+            <p>
+                <a
+                    href="https://github.com/stingwing/magic-randomizer"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    https://github.com/stingwing/magic-randomizer
+                </a>
+            </p>
         </div>
     );
 }
