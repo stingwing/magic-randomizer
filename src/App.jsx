@@ -1,7 +1,10 @@
 ﻿import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import './App.css'
-import NewPage from './About' // Import your new page
+import NewPage from './About' // About page
+import JoinPage from './Join' // Join page
+import NewGamePage from './NewGame' // New Game page
+import RoomPage from './Room' // Room / waiting page
 
 function shuffle(array) {
     let arr = array.slice();
@@ -278,6 +281,8 @@ function App() {
                 <nav style={{ marginBottom: "2rem" }}>
                     <Link to="/" style={{ marginRight: 16 }}>Home</Link>
                     <Link to="/new" style={{ marginRight: 16 }}>About</Link>
+                    <Link to="/new-game" style={{ marginRight: 16 }}>New Game</Link>
+                    <Link to="/join" style={{ marginRight: 16 }}>Join</Link>
                 </nav>
                 <Routes>
                     <Route path="/" element={
@@ -388,6 +393,9 @@ function App() {
                         </>
                     } />
                     <Route path="/new" element={<NewPage />} />
+                    <Route path="/new-game" element={<NewGamePage />} />
+                    <Route path="/join" element={<JoinPage />} />
+                    <Route path="/room/:code/:participantId" element={<RoomPage />} />
                 </Routes>
             </div>
         </Router>
