@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { apiBase } from './api'
 
 export default function RoomPage() {
     const { code, participantId } = useParams()
@@ -9,10 +10,10 @@ export default function RoomPage() {
     const [roomLoading, setRoomLoading] = useState(false)
     const [started, setStarted] = useState(false)
     const [groupResult, setGroupResult] = useState(null)
+    const [reportLoading, setReportLoading] = useState(false)
+    const [reportMessage, setReportMessage] = useState(null)
     const pollRef = useRef(null)
     const lastUpdatedRef = useRef(null)
-
-    const apiBase = 'https://magicreactrandomizerapi.onrender.com:443/api/Rooms'
 
     const fetchGroupResult = async () => {
         if (!code || !participantId) return false
@@ -100,12 +101,55 @@ export default function RoomPage() {
         }
     }
 
+    const handleReportResult = async (result) => {
+        if (!code || !participantId) return
+        
+        setReportLoading(true)
+        setReportMessage(null)
+        setRoomError(null)
+        
+        try {
+            const url = `${apiBase}/${encodeURIComponent(code)}/report`
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    participantId: participantId,
+                    result: result
+                })
+            })
+
+            if (!res.ok) {
+                const txt = await res.text().catch(() => '')
+                throw new Error(txt || `Server returned ${res.status}`)
+            }
+
+            const data = await res.json().catch(() => null)
+            setReportMessage(
+                data && data.message
+                    ? data.message
+                    : `${result} reported successfully`
+            )
+        } catch (err) {
+            console.error('Report result error', err)
+            setRoomError(err.message || 'Unknown error reporting result')
+        } finally {
+            setReportLoading(false)
+        }
+    }
+
     // Poll room until started; when started we fetch the group result and stop polling
     useEffect(() => {
         if (!code || !participantId) {
             navigate('/join')
             return
         }
+
+        // Store room code and participant ID in localStorage for refresh recovery
+        localStorage.setItem('currentRoomCode', code)
+        localStorage.setItem('currentParticipantId', participantId)
 
         // initial fetch
         fetchRoom()
@@ -126,9 +170,18 @@ export default function RoomPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [code, participantId, started])
 
+    // Example recovery logic (add to your App.jsx or routing setup)
+    useEffect(() => {
+        const savedCode = localStorage.getItem('currentRoomCode')
+        const savedParticipantId = localStorage.getItem('currentParticipantId')
+        
+        if (savedCode && savedParticipantId && window.location.pathname === '/') {
+            navigate(`/room/${savedCode}/${savedParticipantId}`)
+        }
+    }, [])
+
     return (
         <div style={{ maxWidth: 700, margin: '0 auto', fontFamily: 'sans-serif' }}>
-            <h2>Room</h2>
             <div style={{ marginBottom: 12 }}>
                 <strong>Code:</strong> {code}
             </div>
@@ -198,6 +251,43 @@ export default function RoomPage() {
                     ) : (
                         !roomLoading && <div>No results returned.</div>
                     )}
+
+                    <div style={{ marginTop: 16 }}>
+                        <h4>Report Game Result</h4>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button 
+                                onClick={() => handleReportResult('Win')} 
+                                disabled={reportLoading}
+                                style={{ padding: '8px 16px' }}
+                            >
+                                Win
+                            </button>
+                            <button 
+                                onClick={() => handleReportResult('Draw')} 
+                                disabled={reportLoading}
+                                style={{ padding: '8px 16px' }}
+                            >
+                                Draw
+                            </button>
+                            <button 
+                                onClick={() => handleReportResult('Drop')} 
+                                disabled={reportLoading}
+                                style={{ padding: '8px 16px' }}
+                            >
+                                Drop
+                            </button>
+                        </div>
+                        {reportLoading && (
+                            <div style={{ marginTop: 8, fontSize: 13, color: '#666' }}>
+                                Submitting...
+                            </div>
+                        )}
+                        {reportMessage && (
+                            <div style={{ marginTop: 8, fontSize: 13, color: '#006600' }}>
+                                {reportMessage}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

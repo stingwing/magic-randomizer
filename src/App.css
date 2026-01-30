@@ -40,3 +40,26 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Nav bar styles for consistent header across pages */
+.app-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.02);
+  backdrop-filter: blur(4px);
+}
+
+.app-nav a {
+  text-decoration: none;
+  margin-right: 0;
+}

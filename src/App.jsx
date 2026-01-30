@@ -1,10 +1,11 @@
 ﻿import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './App.css'
 import NewPage from './About' // About page
-import JoinPage from './Join' // Join page
-import NewGamePage from './NewGame' // New Game page
+import JoinPage from './Join' // Join page (now home page)
 import RoomPage from './Room' // Room / waiting page
+import HostRoomPage from './HostRoom' // Host room page
+import NavBar from './NavBar'
 
 function shuffle(array) {
     let arr = array.slice();
@@ -122,7 +123,7 @@ function App() {
             .map(name => name.trim())
             .filter(name => name.length > 0);
         const shuffled = shuffle(names);
-        if (names.length == 1 || names.length == 2) {
+        if (names.length === 1 || names.length === 2) {
             alert("Error: Invalid Number of players");
             return;
         }
@@ -277,15 +278,11 @@ function App() {
 
     return (
         <Router>
-            <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif" }}>
-                <nav style={{ marginBottom: "2rem" }}>
-                    <Link to="/" style={{ marginRight: 16 }}>Home</Link>
-                    <Link to="/new" style={{ marginRight: 16 }}>About</Link>
-                    <Link to="/new-game" style={{ marginRight: 16 }}>New Game</Link>
-                    <Link to="/join" style={{ marginRight: 16 }}>Join</Link>
-                </nav>
+            <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif", paddingTop: 56 }}>
+                <NavBar />
                 <Routes>
-                    <Route path="/" element={
+                    <Route path="/" element={<JoinPage />} />
+                    <Route path="/manual" element={
                         <>
                             <h2>Commander Pod Creator</h2>
                             <textarea
@@ -393,9 +390,8 @@ function App() {
                         </>
                     } />
                     <Route path="/new" element={<NewPage />} />
-                    <Route path="/new-game" element={<NewGamePage />} />
-                    <Route path="/join" element={<JoinPage />} />
                     <Route path="/room/:code/:participantId" element={<RoomPage />} />
+                    <Route path="/host/:code" element={<HostRoomPage />} />
                 </Routes>
             </div>
         </Router>
