@@ -2,6 +2,56 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiBase } from './api'
 
+// Helper component to display round results
+function RoundResults({ data }) {
+    if (!data) return <div>No results returned.</div>
+
+    const { roomCode, participantId, groupNumber, members, round, result, winner, draw } = data
+
+    return (
+        <div style={{ background: '#1a1a1a', padding: 16, borderRadius: 4, color: '#fff' }}>
+            {/* Result Details */}
+            <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: 8 }}>
+                    <strong>Round:</strong> {round ?? 'N/A'}
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                    <strong>Group Number:</strong> {groupNumber ?? 'N/A'}
+                </div>
+                <div style={{ marginBottom: 8, color: '#aaa' }}>
+                    <strong>Result Reported:</strong> {result ? 'Yes' : 'No'}
+                </div>
+                {winner !== undefined && winner !== null && (
+                    <div style={{ marginBottom: 8, color: '#51cf66' }}>
+                        <strong>Winner:</strong> {winner}
+                    </div>
+                )}
+                <div style={{ marginBottom: 8, color: '#aaa' }}>
+                    <strong>Draw:</strong> {draw ? 'Yes' : 'No'}
+                </div>
+            </div>
+
+            {/* Group Members */}
+            {members && Array.isArray(members) && members.length > 0 && (
+                <div>
+                    <strong>Group Members:</strong>
+                    <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+                        {members.map((member, idx) => (
+                            <li key={idx} style={{
+                                fontWeight: member.id === participantId ? 'bold' : 'normal',
+                                color: member.id === participantId ? '#51cf66' : '#fff'
+                            }}>
+                                {member.name ?? member.id ?? 'Unknown'}
+                                {member.id === participantId && ' (You)'}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </div>
+    )
+}
+
 export default function RoomPage() {
     const { code, participantId } = useParams()
     const navigate = useNavigate()
@@ -103,11 +153,11 @@ export default function RoomPage() {
 
     const handleReportResult = async (result) => {
         if (!code || !participantId) return
-        
+
         setReportLoading(true)
         setReportMessage(null)
         setRoomError(null)
-        
+
         try {
             const url = `${apiBase}/${encodeURIComponent(code)}/report`
             const res = await fetch(url, {
@@ -174,7 +224,7 @@ export default function RoomPage() {
     useEffect(() => {
         const savedCode = localStorage.getItem('currentRoomCode')
         const savedParticipantId = localStorage.getItem('currentParticipantId')
-        
+
         if (savedCode && savedParticipantId && window.location.pathname === '/') {
             navigate(`/room/${savedCode}/${savedParticipantId}`)
         }
@@ -205,8 +255,8 @@ export default function RoomPage() {
                                 <strong>Participants ({roomData.participants.length}):</strong>
                                 <ul>
                                     {roomData.participants.map((p, i) => (
-                                        <li key={p.participantId ?? i}>
-                                            {p.participantName ?? p.participantId ?? JSON.stringify(p)}
+                                        <li key={p.id ?? i}>
+                                            {p.name ?? p.id ?? 'Unknown'}
                                         </li>
                                     ))}
                                 </ul>
@@ -236,18 +286,10 @@ export default function RoomPage() {
 
             {started && (
                 <div style={{ marginTop: 12 }}>
-                    <h3>Results</h3>
+                    <h3>Your Group Assignment</h3>
                     {roomLoading && <div>Loading results…</div>}
                     {!roomLoading && groupResult ? (
-                        <pre
-                            style={{
-                                background: 'Black',
-                                padding: 12,
-                                overflowX: 'auto'
-                            }}
-                        >
-                            {JSON.stringify(groupResult, null, 2)}
-                        </pre>
+                        <RoundResults data={groupResult} />
                     ) : (
                         !roomLoading && <div>No results returned.</div>
                     )}
@@ -255,22 +297,22 @@ export default function RoomPage() {
                     <div style={{ marginTop: 16 }}>
                         <h4>Report Game Result</h4>
                         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button 
-                                onClick={() => handleReportResult('Win')} 
+                            <button
+                                onClick={() => handleReportResult('Win')}
                                 disabled={reportLoading}
                                 style={{ padding: '8px 16px' }}
                             >
                                 Win
                             </button>
-                            <button 
-                                onClick={() => handleReportResult('Draw')} 
+                            <button
+                                onClick={() => handleReportResult('Draw')}
                                 disabled={reportLoading}
                                 style={{ padding: '8px 16px' }}
                             >
                                 Draw
                             </button>
-                            <button 
-                                onClick={() => handleReportResult('Drop')} 
+                            <button
+                                onClick={() => handleReportResult('Drop')}
                                 disabled={reportLoading}
                                 style={{ padding: '8px 16px' }}
                             >

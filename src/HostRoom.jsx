@@ -2,6 +2,105 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiBase } from './api'
 
+// Helper component to display round results in a consistent format
+function RoundDisplay({ round, index, label }) {
+    if (!round) return null
+
+    // Handle both array of groups and object with groups property
+    let groups = []
+    let roundNumber = 'N/A'
+
+    if (Array.isArray(round)) {
+        // API returns array of groups directly
+        groups = round
+        // Extract round number from first group
+        if (groups.length > 0 && groups[0].round !== undefined) {
+            roundNumber = groups[0].round
+        } else if (index !== undefined) {
+            roundNumber = index + 1
+        }
+    } else {
+        // Round is an object with groups property
+        roundNumber = round.round ?? round.roundNumber ?? (index !== undefined ? index + 1 : 'N/A')
+        groups = round.groups ?? []
+    }
+
+    return (
+        <div style={{
+            background: '#1a1a1a',
+            padding: 16,
+            borderRadius: 4,
+            minWidth: 300,
+            flex: '0 0 300px',
+            color: '#fff'
+        }}>
+            <h4 style={{ marginTop: 0, color: '#fff' }}>
+                {label || `Round ${roundNumber}`}
+            </h4>
+
+            {groups.length > 0 ? (
+                groups.map((group, groupIdx) => {
+                    const groupNumber = group.groupNumber ?? groupIdx + 1
+                    const members = group.members ?? group.participants ?? []
+                    const result = group.result
+                    const winner = group.winner
+                    const draw = group.draw
+
+                    return (
+                        <div key={groupIdx} style={{
+                            marginBottom: 16,
+                            paddingLeft: 16,
+                            borderLeft: '3px solid #444',
+                            paddingBottom: 8
+                        }}>
+                            <div style={{ marginBottom: 8 }}>
+                                <strong>Group {groupNumber}</strong>
+                            </div>
+
+                            {/* Result details if available */}
+                            {(result !== undefined || winner !== undefined || draw !== undefined) && (
+                                <div style={{ marginBottom: 8, fontSize: 14, color: '#aaa' }}>
+                                    {result !== undefined && (
+                                        <div>
+                                            <strong>Result Reported:</strong> {result ? 'Yes' : 'No'}
+                                        </div>
+                                    )}
+                                    {winner !== undefined && winner !== null && (
+                                        <div>
+                                            <strong>Winner:</strong> {winner}
+                                        </div>
+                                    )}
+                                    {draw !== undefined && (
+                                        <div>
+                                            <strong>Draw:</strong> {draw ? 'Yes' : 'No'}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Group members */}
+                            {members.length > 0 && (
+                                <div>
+                                    <strong>Players:</strong>
+                                    <ul style={{ marginTop: 4, paddingLeft: 20, marginBottom: 0 }}>
+                                        {members.map((member, memberIdx) => (
+                                            <li key={memberIdx}>
+                                                {member.name ?? member.id ?? 'Unknown'}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )
+                })
+            ) : (
+                <div style={{ fontSize: 14, color: '#999' }}>No groups in this round.</div>
+            )}
+        </div>
+    )
+}
+
 export default function HostRoomPage() {
     const { code } = useParams()
     const navigate = useNavigate()
@@ -186,56 +285,56 @@ export default function HostRoomPage() {
     }, [code])
 
     return (
-        <div style={{ maxWidth: 900, margin: '0 auto', fontFamily: 'sans-serif' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto', fontFamily: 'sans-serif' }}>
             <h2>Host Room</h2>
-            
+
             {/* Room Code Section */}
-            <div style={{ marginBottom: 24, padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
+            <div style={{ marginBottom: 24, padding: 16, background: '#1a1a1a', borderRadius: 8, color: '#fff' }}>
                 <div style={{ marginBottom: 8 }}>
                     <strong style={{ fontSize: 18 }}>Room Code: </strong>
                     <span style={{ fontSize: 24, fontWeight: 'bold', marginLeft: 8 }}>{code}</span>
-                    <button 
+                    <button
                         onClick={copyCode}
                         style={{ marginLeft: 16, padding: '4px 12px' }}
                     >
                         Copy Code
                     </button>
                 </div>
-                <p style={{ fontSize: 13, color: '#555', margin: 0 }}>
+                <p style={{ fontSize: 13, color: '#aaa', margin: 0 }}>
                     Share this code with players so they can join the game.
                 </p>
             </div>
 
             {/* Error/Message Display */}
             {error && (
-                <div style={{ marginBottom: 16, color: 'crimson', fontSize: 14, padding: 12, background: '#ffe0e0', borderRadius: 4 }}>
+                <div style={{ marginBottom: 16, color: '#ff6b6b', fontSize: 14, padding: 12, background: '#1a1a1a', borderRadius: 4 }}>
                     {error}
                 </div>
             )}
             {message && (
-                <div style={{ marginBottom: 16, color: '#006600', fontSize: 14, padding: 12, background: '#e0ffe0', borderRadius: 4 }}>
+                <div style={{ marginBottom: 16, color: '#51cf66', fontSize: 14, padding: 12, background: '#1a1a1a', borderRadius: 4 }}>
                     {message}
                 </div>
             )}
 
             {/* Action Buttons */}
             <div style={{ marginBottom: 24, display: 'flex', gap: 12 }}>
-                <button 
-                    onClick={handleStart} 
+                <button
+                    onClick={handleStart}
                     disabled={starting || loading}
                     style={{ padding: '10px 20px', fontSize: 15 }}
                 >
                     {starting ? 'Starting…' : 'Start Game'}
                 </button>
-                <button 
-                    onClick={handleNewRound} 
+                <button
+                    onClick={handleNewRound}
                     disabled={startingNewRound || loading}
                     style={{ padding: '10px 20px', fontSize: 15 }}
                 >
                     {startingNewRound ? 'Starting…' : 'Start New Round'}
                 </button>
-                <button 
-                    onClick={fetchAllData} 
+                <button
+                    onClick={fetchAllData}
                     disabled={loading}
                     style={{ padding: '10px 20px', fontSize: 15 }}
                 >
@@ -249,8 +348,8 @@ export default function HostRoomPage() {
                 {participants.length > 0 ? (
                     <ul style={{ textAlign: 'left', maxWidth: 400 }}>
                         {participants.map((p, i) => (
-                            <li key={p.participantId ?? i}>
-                                {p.participantName ?? p.participantId ?? JSON.stringify(p)}
+                            <li key={p.id ?? i}>
+                                {p.name ?? p.id ?? 'Unknown'}
                             </li>
                         ))}
                     </ul>
@@ -261,53 +360,37 @@ export default function HostRoomPage() {
                 )}
             </div>
 
-            {/* Current Round */}
+            {/* Rounds Display - Horizontal Layout */}
             <div style={{ marginBottom: 24 }}>
-                <h3>Current Round</h3>
-                {currentRound ? (
-                    <pre
-                        style={{
-                            background: '#f5f5f5',
-                            padding: 16,
-                            overflowX: 'auto',
-                            borderRadius: 4,
-                            fontSize: 13
-                        }}
-                    >
-                        {JSON.stringify(currentRound, null, 2)}
-                    </pre>
-                ) : (
-                    <div style={{ fontSize: 14, color: '#666' }}>
-                        No current round data available.
-                    </div>
-                )}
-            </div>
-
-            {/* Archived Rounds */}
-            <div style={{ marginBottom: 24 }}>
-                <h3>Archived Rounds ({archivedRounds.length})</h3>
-                {archivedRounds.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <h3>Game Rounds</h3>
+                {(archivedRounds.length > 0 || currentRound) ? (
+                    <div style={{
+                        display: 'flex',
+                        gap: 16,
+                        overflowX: 'auto',
+                        paddingBottom: 16
+                    }}>
+                        {/* Archived rounds first (left to right) */}
                         {archivedRounds.map((round, idx) => (
-                            <div key={idx}>
-                                <h4>Round {idx + 1}</h4>
-                                <pre
-                                    style={{
-                                        background: '#f5f5f5',
-                                        padding: 16,
-                                        overflowX: 'auto',
-                                        borderRadius: 4,
-                                        fontSize: 13
-                                    }}
-                                >
-                                    {JSON.stringify(round, null, 2)}
-                                </pre>
-                            </div>
+                            <RoundDisplay
+                                key={idx}
+                                round={round}
+                                index={idx}
+                                label={`Round ${idx + 1}`}
+                            />
                         ))}
+
+                        {/* Current round last (rightmost) */}
+                        {currentRound && (
+                            <RoundDisplay
+                                round={currentRound}
+                                label="Current Round"
+                            />
+                        )}
                     </div>
                 ) : (
                     <div style={{ fontSize: 14, color: '#666' }}>
-                        No archived rounds yet.
+                        No rounds available yet.
                     </div>
                 )}
             </div>
