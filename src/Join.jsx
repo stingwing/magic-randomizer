@@ -47,12 +47,6 @@ export default function JoinPage() {
                 (data && (data.participantId || data.id || data.participant?.participantId)) ||
                 trimmedName
 
-            alert(
-                data && data.message
-                    ? `Joined: ${data.message}`
-                    : `Joined code "${trimmedCode}" as "${trimmedName}"`
-            )
-
             // Navigate to the room page which now contains all room polling / start-game logic
             navigate(
                 `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(participantId)}`
@@ -125,7 +119,7 @@ export default function JoinPage() {
             <h2>Commander Pod Creator</h2>
 
             {/* New Game Section */}
-            <div style={{ marginBottom: 32, padding: 16, background: '#f0f8ff', borderRadius: 8 }}>
+            <div style={{ marginBottom: 32, padding: 16, background: 'black', borderRadius: 8 }}>
                 <h3 style={{ marginTop: 0 }}>Host a New Game</h3>
                 <p style={{ fontSize: 14, color: '#555', marginBottom: 12 }}>
                     Create a new game room and share the code with players.

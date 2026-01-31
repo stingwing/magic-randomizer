@@ -204,12 +204,12 @@ export default function RoomPage() {
         // initial fetch
         fetchRoom()
 
-        // poll frequently to detect start quickly (adjust interval as desired)
-        if (!started) {
+        // poll frequently to detect start quickly (adjust interval as desired) // i think somehting about this is wrong
+     //   if (!started) {
             pollRef.current = setInterval(() => {
                 fetchRoom()
-            }, 5_000) // 5 seconds
-        }
+            }, 60_000) // 5 seconds
+        //}
 
         return () => {
             if (pollRef.current) {
@@ -286,7 +286,6 @@ export default function RoomPage() {
 
             {started && (
                 <div style={{ marginTop: 12 }}>
-                    <h3>Your Group Assignment</h3>
                     {roomLoading && <div>Loading results…</div>}
                     {!roomLoading && groupResult ? (
                         <RoundResults data={groupResult} />

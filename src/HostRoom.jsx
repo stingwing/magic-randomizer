@@ -112,6 +112,10 @@ export default function HostRoomPage() {
     const [message, setMessage] = useState(null)
     const [starting, setStarting] = useState(false)
     const [startingNewRound, setStartingNewRound] = useState(false)
+    const [gameStarted, setGameStarted] = useState(false)
+    const [newPlayerName, setNewPlayerName] = useState('')
+    const [addingPlayer, setAddingPlayer] = useState(false)
+    const [droppingPlayer, setDroppingPlayer] = useState({})
     const pollRef = useRef(null)
 
     // Fetch participants list
@@ -148,6 +152,10 @@ export default function HostRoomPage() {
             }
             const data = await res.json().catch(() => null)
             setCurrentRound(data)
+            // If there's a current round, game has started
+            if (data) {
+                setGameStarted(true)
+            }
         } catch (err) {
             console.error('Error fetching current round', err)
             // Don't set error for polling failures
@@ -170,6 +178,10 @@ export default function HostRoomPage() {
             const data = await res.json().catch(() => null)
             if (Array.isArray(data)) {
                 setArchivedRounds(data)
+                // If there are archived rounds, game has started
+                if (data.length > 0) {
+                    setGameStarted(true)
+                }
             } else {
                 setArchivedRounds([])
             }
@@ -190,7 +202,7 @@ export default function HostRoomPage() {
         setLoading(false)
     }
 
-    // Start the game
+    // Start the game or reset
     const handleStart = async () => {
         setStarting(true)
         setError(null)
@@ -205,9 +217,10 @@ export default function HostRoomPage() {
             const data = await res.json().catch(() => null)
             setMessage(
                 data && data.message
-                    ? `Started: ${data.message}`
-                    : 'Game started successfully'
+                    ? `${gameStarted ? 'Reset' : 'Started'}: ${data.message}`
+                    : `Game ${gameStarted ? 'reset' : 'started'} successfully`
             )
+            setGameStarted(true)
             // Refresh data after starting
             await fetchAllData()
         } catch (err) {
@@ -243,6 +256,76 @@ export default function HostRoomPage() {
             setError(err.message || 'Unknown error while starting new round')
         } finally {
             setStartingNewRound(false)
+        }
+    }
+
+    // Add a new player
+    const handleAddPlayer = async () => {
+        if (!newPlayerName.trim()) {
+            setError('Please enter a player name')
+            return
+        }
+
+        setAddingPlayer(true)
+        setError(null)
+        setMessage(null)
+        try {
+            const url = `${apiBase}/${encodeURIComponent(code)}/join`
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    participantId: newPlayerName,
+                    participantName: newPlayerName
+                })
+            })
+            if (!res.ok) {
+                const txt = await res.text().catch(() => '')
+                throw new Error(txt || `Server returned ${res.status}`)
+            }
+            setMessage(`Player "${newPlayerName.trim()}" added successfully`)
+            setNewPlayerName('')
+            // Refresh data after adding player
+            await fetchParticipants()
+        } catch (err) {
+            console.error('Add player error', err)
+            setError(err.message || 'Unknown error while adding player')
+        } finally {
+            setAddingPlayer(false)
+        }
+    }
+
+    // Drop a player
+    const handleDropPlayer = async (playerId) => {
+        setDroppingPlayer(prev => ({ ...prev, [playerId]: true }))
+        setError(null)
+        setMessage(null)
+        try {
+            const url = `${apiBase}/${encodeURIComponent(code)}/report`
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    participantId: playerId,
+                    result: 'Drop'
+                })
+            })
+            if (!res.ok) {
+                const txt = await res.text().catch(() => '')
+                throw new Error(txt || `Server returned ${res.status}`)
+            }
+            setMessage('Player dropped successfully')
+            // Refresh data after dropping player
+            await fetchAllData()
+        } catch (err) {
+            console.error('Drop player error', err)
+            setError(err.message || 'Unknown error while dropping player')
+        } finally {
+            setDroppingPlayer(prev => ({ ...prev, [playerId]: false }))
         }
     }
 
@@ -324,7 +407,7 @@ export default function HostRoomPage() {
                     disabled={starting || loading}
                     style={{ padding: '10px 20px', fontSize: 15 }}
                 >
-                    {starting ? 'Starting…' : 'Start Game'}
+                    {starting ? (gameStarted ? 'Resetting…' : 'Starting…') : (gameStarted ? 'Reset Game' : 'Start Game')}
                 </button>
                 <button
                     onClick={handleNewRound}
@@ -342,14 +425,63 @@ export default function HostRoomPage() {
                 </button>
             </div>
 
+            {/* Add Player Section */}
+            <div style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+                <input
+                    type="text"
+                    value={newPlayerName}
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                            handleAddPlayer()
+                        }
+                    }}
+                    placeholder="Enter player name"
+                    style={{ padding: '10px', fontSize: 15, flex: '0 0 250px' }}
+                    disabled={addingPlayer}
+                />
+                <button
+                    onClick={handleAddPlayer}
+                    disabled={addingPlayer || !newPlayerName.trim()}
+                    style={{ padding: '10px 20px', fontSize: 15 }}
+                >
+                    {addingPlayer ? 'Adding…' : 'Add Player'}
+                </button>
+            </div>
+
             {/* Participants List */}
             <div style={{ marginBottom: 24 }}>
                 <h3>Players ({participants.length})</h3>
                 {participants.length > 0 ? (
-                    <ul style={{ textAlign: 'left', maxWidth: 400 }}>
+                    <ul style={{ textAlign: 'left', maxWidth: 400, listStyle: 'none', padding: 0 }}>
                         {participants.map((p, i) => (
-                            <li key={p.id ?? i}>
-                                {p.name ?? p.id ?? 'Unknown'}
+                            <li key={p.id ?? i} style={{ 
+                                marginBottom: 8, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'space-between',
+                                padding: '8px 12px',
+                                background: '#1a1a1a',
+                                borderRadius: 4
+                            }}>
+                                <span style={{ color: '#fff' }}>
+                                    {p.name ?? p.id ?? 'Unknown'}
+                                </span>
+                                <button
+                                    onClick={() => handleDropPlayer(p.id)}
+                                    disabled={droppingPlayer[p.id]}
+                                    style={{ 
+                                        padding: '4px 12px', 
+                                        fontSize: 13,
+                                        background: '#dc3545',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: 3,
+                                        cursor: droppingPlayer[p.id] ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {droppingPlayer[p.id] ? 'Dropping…' : 'Drop'}
+                                </button>
                             </li>
                         ))}
                     </ul>
