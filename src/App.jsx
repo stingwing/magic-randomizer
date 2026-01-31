@@ -5,6 +5,7 @@ import NewPage from './About' // About page
 import JoinPage from './Join' // Join page (now home page)
 import RoomPage from './Room' // Room / waiting page
 import HostRoomPage from './HostRoom' // Host room page
+import ViewPage from './ViewPage' // View page
 import NavBar from './NavBar'
 
 function shuffle(array) {
@@ -392,6 +393,8 @@ function App() {
                     <Route path="/new" element={<NewPage />} />
                     <Route path="/room/:code/:participantId" element={<RoomPage />} />
                     <Route path="/host/:code" element={<HostRoomPage />} />
+                    <Route path="/view" element={<ViewPage />} />
+                    <Route path="/view/:code" element={<ViewPage />} />
                 </Routes>
             </div>
         </Router>

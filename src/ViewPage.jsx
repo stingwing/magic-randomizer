@@ -85,27 +85,23 @@ function RoundDisplay({ round, index, label }) {
     )
 }
 
-export default function HostRoomPage() {
-    const { code } = useParams()
+export default function ViewPage() {
+    const { code: paramCode } = useParams()
     const navigate = useNavigate()
+    const [code, setCode] = useState(paramCode || '')
     const [participants, setParticipants] = useState([])
     const [currentRound, setCurrentRound] = useState(null)
     const [archivedRounds, setArchivedRounds] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
-    const [message, setMessage] = useState(null)
-    const [starting, setStarting] = useState(false)
-    const [startingNewRound, setStartingNewRound] = useState(false)
     const [gameStarted, setGameStarted] = useState(false)
-    const [newPlayerName, setNewPlayerName] = useState('')
-    const [addingPlayer, setAddingPlayer] = useState(false)
-    const [droppingPlayer, setDroppingPlayer] = useState({})
+    const [isViewing, setIsViewing] = useState(false)
     const pollRef = useRef(null)
 
-    const fetchParticipants = async () => {
-        if (!code) return
+    const fetchParticipants = async (roomCode) => {
+        if (!roomCode) return
         try {
-            const res = await fetch(`${apiBase}/${encodeURIComponent(code)}`)
+            const res = await fetch(`${apiBase}/${encodeURIComponent(roomCode)}`)
             if (!res.ok) {
                 const txt = await res.text().catch(() => '')
                 throw new Error(txt || `Server returned ${res.status}`)
@@ -116,13 +112,14 @@ export default function HostRoomPage() {
             }
         } catch (err) {
             console.error('Error fetching participants', err)
+            throw err
         }
     }
 
-    const fetchCurrentRound = async () => {
-        if (!code) return
+    const fetchCurrentRound = async (roomCode) => {
+        if (!roomCode) return
         try {
-            const res = await fetch(`${apiBase}/${encodeURIComponent(code)}/current`)
+            const res = await fetch(`${apiBase}/${encodeURIComponent(roomCode)}/current`)
             if (res.status === 404 || res.status === 204) {
                 setCurrentRound(null)
                 return
@@ -141,10 +138,10 @@ export default function HostRoomPage() {
         }
     }
 
-    const fetchArchivedRounds = async () => {
-        if (!code) return
+    const fetchArchivedRounds = async (roomCode) => {
+        if (!roomCode) return
         try {
-            const res = await fetch(`${apiBase}/${encodeURIComponent(code)}/archived`)
+            const res = await fetch(`${apiBase}/${encodeURIComponent(roomCode)}/archived`)
             if (res.status === 404 || res.status === 204) {
                 setArchivedRounds([])
                 return
@@ -167,172 +164,152 @@ export default function HostRoomPage() {
         }
     }
 
-    const fetchAllData = async () => {
+    const fetchAllData = async (roomCode) => {
         setLoading(true)
-        await Promise.all([
-            fetchParticipants(),
-            fetchCurrentRound(),
-            fetchArchivedRounds()
-        ])
-        setLoading(false)
-    }
-
-    const handleStart = async () => {
-        setStarting(true)
         setError(null)
-        setMessage(null)
         try {
-            const url = `${apiBase}/${encodeURIComponent(code)}/start`
-            const res = await fetch(url)
-            if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+            await Promise.all([
+                fetchParticipants(roomCode),
+                fetchCurrentRound(roomCode),
+                fetchArchivedRounds(roomCode)
+            ])
+            setIsViewing(true)
+            // Navigate to the parameterized route
+            if (!paramCode) {
+                navigate(`/view/${roomCode}`, { replace: true })
             }
-            const data = await res.json().catch(() => null)
-            setMessage(
-                data && data.message
-                    ? `${gameStarted ? 'Reset' : 'Started'}: ${data.message}`
-                    : `Game ${gameStarted ? 'reset' : 'started'} successfully`
-            )
-            setGameStarted(true)
-            await fetchAllData()
         } catch (err) {
-            console.error('Start game error', err)
-            setError(err.message || 'Unknown error while starting game')
+            setError(err.message || 'Failed to load room data')
+            setIsViewing(false)
         } finally {
-            setStarting(false)
+            setLoading(false)
         }
     }
 
-    const handleNewRound = async () => {
-        setStartingNewRound(true)
-        setError(null)
-        setMessage(null)
-        try {
-            const url = `${apiBase}/${encodeURIComponent(code)}/newround`
-            const res = await fetch(url)
-            if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
-            }
-            const data = await res.json().catch(() => null)
-            setMessage(
-                data && data.message
-                    ? data.message
-                    : 'New round started successfully'
-            )
-            await fetchAllData()
-        } catch (err) {
-            console.error('New round error', err)
-            setError(err.message || 'Unknown error while starting new round')
-        } finally {
-            setStartingNewRound(false)
-        }
-    }
-
-    const handleAddPlayer = async () => {
-        if (!newPlayerName.trim()) {
-            setError('Please enter a player name')
+    const handleView = () => {
+        if (!code.trim()) {
+            setError('Please enter a room code')
             return
         }
+        fetchAllData(code.trim())
+    }
 
-        setAddingPlayer(true)
-        setError(null)
-        setMessage(null)
-        try {   
-            const url = `${apiBase}/${encodeURIComponent(code)}/join`
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    participantId: newPlayerName,
-                    participantName: newPlayerName
-                })
-            })
-            if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
-            }
-            setMessage(`Player "${newPlayerName.trim()}" added successfully`)
-            setNewPlayerName('')
-            await fetchParticipants()
-        } catch (err) {
-            console.error('Add player error', err)
-            setError(err.message || 'Unknown error while adding player')
-        } finally {
-            setAddingPlayer(false)
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && !loading) {
+            handleView()
         }
     }
 
-    const handleDropPlayer = async (playerId) => {
-        setDroppingPlayer(prev => ({ ...prev, [playerId]: true }))
+    const handleNewSearch = () => {
+        setIsViewing(false)
+        setCode('')
+        setParticipants([])
+        setCurrentRound(null)
+        setArchivedRounds([])
+        setGameStarted(false)
         setError(null)
-        setMessage(null)
-        try {
-            const url = `${apiBase}/${encodeURIComponent(code)}/report`
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    participantId: playerId,
-                    result: 'Drop'
-                })
-            })
-            if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
-            }
-            setMessage('Player dropped successfully')
-            await fetchAllData()
-        } catch (err) {
-            console.error('Drop player error', err)
-            setError(err.message || 'Unknown error while dropping player')
-        } finally {
-            setDroppingPlayer(prev => ({ ...prev, [playerId]: false }))
-        }
-    }
-
-    const copyCode = async () => {
-        if (!code) return
-        try {
-            await navigator.clipboard.writeText(code)
-            setMessage('Code copied to clipboard!')
-            setTimeout(() => setMessage(null), 3000)
-        } catch {
-            alert(`Copy this code: ${code}`)
+        navigate('/view', { replace: true })
+        if (pollRef.current) {
+            clearInterval(pollRef.current)
+            pollRef.current = null
         }
     }
 
     useEffect(() => {
-        if (!code) {
-            navigate('/')
-            return
+        if (paramCode && !isViewing) {
+            setCode(paramCode)
+            fetchAllData(paramCode)
         }
+    }, [paramCode])
 
-        localStorage.setItem('hostRoomCode', code)
+    useEffect(() => {
+        if (isViewing && code) {
+            // Start polling for updates every minute
+            pollRef.current = setInterval(() => {
+                fetchAllData(code)
+            }, 60000)
 
-        fetchAllData()
-
-        pollRef.current = setInterval(() => {
-            fetchAllData()
-        }, 60000)
-
-        return () => {
-            if (pollRef.current) {
-                clearInterval(pollRef.current)
-                pollRef.current = null
+            return () => {
+                if (pollRef.current) {
+                    clearInterval(pollRef.current)
+                    pollRef.current = null
+                }
             }
         }
-    }, [code])
+    }, [isViewing, code])
+
+    if (!isViewing) {
+        return (
+            <div style={styles.container}>
+                <div style={styles.header}>
+                    <h1 style={styles.title}>👁️ View Game</h1>
+                    <p style={styles.subtitle}>
+                        Enter a room code to view the game status in real-time
+                    </p>
+                </div>
+
+                <div style={styles.searchCard}>
+                    <div style={styles.searchContent}>
+                        <label style={styles.label}>
+                            Room Code
+                            <input
+                                type="text"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Enter room code"
+                                style={styles.input}
+                                disabled={loading}
+                                autoFocus
+                            />
+                        </label>
+                        <button
+                            onClick={handleView}
+                            disabled={loading || !code.trim()}
+                            style={{
+                                ...styles.viewButton,
+                                ...(loading || !code.trim() ? styles.buttonDisabled : {})
+                            }}
+                        >
+                            {loading ? (
+                                <>
+                                    <span style={styles.spinner}></span>
+                                    Loading...
+                                </>
+                            ) : (
+                                <>👁️ View Game</>
+                            )}
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div style={styles.errorMessage}>
+                            <span>⚠️</span> {error}
+                        </div>
+                    )}
+                </div>
+
+                <div style={styles.infoCard}>
+                    <h3 style={styles.infoTitle}>ℹ️ About View Mode</h3>
+                    <p style={styles.infoText}>
+                        View mode allows you to spectate a game in real-time without joining as a player or host.
+                        Perfect for tournament organizers, friends watching, or anyone interested in following along.
+                    </p>
+                    <ul style={styles.infoList}>
+                        <li>See all players in the game</li>
+                        <li>View current and past rounds</li>
+                        <li>Track game progress and results</li>
+                        <li>Auto-refreshes every minute</li>
+                    </ul>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1 style={styles.title}>🎮 Host Dashboard</h1>
+                <h1 style={styles.title}>👁️ Viewing Game</h1>
             </div>
 
             {/* Room Code Banner */}
@@ -341,64 +318,56 @@ export default function HostRoomPage() {
                     <div>
                         <div style={styles.codeLabel}>Room Code</div>
                         <div style={styles.code}>{code}</div>
-                        <div style={styles.codeHint}>Share this code with players to join</div>
+                        <div style={styles.codeHint}>Read-only view</div>
                     </div>
-                    <button onClick={copyCode} style={styles.copyButton}>
-                        📋 Copy Code
+                    <button onClick={handleNewSearch} style={styles.changeButton}>
+                        🔍 View Different Game
                     </button>
                 </div>
             </div>
 
-            {/* Messages */}
             {error && (
                 <div style={styles.errorMessage}>
                     <span>⚠️</span> {error}
                 </div>
             )}
-            {message && (
-                <div style={styles.successMessage}>
-                    <span>✅</span> {message}
-                </div>
-            )}
 
-            {/* Control Panel */}
-            <div style={styles.controlPanel}>
-                <h3 style={styles.sectionTitle}>Game Controls</h3>
-                <div style={styles.buttonGrid}>
+            {/* Participants List */}
+            <div style={styles.participantsSection}>
+                <h3 style={styles.sectionTitle}>
+                    Players ({participants.length})
+                </h3>
+                {loading && participants.length === 0 ? (
+                    <div style={styles.loadingState}>
+                        <span style={styles.spinner}></span>
+                        <span>Loading players...</span>
+                    </div>
+                ) : participants.length > 0 ? (
+                    <div style={styles.participantsGrid}>
+                        {participants.map((p, i) => (
+                            <div key={p.id ?? i} style={styles.participantCard}>
+                                <span style={styles.participantName}>
+                                    <span style={styles.participantDot}>●</span>
+                                    {p.name ?? p.id ?? 'Unknown'}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div style={styles.emptyState}>
+                        No players have joined yet.
+                    </div>
+                )}
+            </div>
+
+            {/* Rounds Display */}
+            <div style={styles.roundsSection}>
+                <div style={styles.roundsHeader}>
+                    <h3 style={styles.sectionTitle}>Game Rounds</h3>
                     <button
-                        onClick={handleStart}
-                        disabled={starting || loading}
-                        style={{...styles.actionButton, ...styles.startButton}}
-                    >
-                        {starting ? (
-                            <>
-                                <span style={styles.spinner}></span>
-                                {gameStarted ? 'Resetting...' : 'Starting...'}
-                            </>
-                        ) : (
-                            <>
-                                {gameStarted ? '🔄 Reset Game' : '🚀 Start Game'}
-                            </>
-                        )}
-                    </button>
-                    <button
-                        onClick={handleNewRound}
-                        disabled={startingNewRound || loading}
-                        style={{...styles.actionButton, ...styles.newRoundButton}}
-                    >
-                        {startingNewRound ? (
-                            <>
-                                <span style={styles.spinner}></span>
-                                Starting...
-                            </>
-                        ) : (
-                            '➕ New Round'
-                        )}
-                    </button>
-                    <button
-                        onClick={fetchAllData}
+                        onClick={() => fetchAllData(code)}
                         disabled={loading}
-                        style={{...styles.actionButton, ...styles.refreshButton}}
+                        style={styles.refreshButton}
                     >
                         {loading ? (
                             <>
@@ -410,76 +379,12 @@ export default function HostRoomPage() {
                         )}
                     </button>
                 </div>
-            </div>
-
-            {/* Add Player Section */}
-            <div style={styles.addPlayerSection}>
-                <h3 style={styles.sectionTitle}>Add Player</h3>
-                <div style={styles.addPlayerForm}>
-                    <input
-                        type="text"
-                        value={newPlayerName}
-                        onChange={(e) => setNewPlayerName(e.target.value)}
-                        onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                                handleAddPlayer()
-                            }
-                        }}
-                        placeholder="Enter player name"
-                        style={styles.playerInput}
-                        disabled={addingPlayer}
-                    />
-                    <button
-                        onClick={handleAddPlayer}
-                        disabled={addingPlayer || !newPlayerName.trim()}
-                        style={styles.addButton}
-                    >
-                        {addingPlayer ? (
-                            <>
-                                <span style={styles.spinner}></span>
-                                Adding...
-                            </>
-                        ) : (
-                            '➕ Add Player'
-                        )}
-                    </button>
-                </div>
-            </div>
-
-            {/* Participants List */}
-            <div style={styles.participantsSection}>
-                <h3 style={styles.sectionTitle}>
-                    Players ({participants.length})
-                </h3>
-                {participants.length > 0 ? (
-                    <div style={styles.participantsGrid}>
-                        {participants.map((p, i) => (
-                            <div key={p.id ?? i} style={styles.participantCard}>
-                                <span style={styles.participantName}>
-                                    <span style={styles.participantDot}>●</span>
-                                    {p.name ?? p.id ?? 'Unknown'}
-                                </span>
-                                <button
-                                    onClick={() => handleDropPlayer(p.id)}
-                                    disabled={droppingPlayer[p.id]}
-                                    style={styles.dropButton}
-                                >
-                                    {droppingPlayer[p.id] ? '...' : '🚪'}
-                                </button>
-                            </div>
-                        ))}
+                {loading && archivedRounds.length === 0 && !currentRound ? (
+                    <div style={styles.loadingState}>
+                        <span style={styles.spinner}></span>
+                        <span>Loading rounds...</span>
                     </div>
-                ) : (
-                    <div style={styles.emptyState}>
-                        No players have joined yet. Share the room code to get started!
-                    </div>
-                )}
-            </div>
-
-            {/* Rounds Display */}
-            <div style={styles.roundsSection}>
-                <h3 style={styles.sectionTitle}>Game Rounds</h3>
-                {(archivedRounds.length > 0 || currentRound) ? (
+                ) : (archivedRounds.length > 0 || currentRound) ? (
                     <div style={styles.roundsContainer}>
                         {archivedRounds.map((round, idx) => (
                             <RoundDisplay
@@ -498,7 +403,7 @@ export default function HostRoomPage() {
                     </div>
                 ) : (
                     <div style={styles.emptyState}>
-                        No rounds available yet. Click "Start Game" to begin!
+                        No rounds available yet. The game hasn't started.
                     </div>
                 )}
             </div>
@@ -524,6 +429,87 @@ const styles = {
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
         margin: 0
+    },
+    subtitle: {
+        fontSize: '1.1rem',
+        color: 'var(--text-secondary)',
+        marginTop: '0.5rem'
+    },
+    searchCard: {
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '16px',
+        padding: '2rem',
+        marginBottom: '2rem',
+        boxShadow: '0 4px 12px var(--shadow-color)'
+    },
+    searchContent: {
+        display: 'flex',
+        gap: '1rem',
+        flexWrap: 'wrap',
+        alignItems: 'flex-end'
+    },
+    label: {
+        flex: '1 1 300px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+        fontSize: '0.9rem',
+        fontWeight: '500',
+        color: 'var(--text-primary)'
+    },
+    input: {
+        padding: '1rem',
+        fontSize: '1rem',
+        borderRadius: '10px',
+        border: '1px solid var(--input-border)',
+        background: 'var(--input-bg)',
+        color: 'var(--text-primary)'
+    },
+    viewButton: {
+        padding: '1rem 2rem',
+        fontSize: '1rem',
+        fontWeight: '600',
+        borderRadius: '10px',
+        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
+        color: 'white',
+        border: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        boxShadow: '0 4px 12px rgba(100, 108, 255, 0.3)',
+        transition: 'all 0.3s ease'
+    },
+    buttonDisabled: {
+        opacity: 0.6,
+        cursor: 'not-allowed'
+    },
+    infoCard: {
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '16px',
+        padding: '2rem',
+        boxShadow: '0 4px 12px var(--shadow-color)'
+    },
+    infoTitle: {
+        fontSize: '1.2rem',
+        fontWeight: '600',
+        marginTop: 0,
+        marginBottom: '1rem',
+        color: 'var(--text-primary)'
+    },
+    infoText: {
+        fontSize: '1rem',
+        color: 'var(--text-secondary)',
+        lineHeight: '1.6',
+        marginBottom: '1rem'
+    },
+    infoList: {
+        margin: 0,
+        paddingLeft: '1.5rem',
+        color: 'var(--text-secondary)',
+        lineHeight: '1.8'
     },
     codeBanner: {
         background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
@@ -556,7 +542,7 @@ const styles = {
         color: 'rgba(255, 255, 255, 0.7)',
         fontSize: '0.9rem'
     },
-    copyButton: {
+    changeButton: {
         padding: '1rem 2rem',
         fontSize: '1rem',
         fontWeight: '600',
@@ -574,25 +560,13 @@ const styles = {
         background: 'var(--error-bg)',
         border: '1px solid var(--error-border)',
         color: 'var(--error-text)',
-        marginBottom: '1.5rem',
+        marginTop: '1.5rem',
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
         animation: 'slideIn 0.3s ease'
     },
-    successMessage: {
-        padding: '1rem 1.5rem',
-        borderRadius: '12px',
-        background: 'var(--success-bg)',
-        border: '1px solid var(--success-border)',
-        color: 'var(--success-text)',
-        marginBottom: '1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        animation: 'slideIn 0.3s ease'
-    },
-    controlPanel: {
+    participantsSection: {
         background: 'var(--card-bg)',
         border: '1px solid var(--border-color)',
         borderRadius: '16px',
@@ -603,80 +577,9 @@ const styles = {
     sectionTitle: {
         fontSize: '1.3rem',
         fontWeight: '600',
+        marginTop: 0,
         marginBottom: '1.5rem',
         color: 'var(--text-primary)'
-    },
-    buttonGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        gap: '1rem'
-    },
-    actionButton: {
-        padding: '1rem 1.5rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: '10px',
-        border: 'none',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        color: 'white'
-    },
-    startButton: {
-        background: 'linear-gradient(135deg, #51cf66 0%, #37b24d 100%)',
-        boxShadow: '0 4px 12px rgba(81, 207, 102, 0.3)'
-    },
-    newRoundButton: {
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        boxShadow: '0 4px 12px rgba(100, 108, 255, 0.3)'
-    },
-    refreshButton: {
-        background: 'linear-gradient(135deg, #ffd43b 0%, #fab005 100%)',
-        color: '#333',
-        boxShadow: '0 4px 12px rgba(255, 212, 59, 0.3)'
-    },
-    addPlayerSection: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '2rem',
-        marginBottom: '2rem',
-        boxShadow: '0 4px 12px var(--shadow-color)'
-    },
-    addPlayerForm: {
-        display: 'flex',
-        gap: '1rem',
-        flexWrap: 'wrap'
-    },
-    playerInput: {
-        flex: '1 1 300px',
-        padding: '1rem',
-        fontSize: '1rem',
-        borderRadius: '10px'
-    },
-    addButton: {
-        padding: '1rem 2rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: '10px',
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        color: 'white',
-        border: 'none',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem'
-    },
-    participantsSection: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '2rem',
-        marginBottom: '2rem',
-        boxShadow: '0 4px 12px var(--shadow-color)'
     },
     participantsGrid: {
         display: 'grid',
@@ -690,8 +593,7 @@ const styles = {
         padding: '1rem',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-color)',
-        borderRadius: '10px',
-        transition: 'all 0.2s ease'
+        borderRadius: '10px'
     },
     participantName: {
         display: 'flex',
@@ -705,18 +607,31 @@ const styles = {
         color: 'var(--success-color)',
         fontSize: '0.8rem'
     },
-    dropButton: {
-        padding: '0.5rem 0.75rem',
-        fontSize: '1rem',
-        background: '#ff6b6b',
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease'
-    },
     roundsSection: {
         marginBottom: '2rem'
+    },
+    roundsHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem',
+        flexWrap: 'wrap',
+        gap: '1rem'
+    },
+    refreshButton: {
+        padding: '0.75rem 1.5rem',
+        fontSize: '0.9rem',
+        fontWeight: '600',
+        borderRadius: '10px',
+        background: 'linear-gradient(135deg, #ffd43b 0%, #fab005 100%)',
+        color: '#333',
+        border: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        boxShadow: '0 4px 12px rgba(255, 212, 59, 0.3)',
+        transition: 'all 0.3s ease'
     },
     roundsContainer: {
         display: 'flex',
@@ -800,6 +715,16 @@ const styles = {
         background: 'var(--bg-secondary)',
         borderRadius: '12px',
         border: '2px dashed var(--border-color)'
+    },
+    loadingState: {
+        padding: '3rem 2rem',
+        textAlign: 'center',
+        color: 'var(--text-secondary)',
+        fontSize: '1rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '1rem'
     },
     spinner: {
         width: '16px',
