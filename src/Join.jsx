@@ -1,5 +1,5 @@
-﻿import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+﻿import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiBase } from './api'
 
 export default function JoinPage() {
@@ -9,6 +9,14 @@ export default function JoinPage() {
     const [creating, setCreating] = useState(false)
     const [error, setError] = useState(null)
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
+
+    useEffect(() => {
+        const codeParam = searchParams.get('code')
+        if (codeParam) {
+            setCode(codeParam)
+        }
+    }, [searchParams])
 
     const handleJoin = async () => {
         const trimmedCode = code.trim()

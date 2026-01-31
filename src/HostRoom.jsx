@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { QRCodeSVG } from 'qrcode.react'
 import { apiBase } from './api'
 
 function RoundDisplay({ round, index, label }) {
@@ -100,7 +101,13 @@ export default function HostRoomPage() {
     const [newPlayerName, setNewPlayerName] = useState('')
     const [addingPlayer, setAddingPlayer] = useState(false)
     const [droppingPlayer, setDroppingPlayer] = useState({})
+    const [showQR, setShowQR] = useState(false)
     const pollRef = useRef(null)
+
+    const getJoinUrl = () => {
+        const baseUrl = window.location.origin
+        return `${baseUrl}/?code=${encodeURIComponent(code)}`
+    }
 
     const fetchParticipants = async () => {
         if (!code) return
@@ -307,6 +314,17 @@ export default function HostRoomPage() {
         }
     }
 
+    const copyJoinUrl = async () => {
+        const url = getJoinUrl()
+        try {
+            await navigator.clipboard.writeText(url)
+            setMessage('Join URL copied to clipboard!')
+            setTimeout(() => setMessage(null), 3000)
+        } catch {
+            alert(`Copy this URL: ${url}`)
+        }
+    }
+
     useEffect(() => {
         if (!code) {
             navigate('/')
@@ -343,10 +361,39 @@ export default function HostRoomPage() {
                         <div style={styles.code}>{code}</div>
                         <div style={styles.codeHint}>Share this code with players to join</div>
                     </div>
-                    <button onClick={copyCode} style={styles.copyButton}>
-                        📋 Copy Code
-                    </button>
+                    <div style={styles.codeActions}>
+                        <button onClick={copyCode} style={styles.copyButton}>
+                            📋 Copy Code
+                        </button>
+                        <button onClick={() => setShowQR(!showQR)} style={styles.qrToggleButton}>
+                            📱 {showQR ? 'Hide' : 'Show'} QR Code
+                        </button>
+                    </div>
                 </div>
+
+                {/* QR Code Display */}
+                {showQR && (
+                    <div style={styles.qrSection}>
+                        <div style={styles.qrCodeWrapper}>
+                            <QRCodeSVG
+                                value={getJoinUrl()}
+                                size={200}
+                                level="H"
+                                includeMargin={true}
+                                bgColor="#ffffff"
+                                fgColor="#000000"
+                            />
+                        </div>
+                        <div style={styles.qrInfo}>
+                            <p style={styles.qrDescription}>
+                                Players can scan this QR code to join with the room code pre-filled
+                            </p>
+                            <button onClick={copyJoinUrl} style={styles.copyUrlButton}>
+                                🔗 Copy Join URL
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Messages */}
@@ -556,6 +603,11 @@ const styles = {
         color: 'rgba(255, 255, 255, 0.7)',
         fontSize: '0.9rem'
     },
+    codeActions: {
+        display: 'flex',
+        gap: '1rem',
+        flexWrap: 'wrap'
+    },
     copyButton: {
         padding: '1rem 2rem',
         fontSize: '1rem',
@@ -567,6 +619,62 @@ const styles = {
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+    },
+    qrToggleButton: {
+        padding: '1rem 2rem',
+        fontSize: '1rem',
+        fontWeight: '600',
+        background: 'rgba(255, 255, 255, 0.2)',
+        color: 'white',
+        border: '2px solid white',
+        borderRadius: '10px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+    },
+    qrSection: {
+        marginTop: '2rem',
+        paddingTop: '2rem',
+        borderTop: '2px solid rgba(255, 255, 255, 0.2)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '2rem',
+        flexWrap: 'wrap',
+        justifyContent: 'center'
+    },
+    qrCodeWrapper: {
+        background: 'white',
+        padding: '1.5rem',
+        borderRadius: '16px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)'
+    },
+    qrInfo: {
+        flex: '1 1 300px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem'
+    },
+    qrDescription: {
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontSize: '1rem',
+        lineHeight: '1.6',
+        margin: 0
+    },
+    copyUrlButton: {
+        padding: '0.875rem 1.5rem',
+        fontSize: '1rem',
+        fontWeight: '600',
+        background: 'white',
+        color: '#646cff',
+        border: 'none',
+        borderRadius: '10px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        width: 'fit-content'
     },
     errorMessage: {
         padding: '1rem 1.5rem',
