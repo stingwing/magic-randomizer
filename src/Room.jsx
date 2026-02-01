@@ -136,6 +136,7 @@ export default function RoomPage() {
     const [playerOrder, setPlayerOrder] = useState('')
     const [firstPlayer, setFirstPlayer] = useState('')
     const [winCondition, setWinCondition] = useState('')
+    const [bracket, setBracket] = useState('')
 
     const fetchGroupResult = async () => {
         if (!code || !participantId) return false
@@ -225,6 +226,9 @@ export default function RoomPage() {
         }
         if (firstPlayer.trim()) {
             statistics['FirstPlayer'] = firstPlayer.trim()
+        }
+        if (bracket.trim()) {
+            statistics['Bracket'] = bracket.trim()
         }
         if (winCondition.trim()) {
             statistics['WinCondition'] = winCondition.trim()
@@ -434,6 +438,17 @@ export default function RoomPage() {
                                     value={commander}
                                     onChange={(e) => setCommander(e.target.value)}
                                     placeholder="Your commander name"
+                                    style={styles.textInput}
+                                    disabled={reportLoading}
+                                />
+                            </label>
+                            <label style={styles.inputLabel}>
+                                Bracket
+                                <input
+                                    type="number"
+                                    value={bracket}
+                                    onChange={(e) => setBracket(e.target.value)}
+                                    placeholder="Average Bracket"
                                     style={styles.textInput}
                                     disabled={reportLoading}
                                 />

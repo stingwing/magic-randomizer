@@ -77,7 +77,7 @@ export default function JoinPage() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ hostId: 'host1' })
+                body: JSON.stringify({ hostId: 'host1' }) // redesign how host names work // think about adding a password
             })
 
             if (!res.ok) {
