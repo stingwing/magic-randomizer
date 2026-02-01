@@ -2,15 +2,64 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiBase } from './api'
 
+function RoundTimer({ startedAtUtc }) {
+    const [elapsed, setElapsed] = useState('')
+
+    useEffect(() => {
+        if (!startedAtUtc) return
+
+        const calculateElapsed = () => {
+            const startTime = new Date(startedAtUtc)
+            const now = new Date()
+            const diffMs = now - startTime
+            
+            if (diffMs < 0) {
+                setElapsed('Not started')
+                return
+            }
+
+            const hours = Math.floor(diffMs / (1000 * 60 * 60))
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000)
+
+            if (hours > 0) {
+                setElapsed(`${hours}h ${minutes}m ${seconds}s`)
+            } else if (minutes > 0) {
+                setElapsed(`${minutes}m ${seconds}s`)
+            } else {
+                setElapsed(`${seconds}s`)
+            }
+        }
+
+        calculateElapsed()
+        const interval = setInterval(calculateElapsed, 1000)
+
+        return () => clearInterval(interval)
+    }, [startedAtUtc])
+
+    if (!startedAtUtc) return null
+
+    return (
+        <div style={styles.timerDisplay}>
+            <span style={styles.timerIcon}>⏱️</span>
+            <div style={styles.timerContent}>
+                <span style={styles.timerLabel}>Round Time:</span>
+                <span style={styles.timerValue}>{elapsed}</span>
+            </div>
+        </div>
+    )
+}
+
 function RoundResults({ data }) {
     if (!data) return <div style={styles.noResults}>No results returned.</div>
 
-    const { roomCode, participantId, groupNumber, members, round, result, winner, draw } = data
+    const { roomCode, participantId, groupNumber, members, round, result, winner, draw, startedAtUtc } = data
 
     return (
         <div style={styles.resultsCard}>
             <div style={styles.resultsHeader}>
                 <h3 style={styles.resultsTitle}> Your Group Assignment</h3>
+                {startedAtUtc && <RoundTimer startedAtUtc={startedAtUtc} />}
             </div>
 
             <div style={styles.resultDetails}>
@@ -600,13 +649,48 @@ const styles = {
     resultsHeader: {
         marginBottom: '1.5rem',
         paddingBottom: '1rem',
-        borderBottom: '2px solid var(--border-color)'
+        borderBottom: '2px solid var(--border-color)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem'
     },
     resultsTitle: {
         fontSize: '1.3rem',
         fontWeight: '600',
         margin: 0,
         color: 'var(--text-primary)'
+    },
+    timerDisplay: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.5rem 1rem',
+        background: 'linear-gradient(135deg, rgba(100, 108, 255, 0.1) 0%, rgba(83, 91, 242, 0.1) 100%)',
+        border: '1px solid var(--accent-color)',
+        borderRadius: '8px'
+    },
+    timerIcon: {
+        fontSize: '1.2rem'
+    },
+    timerContent: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.1rem'
+    },
+    timerLabel: {
+        fontSize: '0.7rem',
+        color: 'var(--text-secondary)',
+        fontWeight: '500',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em'
+    },
+    timerValue: {
+        fontSize: '1rem',
+        fontWeight: '700',
+        color: 'var(--accent-color)',
+        fontFamily: 'monospace'
     },
     resultDetails: {
         display: 'flex',

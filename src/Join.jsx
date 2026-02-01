@@ -147,7 +147,7 @@ export default function JoinPage() {
                                 Creating…
                             </>
                         ) : (
-                            <>✨ Create New Game</>
+                            <>Create New Game</>
                         )}
                     </button>
                 </div>

@@ -3,11 +3,60 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { apiBase } from './api'
 
+function RoundTimer({ startedAtUtc }) {
+    const [elapsed, setElapsed] = useState('')
+
+    useEffect(() => {
+        if (!startedAtUtc) return
+
+        const calculateElapsed = () => {
+            const startTime = new Date(startedAtUtc)
+            const now = new Date()
+            const diffMs = now - startTime
+
+            if (diffMs < 0) {
+                setElapsed('Not started')
+                return
+            }
+
+            const hours = Math.floor(diffMs / (1000 * 60 * 60))
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000)
+
+            if (hours > 0) {
+                setElapsed(`${hours}h ${minutes}m ${seconds}s`)
+            } else if (minutes > 0) {
+                setElapsed(`${minutes}m ${seconds}s`)
+            } else {
+                setElapsed(`${seconds}s`)
+            }
+        }
+
+        calculateElapsed()
+        const interval = setInterval(calculateElapsed, 1000)
+
+        return () => clearInterval(interval)
+    }, [startedAtUtc])
+
+    if (!startedAtUtc) return null
+
+    return (
+        <div style={styles.timerDisplay}>
+            <span style={styles.timerIcon}>⏱️</span>
+            <div style={styles.timerContent}>
+                <span style={styles.timerLabel}>Round Time:</span>
+                <span style={styles.timerValue}>{elapsed}</span>
+            </div>
+        </div>
+    )
+}
+
 function RoundDisplay({ round, index, label }) {
     if (!round) return null
 
     let groups = []
     let roundNumber = 'N/A'
+    let startedAtUtc = null
 
     if (Array.isArray(round)) {
         groups = round
@@ -19,13 +68,16 @@ function RoundDisplay({ round, index, label }) {
     } else {
         roundNumber = round.round ?? round.roundNumber ?? (index !== undefined ? index + 1 : 'N/A')
         groups = round.groups ?? []
+        startedAtUtc = round.startedAtUtc
     }
-
     return (
         <div style={styles.roundCard}>
-            <h4 style={styles.roundTitle}>
-                {label || `Round ${roundNumber}`}
-            </h4>
+            <div style={styles.roundHeader}>
+                <h4 style={styles.roundTitle}>
+                    {label || `Round ${roundNumber}`}
+                </h4>
+                {startedAtUtc && <RoundTimer startedAtUtc={startedAtUtc} />}
+            </div>
 
             {groups.length > 0 ? (
                 groups.map((group, groupIdx) => {
@@ -52,7 +104,7 @@ function RoundDisplay({ round, index, label }) {
                                     {winner !== undefined && winner !== null && (
                                         <div style={styles.resultItem}>
                                             <span style={styles.resultLabel}>Winner:</span>
-                                            <span style={{...styles.resultValue, color: 'var(--success-color)', fontWeight: '600'}}>
+                                            <span style={{ ...styles.resultValue, color: 'var(--success-color)', fontWeight: '600' }}>
                                                 🏆 {winner}
                                             </span>
                                         </div>
@@ -246,7 +298,7 @@ export default function HostRoomPage() {
         setAddingPlayer(true)
         setError(null)
         setMessage(null)
-        try {   
+        try {
             const url = `${apiBase}/${encodeURIComponent(code)}/join`
             const res = await fetch(url, {
                 method: 'POST',
@@ -323,6 +375,20 @@ export default function HostRoomPage() {
         } catch {
             alert(`Copy this URL: ${url}`)
         }
+    }
+
+    // Extract startedAtUtc from current round for the section-level timer
+    const getCurrentRoundStartTime = () => {
+        if (!currentRound) return null
+
+        if (Array.isArray(currentRound)) {
+            if (currentRound.length > 0 && currentRound[0].startedAtUtc) {
+                return currentRound[0].startedAtUtc
+            }
+        } else {
+            return currentRound.startedAtUtc
+        }
+        return null
     }
 
     useEffect(() => {
@@ -415,7 +481,7 @@ export default function HostRoomPage() {
                     <button
                         onClick={handleStart}
                         disabled={starting || loading}
-                        style={{...styles.actionButton, ...styles.startButton}}
+                        style={{ ...styles.actionButton, ...styles.startButton }}
                     >
                         {starting ? (
                             <>
@@ -431,7 +497,7 @@ export default function HostRoomPage() {
                     <button
                         onClick={handleNewRound}
                         disabled={startingNewRound || loading}
-                        style={{...styles.actionButton, ...styles.newRoundButton}}
+                        style={{ ...styles.actionButton, ...styles.newRoundButton }}
                     >
                         {startingNewRound ? (
                             <>
@@ -445,7 +511,7 @@ export default function HostRoomPage() {
                     <button
                         onClick={fetchAllData}
                         disabled={loading}
-                        style={{...styles.actionButton, ...styles.refreshButton}}
+                        style={{ ...styles.actionButton, ...styles.refreshButton }}
                     >
                         {loading ? (
                             <>
@@ -525,7 +591,12 @@ export default function HostRoomPage() {
 
             {/* Rounds Display */}
             <div style={styles.roundsSection}>
-                <h3 style={styles.sectionTitle}>Game Rounds</h3>
+                <div style={styles.sectionTitleRow}>
+                    <h3 style={styles.sectionTitle}>Game Rounds</h3>
+                    {currentRound && getCurrentRoundStartTime() && (
+                        <RoundTimer startedAtUtc={getCurrentRoundStartTime()} />
+                    )}
+                </div>
                 {(archivedRounds.length > 0 || currentRound) ? (
                     <div style={styles.roundsContainer}>
                         {archivedRounds.map((round, idx) => (
@@ -711,8 +782,16 @@ const styles = {
     sectionTitle: {
         fontSize: '1.3rem',
         fontWeight: '600',
-        marginBottom: '1.5rem',
+        margin: 0,
         color: 'var(--text-primary)'
+    },
+    sectionTitleRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem',
+        flexWrap: 'wrap',
+        gap: '1rem'
     },
     buttonGrid: {
         display: 'grid',
@@ -841,14 +920,50 @@ const styles = {
         flex: '0 0 320px',
         boxShadow: '0 4px 12px var(--shadow-color)'
     },
+    roundHeader: {
+        marginBottom: '1.5rem',
+        paddingBottom: '0.75rem',
+        borderBottom: '2px solid var(--border-color)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem'
+    },
     roundTitle: {
         fontSize: '1.2rem',
         fontWeight: '600',
-        marginTop: 0,
-        marginBottom: '1.5rem',
-        color: 'var(--text-primary)',
-        paddingBottom: '0.75rem',
-        borderBottom: '2px solid var(--border-color)'
+        margin: 0,
+        color: 'var(--text-primary)'
+    },
+    timerDisplay: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.5rem 1rem',
+        background: 'linear-gradient(135deg, rgba(100, 108, 255, 0.1) 0%, rgba(83, 91, 242, 0.1) 100%)',
+        border: '1px solid var(--accent-color)',
+        borderRadius: '8px',
+        width: 'fit-content'
+    },
+    timerIcon: {
+        fontSize: '1.2rem'
+    },
+    timerContent: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.1rem'
+    },
+    timerLabel: {
+        fontSize: '0.7rem',
+        color: 'var(--text-secondary)',
+        fontWeight: '500',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em'
+    },
+    timerValue: {
+        fontSize: '1rem',
+        fontWeight: '700',
+        color: 'var(--accent-color)',
+        fontFamily: 'monospace'
     },
     groupContainer: {
         marginBottom: '1.5rem',
