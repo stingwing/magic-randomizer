@@ -10,7 +10,7 @@ function RoundResults({ data }) {
     return (
         <div style={styles.resultsCard}>
             <div style={styles.resultsHeader}>
-                <h3 style={styles.resultsTitle}>🎮 Your Group Assignment</h3>
+                <h3 style={styles.resultsTitle}> Your Group Assignment</h3>
             </div>
 
             <div style={styles.resultDetails}>
@@ -80,6 +80,13 @@ export default function RoomPage() {
     const [reportMessage, setReportMessage] = useState(null)
     const pollRef = useRef(null)
     const lastUpdatedRef = useRef(null)
+
+    // Statistics state
+    const [commander, setCommander] = useState('')
+    const [turnCount, setTurnCount] = useState('')
+    const [playerOrder, setPlayerOrder] = useState('')
+    const [firstPlayer, setFirstPlayer] = useState('')
+    const [winCondition, setWinCondition] = useState('')
 
     const fetchGroupResult = async () => {
         if (!code || !participantId) return false
@@ -155,6 +162,28 @@ export default function RoomPage() {
         }
     }
 
+    const buildStatistics = () => {
+        const statistics = {}
+        
+        if (commander.trim()) {
+            statistics[`${participantId}_Commander`] = commander.trim()
+        }
+        if (turnCount.trim()) {
+            statistics['TurnCount'] = turnCount.trim()
+        }
+        if (playerOrder.trim()) {
+            statistics['PlayerOrder'] = playerOrder.trim()
+        }
+        if (firstPlayer.trim()) {
+            statistics['FirstPlayer'] = firstPlayer.trim()
+        }
+        if (winCondition.trim()) {
+            statistics['WinCondition'] = winCondition.trim()
+        }
+
+        return statistics
+    }
+
     const handleReportResult = async (result) => {
         if (!code || !participantId) return
 
@@ -164,15 +193,24 @@ export default function RoomPage() {
 
         try {
             const url = `${apiBase}/${encodeURIComponent(code)}/report`
+            const statistics = buildStatistics()
+            
+            const body = {
+                participantId: participantId,
+                result: result
+            }
+
+            // Only include statistics if there are any
+            if (Object.keys(statistics).length > 0) {
+                body.statistics = statistics
+            }
+
             const res = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    participantId: participantId,
-                    result: result
-                })
+                body: JSON.stringify(body)
             })
 
             if (!res.ok) {
@@ -192,6 +230,10 @@ export default function RoomPage() {
         } finally {
             setReportLoading(false)
         }
+    }
+
+    const handleUpdateStatistics = async () => {
+        await handleReportResult('data')
     }
 
     useEffect(() => {
@@ -292,7 +334,6 @@ export default function RoomPage() {
                     <div style={styles.reportCard}>
                         <h3 style={styles.reportTitle}>Report Your Game Result</h3>
                         <p style={styles.reportDescription}>
-                            Let the host know how your game went
                         </p>
                         <div style={styles.reportButtons}>
                             <button
@@ -300,21 +341,28 @@ export default function RoomPage() {
                                 disabled={reportLoading}
                                 style={{...styles.reportButton, ...styles.winButton}}
                             >
-                                {reportLoading ? <span style={styles.spinner}></span> : '🏆'} Win
+                                {reportLoading ? <span style={styles.spinner}></span> : ''} I won
                             </button>
                             <button
                                 onClick={() => handleReportResult('Draw')}
                                 disabled={reportLoading}
                                 style={{...styles.reportButton, ...styles.drawButton}}
                             >
-                                {reportLoading ? <span style={styles.spinner}></span> : '🤝'} Draw
+                                {reportLoading ? <span style={styles.spinner}></span> : ''} Draw
                             </button>
                             <button
                                 onClick={() => handleReportResult('Drop')}
                                 disabled={reportLoading}
                                 style={{...styles.reportButton, ...styles.dropButton}}
                             >
-                                {reportLoading ? <span style={styles.spinner}></span> : '🚪'} Drop
+                                {reportLoading ? <span style={styles.spinner}></span> : ''} Drop
+                            </button>
+                            <button
+                                onClick={handleUpdateStatistics}
+                                disabled={reportLoading}
+                                style={{...styles.reportButton, ...styles.updateButton}}
+                            >
+                                {reportLoading ? <span style={styles.spinner}></span> : ''} Update Statistics
                             </button>
                         </div>
                         {reportMessage && (
@@ -322,6 +370,70 @@ export default function RoomPage() {
                                 <span>✅</span> {reportMessage}
                             </div>
                         )}
+                    </div>
+
+                    <div style={styles.statisticsCard}>
+                        <h3 style={styles.statisticsTitle}>Game Statistics</h3>
+                        <p style={styles.statisticsDescription}>
+                            Track details about your game (optional)
+                        </p>
+                        <div style={styles.inputGrid}>
+                            <label style={styles.inputLabel}>
+                                Commander
+                                <input
+                                    type="text"
+                                    value={commander}
+                                    onChange={(e) => setCommander(e.target.value)}
+                                    placeholder="Your commander name"
+                                    style={styles.textInput}
+                                    disabled={reportLoading}
+                                />
+                            </label>
+                            <label style={styles.inputLabel}>
+                                Turn Count
+                                <input
+                                    type="number"
+                                    value={turnCount}
+                                    onChange={(e) => setTurnCount(e.target.value)}
+                                    placeholder="Number of turns"
+                                    style={styles.textInput}
+                                    disabled={reportLoading}
+                                />
+                            </label>
+                            <label style={styles.inputLabel}>
+                                Player Order
+                                <input
+                                    type="text"
+                                    value={playerOrder}
+                                    onChange={(e) => setPlayerOrder(e.target.value)}
+                                    placeholder="e.g., 1st, 2nd, 3rd, 4th"
+                                    style={styles.textInput}
+                                    disabled={reportLoading}
+                                />
+                            </label>
+                            <label style={styles.inputLabel}>
+                                First Player
+                                <input
+                                    type="text"
+                                    value={firstPlayer}
+                                    onChange={(e) => setFirstPlayer(e.target.value)}
+                                    placeholder="Who went first"
+                                    style={styles.textInput}
+                                    disabled={reportLoading}
+                                />
+                            </label>
+                            <label style={styles.inputLabel}>
+                                Win Condition
+                                <input
+                                    type="text"
+                                    value={winCondition}
+                                    onChange={(e) => setWinCondition(e.target.value)}
+                                    placeholder="How the game was won"
+                                    style={styles.textInput}
+                                    disabled={reportLoading}
+                                />
+                            </label>
+                        </div>
                     </div>
                 </div>
             )}
@@ -562,6 +674,47 @@ const styles = {
         fontSize: '0.75rem',
         fontWeight: '700'
     },
+    statisticsCard: {
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '16px',
+        padding: '2rem',
+        boxShadow: '0 4px 12px var(--shadow-color)'
+    },
+    statisticsTitle: {
+        fontSize: '1.3rem',
+        fontWeight: '600',
+        marginBottom: '0.5rem',
+        color: 'var(--text-primary)'
+    },
+    statisticsDescription: {
+        fontSize: '0.95rem',
+        color: 'var(--text-secondary)',
+        marginBottom: '1.5rem'
+    },
+    inputGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '1rem'
+    },
+    inputLabel: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+        fontSize: '0.9rem',
+        fontWeight: '500',
+        color: 'var(--text-primary)'
+    },
+    textInput: {
+        padding: '0.75rem',
+        fontSize: '1rem',
+        borderRadius: '8px',
+        border: '1px solid var(--border-color)',
+        background: 'var(--input-bg)',
+        color: 'var(--text-primary)',
+        transition: 'all 0.2s ease',
+        outline: 'none'
+    },
     reportCard: {
         background: 'var(--card-bg)',
         border: '1px solid var(--border-color)',
@@ -609,6 +762,10 @@ const styles = {
     },
     dropButton: {
         background: 'linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%)',
+        color: 'white'
+    },
+    updateButton: {
+        background: 'linear-gradient(135deg, #748ffc 0%, #5c7cfa 100%)',
         color: 'white'
     },
     successMessage: {

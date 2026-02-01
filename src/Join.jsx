@@ -128,7 +128,7 @@ export default function JoinPage() {
             <div style={styles.cardGrid}>
                 {/* Host New Game Card */}
                 <div style={styles.card}>
-                    <div style={styles.cardIcon}>🎮</div>
+                    <div style={styles.cardIcon}></div>
                     <h2 style={styles.cardTitle}>Host a New Game</h2>
                     <p style={styles.cardDescription}>
                         Create a new game room and share the code with players to join your session.
@@ -154,7 +154,7 @@ export default function JoinPage() {
 
                 {/* Join Existing Game Card */}
                 <div style={styles.card}>
-                    <div style={styles.cardIcon}>🎯</div>
+                    <div style={styles.cardIcon}></div>
                     <h2 style={styles.cardTitle}>Join Existing Game</h2>
                     <p style={styles.cardDescription}>
                         Enter the game code provided by your host to join an active session.
@@ -198,7 +198,7 @@ export default function JoinPage() {
                                     Joining…
                                 </>
                             ) : (
-                                <>🚀 Join Game</>
+                                <>Join Game</>
                             )}
                         </button>
                     </div>

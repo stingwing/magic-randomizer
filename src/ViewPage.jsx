@@ -33,6 +33,7 @@ function RoundDisplay({ round, index, label }) {
                     const result = group.result
                     const winner = group.winner
                     const draw = group.draw
+                    const statistics = group.statistics ?? {}
 
                     return (
                         <div key={groupIdx} style={styles.groupContainer}>
@@ -73,6 +74,38 @@ function RoundDisplay({ round, index, label }) {
                                             {member.name ?? member.id ?? 'Unknown'}
                                         </div>
                                     ))}
+                                </div>
+                            )}
+
+                            {/* Display Statistics */}
+                            {Object.keys(statistics).length > 0 && (
+                                <div style={styles.statisticsSection}>
+                                    <h5 style={styles.statisticsHeader}>📊 Game Statistics</h5>
+                                    <div style={styles.statisticsList}>
+                                        {Object.entries(statistics).map(([key, value], statIdx) => {
+                                            // Format the key for display
+                                            let displayKey = key
+                                            if (key.includes('_Commander')) {
+                                                const playerId = key.split('_')[0]
+                                                displayKey = `${playerId}'s Commander`
+                                            } else if (key === 'TurnCount') {
+                                                displayKey = 'Turn Count'
+                                            } else if (key === 'FirstPlayer') {
+                                                displayKey = 'First Player'
+                                            } else if (key === 'PlayerOrder') {
+                                                displayKey = 'Player Order'
+                                            } else if (key === 'WinCondition') {
+                                                displayKey = 'Win Condition'
+                                            }
+
+                                            return (
+                                                <div key={statIdx} style={styles.statisticItem}>
+                                                    <span style={styles.statisticLabel}>{displayKey}:</span>
+                                                    <span style={styles.statisticValue}>{value}</span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -242,7 +275,7 @@ export default function ViewPage() {
         return (
             <div style={styles.container}>
                 <div style={styles.header}>
-                    <h1 style={styles.title}>👁️ View Game</h1>
+                    <h1 style={styles.title}>View Game</h1>
                     <p style={styles.subtitle}>
                         Enter a room code to view the game status in real-time
                     </p>
@@ -277,7 +310,7 @@ export default function ViewPage() {
                                     Loading...
                                 </>
                             ) : (
-                                <>👁️ View Game</>
+                                <>View Game</>
                             )}
                         </button>
                     </div>
@@ -309,7 +342,7 @@ export default function ViewPage() {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1 style={styles.title}>👁️ Viewing Game</h1>
+                <h1 style={styles.title}>Viewing Game</h1>
             </div>
 
             {/* Room Code Banner */}
@@ -706,6 +739,39 @@ const styles = {
     memberDot: {
         color: 'var(--success-color)',
         fontSize: '0.6rem'
+    },
+    statisticsSection: {
+        marginTop: '1rem',
+        paddingTop: '1rem',
+        borderTop: '1px solid var(--border-color)'
+    },
+    statisticsHeader: {
+        fontSize: '0.95rem',
+        fontWeight: '600',
+        marginTop: 0,
+        marginBottom: '0.75rem',
+        color: 'var(--text-primary)'
+    },
+    statisticsList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem'
+    },
+    statisticItem: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: '0.85rem',
+        padding: '0.5rem',
+        background: 'var(--card-bg)',
+        borderRadius: '6px'
+    },
+    statisticLabel: {
+        color: 'var(--text-secondary)',
+        fontWeight: '500'
+    },
+    statisticValue: {
+        color: 'var(--text-primary)',
+        fontWeight: '600'
     },
     emptyState: {
         padding: '3rem 2rem',

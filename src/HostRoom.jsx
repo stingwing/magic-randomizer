@@ -350,7 +350,7 @@ export default function HostRoomPage() {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1 style={styles.title}>🎮 Host Dashboard</h1>
+                <h1 style={styles.title}> Host Dashboard</h1>
             </div>
 
             {/* Room Code Banner */}
