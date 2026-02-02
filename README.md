@@ -1,4 +1,4 @@
-A simple mostly Ai generated project to create a website where users can generate random pods for commander games at Local game stores.
+Web frontend for https://github.com/stingwing/SessionApp api where users can generate random pods for commander games at Local game stores.
 
 
 About
@@ -15,8 +15,3 @@ This page is designed to help with creating semi-randomized pods for Commander u
 5. Non-winning players will be randomly sorted into new pods, with priority on grouping players who have not played each other yet.
 
 6. Players in pods of 3 will be prioritized for pods of 4 in future rounds.
-
-To Do.
-Add the option for players to scan a qr code or something to add there name to a session.
-Add custom sessions.
-Add the ability for players to see which pod they are on there own device
