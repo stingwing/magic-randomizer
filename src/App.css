@@ -1,7 +1,7 @@
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: clamp(1rem, 3vw, 2rem);
   text-align: center;
 }
 
@@ -34,7 +34,7 @@
 }
 
 .card {
-  padding: 2em;
+  padding: clamp(1rem, 3vw, 2em);
 }
 
 .read-the-docs {
@@ -49,17 +49,33 @@
   right: 0;
   height: 56px;
   display: flex;
-  gap: 1rem;
+  gap: clamp(0.5rem, 2vw, 1rem);
   align-items: center;
   justify-content: center;
-  padding: 0 1rem;
+  padding: 0 clamp(0.5rem, 2vw, 1rem);
   z-index: 1000;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   background: rgba(0,0,0,0.02);
   backdrop-filter: blur(4px);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-nav a {
   text-decoration: none;
   margin-right: 0;
+  white-space: nowrap;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  #root {
+    padding: 0.5rem;
+  }
+  
+  .logo {
+    height: 4em;
+    padding: 1em;
+  }
 }

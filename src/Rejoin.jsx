@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom'
 import { apiBase } from './api'
 import { validateName, validateRoomCode, validateHostId, RateLimiter } from './utils/validation'
-import { styles } from './styles/Join.styles'
+import { styles, modeStyles } from './styles/Join.styles'
 
 // Rate limiter to prevent API abuse
 const rejoinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -356,36 +356,4 @@ export default function RejoinPage() {
             )}
         </div>
     )
-}
-
-const modeStyles = {
-    modeSelector: {
-        display: 'flex',
-        gap: '1rem',
-        justifyContent: 'center',
-        marginBottom: '2rem',
-        flexWrap: 'wrap'
-    },
-    modeButton: {
-        padding: '1rem 2rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: '12px',
-        border: '2px solid var(--border-color)',
-        background: 'var(--card-bg)',
-        color: 'var(--text-primary)',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        boxShadow: '0 2px 8px var(--shadow-color)'
-    },
-    modeButtonActive: {
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        color: 'white',
-        borderColor: '#646cff',
-        boxShadow: '0 4px 12px rgba(100, 108, 255, 0.4)',
-        transform: 'translateY(-2px)'
-    }
 }

@@ -2,14 +2,14 @@ export const styles = {
     container: {
         maxWidth: '1400px',
         margin: '0 auto',
-        padding: '2rem 1rem'
+        padding: 'clamp(1rem, 3vw, 2rem) 1rem'
     },
     header: {
         textAlign: 'center',
         marginBottom: '2rem'
     },
     title: {
-        fontSize: '2.5rem',
+        fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
         fontWeight: '700',
         background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
         WebkitBackgroundClip: 'text',
@@ -23,7 +23,8 @@ export const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         gap: '0.5rem',
-        fontSize: '1rem'
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+        flexWrap: 'wrap'
     },
     hostLabel: {
         color: 'var(--text-secondary)',
@@ -32,12 +33,13 @@ export const styles = {
     hostId: {
         color: 'var(--accent-color)',
         fontWeight: '700',
-        fontSize: '1.1rem'
+        fontSize: 'clamp(1rem, 3vw, 1.1rem)',
+        wordBreak: 'break-word'
     },
     codeBanner: {
         background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
         borderRadius: '16px',
-        padding: '2rem',
+        padding: 'clamp(1rem, 3vw, 2rem)',
         marginBottom: '2rem',
         boxShadow: '0 8px 24px rgba(100, 108, 255, 0.3)'
     },
@@ -45,25 +47,26 @@ export const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '2rem',
+        gap: 'clamp(1rem, 3vw, 2rem)',
         flexWrap: 'wrap'
     },
     codeLabel: {
         color: 'rgba(255, 255, 255, 0.8)',
-        fontSize: '0.9rem',
+        fontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
         fontWeight: '500',
         marginBottom: '0.5rem'
     },
     code: {
         color: 'white',
-        fontSize: '3rem',
+        fontSize: 'clamp(1.75rem, 6vw, 3rem)',
         fontWeight: '700',
         letterSpacing: '0.15em',
-        marginBottom: '0.5rem'
+        marginBottom: '0.5rem',
+        wordBreak: 'break-all'
     },
     codeHint: {
         color: 'rgba(255, 255, 255, 0.7)',
-        fontSize: '0.9rem'
+        fontSize: 'clamp(0.8rem, 2vw, 0.9rem)'
     },
     codeActions: {
         display: 'flex',
@@ -71,63 +74,8 @@ export const styles = {
         flexWrap: 'wrap'
     },
     copyButton: {
-        padding: '1rem 2rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        background: 'white',
-        color: '#646cff',
-        border: 'none',
-        borderRadius: '10px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
-    },
-    qrToggleButton: {
-        padding: '1rem 2rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        background: 'rgba(255, 255, 255, 0.2)',
-        color: 'white',
-        border: '2px solid white',
-        borderRadius: '10px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
-    },
-    qrSection: {
-        marginTop: '2rem',
-        paddingTop: '2rem',
-        borderTop: '2px solid rgba(255, 255, 255, 0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '2rem',
-        flexWrap: 'wrap',
-        justifyContent: 'center'
-    },
-    qrCodeWrapper: {
-        background: 'white',
-        padding: '1.5rem',
-        borderRadius: '16px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)'
-    },
-    qrInfo: {
-        flex: '1 1 300px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem'
-    },
-    qrDescription: {
-        color: 'rgba(255, 255, 255, 0.9)',
-        fontSize: '1rem',
-        lineHeight: '1.6',
-        margin: 0
-    },
-    copyUrlButton: {
-        padding: '0.875rem 1.5rem',
-        fontSize: '1rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem)',
+        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',
         fontWeight: '600',
         background: 'white',
         color: '#646cff',
@@ -136,10 +84,68 @@ export const styles = {
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-        width: 'fit-content'
+        whiteSpace: 'nowrap'
+    },
+    qrToggleButton: {
+        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem)',
+        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',
+        fontWeight: '600',
+        background: 'rgba(255, 255, 255, 0.2)',
+        color: 'white',
+        border: '2px solid white',
+        borderRadius: '10px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        whiteSpace: 'nowrap'
+    },
+    qrSection: {
+        marginTop: '2rem',
+        paddingTop: '2rem',
+        borderTop: '2px solid rgba(255, 255, 255, 0.2)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'clamp(1rem, 3vw, 2rem)',
+        flexWrap: 'wrap',
+        justifyContent: 'center'
+    },
+    qrCodeWrapper: {
+        background: 'white',
+        padding: 'clamp(1rem, 3vw, 1.5rem)',
+        borderRadius: '16px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)'
+    },
+    qrInfo: {
+        flex: '1 1 250px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem'
+    },
+    qrDescription: {
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+        lineHeight: '1.6',
+        margin: 0
+    },
+    copyUrlButton: {
+        padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.5rem)',
+        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',
+        fontWeight: '600',
+        background: 'white',
+        color: '#646cff',
+        border: 'none',
+        borderRadius: '10px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        width: 'fit-content',
+        whiteSpace: 'nowrap'
     },
     errorMessage: {
-        padding: '1rem 1.5rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)',
         borderRadius: '12px',
         background: 'var(--error-bg)',
         border: '1px solid var(--error-border)',
@@ -148,10 +154,12 @@ export const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
-        animation: 'slideIn 0.3s ease'
+        animation: 'slideIn 0.3s ease',
+        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',
+        flexWrap: 'wrap'
     },
     successMessage: {
-        padding: '1rem 1.5rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)',
         borderRadius: '12px',
         background: 'var(--success-bg)',
         border: '1px solid var(--success-border)',
@@ -160,18 +168,20 @@ export const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
-        animation: 'slideIn 0.3s ease'
+        animation: 'slideIn 0.3s ease',
+        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',
+        flexWrap: 'wrap'
     },
     controlPanel: {
         background: 'var(--card-bg)',
         border: '1px solid var(--border-color)',
         borderRadius: '16px',
-        padding: '2rem',
+        padding: 'clamp(1rem, 3vw, 2rem)',
         marginBottom: '2rem',
         boxShadow: '0 4px 12px var(--shadow-color)'
     },
     sectionTitle: {
-        fontSize: '1.3rem',
+        fontSize: 'clamp(1.1rem, 3vw, 1.3rem)',
         fontWeight: '600',
         margin: 0,
         marginBottom: '1.5rem',
@@ -187,12 +197,12 @@ export const styles = {
     },
     buttonGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))',
         gap: '1rem'
     },
     actionButton: {
-        padding: '1rem 1.5rem',
-        fontSize: '1rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 2vw, 1.5rem)',
+        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',
         fontWeight: '600',
         borderRadius: '10px',
         border: 'none',
@@ -202,7 +212,8 @@ export const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         gap: '0.5rem',
-        color: 'white'
+        color: 'white',
+        whiteSpace: 'nowrap'
     },
     startButton: {
         background: 'linear-gradient(135deg, #51cf66 0%, #37b24d 100%)',
@@ -225,7 +236,7 @@ export const styles = {
         background: 'var(--card-bg)',
         border: '1px solid var(--border-color)',
         borderRadius: '16px',
-        padding: '2rem',
+        padding: 'clamp(1rem, 3vw, 2rem)',
         marginBottom: '2rem',
         boxShadow: '0 4px 12px var(--shadow-color)'
     },
@@ -236,20 +247,23 @@ export const styles = {
         alignItems: 'flex-start'
     },
     inputWrapper: {
-        flex: '1 1 300px',
+        flex: '1 1 250px',
+        minWidth: 'min(250px, 100%)',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.5rem'
     },
     playerInput: {
-        padding: '1rem',
-        fontSize: '1rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem)',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         borderRadius: '10px',
         border: '1px solid var(--border-color)',
         background: 'var(--input-bg)',
         color: 'var(--text-primary)',
         transition: 'all 0.2s ease',
-        outline: 'none'
+        outline: 'none',
+        width: '100%',
+        boxSizing: 'border-box'
     },
     inputError: {
         border: '1px solid #ff6b6b',
@@ -257,11 +271,11 @@ export const styles = {
     },
     validationError: {
         color: '#ff6b6b',
-        fontSize: '0.85rem'
+        fontSize: 'clamp(0.75rem, 2vw, 0.85rem)'
     },
     addButton: {
-        padding: '1rem 2rem',
-        fontSize: '1rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 3vw, 2rem)',
+        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',
         fontWeight: '600',
         borderRadius: '10px',
         background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
@@ -271,52 +285,60 @@ export const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
-        transition: 'all 0.3s ease'
+        transition: 'all 0.3s ease',
+        whiteSpace: 'nowrap',
+        alignSelf: 'flex-end'
     },
     participantsSection: {
         background: 'var(--card-bg)',
         border: '1px solid var(--border-color)',
         borderRadius: '16px',
-        padding: '2rem',
+        padding: 'clamp(1rem, 3vw, 2rem)',
         marginBottom: '2rem',
         boxShadow: '0 4px 12px var(--shadow-color)'
     },
     participantsGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-        gap: '1rem'
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))',
+        gap: '1rem',
+        marginTop: '1rem'
     },
     participantCard: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '1rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem)',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-color)',
         borderRadius: '10px',
-        transition: 'all 0.2s ease'
+        transition: 'all 0.2s ease',
+        gap: '0.5rem'
     },
     participantName: {
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
-        fontSize: '1rem',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '500',
-        color: 'var(--text-primary)'
+        color: 'var(--text-primary)',
+        wordBreak: 'break-word',
+        flex: 1
     },
     participantDot: {
         color: 'var(--success-color)',
-        fontSize: '0.8rem'
+        fontSize: '0.8rem',
+        flexShrink: 0
     },
     dropButton: {
         padding: '0.5rem 0.75rem',
-        fontSize: '1rem',
+        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',
         background: '#ff6b6b',
         color: 'white',
         border: 'none',
         borderRadius: '6px',
         cursor: 'pointer',
-        transition: 'all 0.2s ease'
+        transition: 'all 0.2s ease',
+        flexShrink: 0
     },
     roundsSection: {
         marginBottom: '2rem'
@@ -325,16 +347,19 @@ export const styles = {
         display: 'flex',
         gap: '1.5rem',
         overflowX: 'auto',
-        paddingBottom: '1rem'
+        paddingBottom: '1rem',
+        WebkitOverflowScrolling: 'touch',
+        scrollSnapType: 'x mandatory'
     },
     roundCard: {
         background: 'var(--card-bg)',
         border: '1px solid var(--border-color)',
         borderRadius: '16px',
-        padding: '1.5rem',
-        minWidth: '320px',
-        flex: '0 0 320px',
-        boxShadow: '0 4px 12px var(--shadow-color)'
+        padding: 'clamp(1rem, 3vw, 1.5rem)',
+        minWidth: 'min(280px, 85vw)',
+        flex: '0 0 min(320px, 90vw)',
+        boxShadow: '0 4px 12px var(--shadow-color)',
+        scrollSnapAlign: 'start'
     },
     roundHeader: {
         marginBottom: '1.5rem',
@@ -345,7 +370,7 @@ export const styles = {
         gap: '0.75rem'
     },
     roundTitle: {
-        fontSize: '1.2rem',
+        fontSize: 'clamp(1rem, 3vw, 1.2rem)',
         fontWeight: '600',
         margin: 0,
         color: 'var(--text-primary)'
@@ -358,10 +383,12 @@ export const styles = {
         background: 'linear-gradient(135deg, rgba(100, 108, 255, 0.1) 0%, rgba(83, 91, 242, 0.1) 100%)',
         border: '1px solid var(--accent-color)',
         borderRadius: '8px',
-        width: 'fit-content'
+        width: 'fit-content',
+        maxWidth: '100%'
     },
     timerIcon: {
-        fontSize: '1.2rem'
+        fontSize: 'clamp(1rem, 3vw, 1.2rem)',
+        flexShrink: 0
     },
     timerContent: {
         display: 'flex',
@@ -369,21 +396,21 @@ export const styles = {
         gap: '0.1rem'
     },
     timerLabel: {
-        fontSize: '0.7rem',
+        fontSize: 'clamp(0.65rem, 2vw, 0.7rem)',
         color: 'var(--text-secondary)',
         fontWeight: '500',
         textTransform: 'uppercase',
         letterSpacing: '0.05em'
     },
     timerValue: {
-        fontSize: '1rem',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '700',
         color: 'var(--accent-color)',
         fontFamily: 'monospace'
     },
     groupContainer: {
         marginBottom: '1.5rem',
-        padding: '1rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem)',
         background: 'var(--bg-secondary)',
         borderRadius: '10px',
         border: '1px solid var(--border-color)'
@@ -392,7 +419,7 @@ export const styles = {
         marginBottom: '0.75rem'
     },
     groupNumber: {
-        fontSize: '1rem',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '600',
         color: 'var(--accent-color)'
     },
@@ -404,8 +431,9 @@ export const styles = {
     resultItem: {
         display: 'flex',
         justifyContent: 'space-between',
-        fontSize: '0.9rem',
-        marginBottom: '0.25rem'
+        fontSize: 'clamp(0.8rem, 2.5vw, 0.9rem)',
+        marginBottom: '0.25rem',
+        gap: '0.5rem'
     },
     resultLabel: {
         color: 'var(--text-secondary)',
@@ -413,7 +441,9 @@ export const styles = {
     },
     resultValue: {
         color: 'var(--text-primary)',
-        fontWeight: '600'
+        fontWeight: '600',
+        wordBreak: 'break-word',
+        textAlign: 'right'
     },
     membersList: {
         display: 'flex',
@@ -424,18 +454,20 @@ export const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
-        fontSize: '0.9rem',
-        color: 'var(--text-primary)'
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+        color: 'var(--text-primary)',
+        wordBreak: 'break-word'
     },
     memberDot: {
         color: 'var(--success-color)',
-        fontSize: '0.6rem'
+        fontSize: '0.6rem',
+        flexShrink: 0
     },
     emptyState: {
-        padding: '3rem 2rem',
+        padding: 'clamp(2rem, 5vw, 3rem) clamp(1rem, 3vw, 2rem)',
         textAlign: 'center',
         color: 'var(--text-secondary)',
-        fontSize: '1rem',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         background: 'var(--bg-secondary)',
         borderRadius: '12px',
         border: '2px dashed var(--border-color)'
@@ -447,6 +479,7 @@ export const styles = {
         borderTopColor: 'white',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite',
-        display: 'inline-block'
+        display: 'inline-block',
+        flexShrink: 0
     }
 }

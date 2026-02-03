@@ -2,15 +2,15 @@ export const styles = {
     container: {
         maxWidth: '1000px',
         margin: '0 auto',
-        padding: '2rem 1rem',
+        padding: 'clamp(1rem, 3vw, 2rem) 1rem',
         fontFamily: 'system-ui, Avenir, Helvetica, Arial, sans-serif'
     },
     header: {
         textAlign: 'center',
-        marginBottom: '3rem'
+        marginBottom: 'clamp(2rem, 5vw, 3rem)'
     },
     title: {
-        fontSize: '2.5rem',
+        fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
         fontWeight: '700',
         marginBottom: '0.5rem',
         background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
@@ -19,37 +19,37 @@ export const styles = {
         backgroundClip: 'text'
     },
     subtitle: {
-        fontSize: '1.1rem',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)',
         color: '#888',
         margin: 0
     },
     cardGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: '2rem',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+        gap: 'clamp(1rem, 3vw, 2rem)',
         marginBottom: '2rem'
     },
     card: {
         background: 'rgba(255, 255, 255, 0.02)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: '16px',
-        padding: '2rem',
+        padding: 'clamp(1.5rem, 3vw, 2rem)',
         transition: 'all 0.3s ease',
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
         backdropFilter: 'blur(10px)'
     },
     cardIcon: {
-        fontSize: '3rem',
+        fontSize: 'clamp(2.5rem, 6vw, 3rem)',
         marginBottom: '1rem'
     },
     cardTitle: {
-        fontSize: '1.5rem',
+        fontSize: 'clamp(1.2rem, 4vw, 1.5rem)',
         fontWeight: '600',
         marginTop: 0,
         marginBottom: '0.75rem'
     },
     cardDescription: {
-        fontSize: '0.95rem',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
         color: '#888',
         lineHeight: '1.6',
         marginBottom: '1.5rem'
@@ -62,15 +62,15 @@ export const styles = {
     label: {
         display: 'flex',
         flexDirection: 'column',
-        fontSize: '0.9rem',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
         fontWeight: '500',
         gap: '0.5rem',
         textAlign: 'left'
     },
     input: {
         width: '100%',
-        padding: '0.75rem 1rem',
-        fontSize: '1rem',
+        padding: 'clamp(0.6rem, 2vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         borderRadius: '8px',
         border: '1px solid rgba(255, 255, 255, 0.1)',
         background: 'rgba(0, 0, 0, 0.2)',
@@ -85,13 +85,13 @@ export const styles = {
     },
     validationError: {
         color: '#ff6b6b',
-        fontSize: '0.85rem',
+        fontSize: 'clamp(0.75rem, 2vw, 0.85rem)',
         marginTop: '0.25rem'
     },
     primaryButton: {
         width: '100%',
-        padding: '0.875rem 1.5rem',
-        fontSize: '1rem',
+        padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.5rem)',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '600',
         borderRadius: '8px',
         border: 'none',
@@ -107,8 +107,8 @@ export const styles = {
     },
     secondaryButton: {
         width: '100%',
-        padding: '0.875rem 1.5rem',
-        fontSize: '1rem',
+        padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.5rem)',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '600',
         borderRadius: '8px',
         border: '1px solid #646cff',
@@ -126,19 +126,21 @@ export const styles = {
         cursor: 'not-allowed'
     },
     errorBanner: {
-        padding: '1rem 1.5rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)',
         borderRadius: '8px',
         background: 'rgba(220, 38, 38, 0.1)',
         border: '1px solid rgba(220, 38, 38, 0.3)',
         color: '#fca5a5',
-        fontSize: '0.95rem',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
-        animation: 'slideIn 0.3s ease'
+        animation: 'slideIn 0.3s ease',
+        flexWrap: 'wrap'
     },
     errorIcon: {
-        fontSize: '1.25rem'
+        fontSize: 'clamp(1rem, 3vw, 1.25rem)',
+        flexShrink: 0
     },
     spinner: {
         width: '16px',
@@ -147,10 +149,12 @@ export const styles = {
         borderTopColor: 'white',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite',
-        display: 'inline-block'
+        display: 'inline-block',
+        flexShrink: 0
     }
 }
-const modeStyles = {
+
+export const modeStyles = {
     modeSelector: {
         display: 'flex',
         gap: '1rem',
@@ -159,8 +163,8 @@ const modeStyles = {
         flexWrap: 'wrap'
     },
     modeButton: {
-        padding: '1rem 2rem',
-        fontSize: '1rem',
+        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 3vw, 2rem)',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '600',
         borderRadius: '12px',
         border: '2px solid var(--border-color)',
@@ -171,7 +175,8 @@ const modeStyles = {
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
-        boxShadow: '0 2px 8px var(--shadow-color)'
+        boxShadow: '0 2px 8px var(--shadow-color)',
+        whiteSpace: 'nowrap'
     },
     modeButtonActive: {
         background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',

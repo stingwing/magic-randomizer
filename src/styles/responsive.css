@@ -1,0 +1,67 @@
+/* Mobile-first responsive utilities */
+
+/* Container responsive padding */
+@media (max-width: 640px) {
+  [style*="padding: 2rem"] {
+    padding: 1rem 0.5rem !important;
+  }
+}
+
+/* Font size adjustments for mobile */
+@media (max-width: 768px) {
+  [style*="fontSize: '2.5rem'"],
+  [style*="font-size: 2.5rem"] {
+    font-size: 1.875rem !important;
+  }
+  
+  [style*="fontSize: '3rem'"],
+  [style*="font-size: 3rem"] {
+    font-size: 2rem !important;
+  }
+  
+  [style*="fontSize: '1.5rem'"],
+  [style*="font-size: 1.5rem"] {
+    font-size: 1.25rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  [style*="fontSize: '2.5rem'"],
+  [style*="font-size: 2.5rem"] {
+    font-size: 1.5rem !important;
+  }
+  
+  [style*="fontSize: '3rem'"],
+  [style*="font-size: 3rem"] {
+    font-size: 1.75rem !important;
+  }
+  
+  [style*="fontSize: '1.5rem'"],
+  [style*="font-size: 1.5rem"] {
+    font-size: 1.125rem !important;
+  }
+}
+
+/* Grid responsive adjustments */
+@media (max-width: 640px) {
+  [style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+  
+  [style*="gap: '2rem'"],
+  [style*="gap: 2rem"] {
+    gap: 1rem !important;
+  }
+}
+
+/* Horizontal scroll for round cards on mobile */
+@media (max-width: 768px) {
+  [style*="overflowX: 'auto'"] {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  [style*="minWidth: '320px'"],
+  [style*="minWidth: 320"] {
+    min-width: 280px !important;
+  }
+}

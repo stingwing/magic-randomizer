@@ -12,7 +12,7 @@ import NavBar from './NavBar'
 function App() {
     return (
         <Router>
-            <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif", paddingTop: 56 }}>
+            <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif", paddingTop: 56, padding: "56px 0.5rem 1rem" }}>
                 <NavBar />
                 <Routes>
                     <Route path="/" element={<JoinPage />} />
