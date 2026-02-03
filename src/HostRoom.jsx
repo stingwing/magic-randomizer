@@ -146,7 +146,7 @@ function RoundDisplay({ round, index, label }) {
 }
 
 export default function HostRoomPage() {
-    const { code } = useParams()
+    const { code, hostId } = useParams()
     const navigate = useNavigate()
     const [participants, setParticipants] = useState([])
     const [currentRound, setCurrentRound] = useState(null)
@@ -166,18 +166,21 @@ export default function HostRoomPage() {
     // Validation state
     const [validationErrors, setValidationErrors] = useState({})
     const [validatedCode, setValidatedCode] = useState('')
+    const [validatedHostId, setValidatedHostId] = useState('')
 
-    // Validate URL parameter on mount
+    // Validate URL parameters on mount
     useEffect(() => {
         const codeValidation = validateUrlParam(code)
+        const hostIdValidation = validateUrlParam(hostId)
         
-        if (!codeValidation.valid) {
+        if (!codeValidation.valid || !hostIdValidation.valid) {
             navigate('/')
             return
         }
         
         setValidatedCode(codeValidation.sanitized)
-    }, [code, navigate])
+        setValidatedHostId(hostIdValidation.sanitized)
+    }, [code, hostId, navigate])
 
     const getJoinUrl = () => {
         const baseUrl = window.location.origin
@@ -524,11 +527,12 @@ export default function HostRoomPage() {
     }
 
     useEffect(() => {
-        if (!validatedCode) {
+        if (!validatedCode || !validatedHostId) {
             return
         }
 
         sessionStorage.setItem('hostRoomCode', validatedCode)
+        sessionStorage.setItem(`hostId_${validatedCode}`, validatedHostId)
 
         fetchAllData()
 
@@ -542,12 +546,16 @@ export default function HostRoomPage() {
                 pollRef.current = null
             }
         }
-    }, [validatedCode])
+    }, [validatedCode, validatedHostId])
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>
                 <h1 style={styles.title}>🎮 Host Dashboard</h1>
+                <div style={styles.hostInfo}>
+                    <span style={styles.hostLabel}>Host ID:</span>
+                    <span style={styles.hostId}>{validatedHostId}</span>
+                </div>
             </div>
 
             {/* Room Code Banner */}

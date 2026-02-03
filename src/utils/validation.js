@@ -23,10 +23,9 @@ export const sanitizeText = (input) => {
     if (typeof input !== 'string') return ''
     
     return input
-        .trim()
         // Remove HTML tags
         .replace(/<[^>]*>/g, '')
-        // Escape special characters that could be used for XSS
+        // Escape special characters that could be used for XSS (but preserve spaces)
         .replace(/[<>'"&]/g, (char) => {
             const escapeMap = {
                 '<': '&lt;',
@@ -37,8 +36,8 @@ export const sanitizeText = (input) => {
             }
             return escapeMap[char] || char
         })
-        // Remove null bytes and other control characters
-        .replace(/[\x00-\x1F\x7F]/g, '')
+        // Remove null bytes and other control characters (but preserve spaces and newlines)
+        .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
 }
 
 /**
@@ -69,9 +68,11 @@ export const sanitizeNumber = (input, min = 0, max = Number.MAX_SAFE_INTEGER) =>
  */
 export const validateName = (name) => {
     const sanitized = sanitizeText(name)
+    const trimmed = sanitized.trim()
     const { min, max } = INPUT_CONSTRAINTS.NAME
     
-    if (sanitized.length < min) {
+    // Use trimmed for validation but return sanitized for the input field
+    if (trimmed.length < min && sanitized.length > 0) {
         return { valid: false, error: `Name must be at least ${min} character`, sanitized }
     }
     if (sanitized.length > max) {
@@ -79,8 +80,31 @@ export const validateName = (name) => {
     }
     
     // Check for valid name characters (letters, numbers, spaces, hyphens, apostrophes, periods)
-    if (!/^[a-zA-Z0-9\s\-'.]+$/.test(sanitized)) {
+    if (trimmed.length > 0 && !/^[a-zA-Z0-9\s\-'.]+$/.test(sanitized)) {
         return { valid: false, error: 'Name contains invalid characters', sanitized: sanitized.replace(/[^a-zA-Z0-9\s\-'.]/g, '') }
+    }
+    
+    return { valid: true, error: null, sanitized }
+}
+
+/**
+ * Validates Host ID input (disallows spaces for URL compatibility)
+ */
+export const validateHostId = (hostId) => {
+    const sanitized = sanitizeAlphanumeric(hostId, false)
+    const { min, max } = INPUT_CONSTRAINTS.NAME
+    
+    // Check if input contained spaces that were removed
+    const hadSpaces = typeof hostId === 'string' && /\s/.test(hostId)
+    
+    if (sanitized.length < min) {
+        return { valid: false, error: 'Host ID is required', sanitized }
+    }
+    if (sanitized.length > max) {
+        return { valid: false, error: `Host ID must be less than ${max} characters`, sanitized: sanitized.slice(0, max) }
+    }
+    if (hadSpaces) {
+        return { valid: false, error: 'Host ID cannot contain spaces', sanitized }
     }
     
     return { valid: true, error: null, sanitized }

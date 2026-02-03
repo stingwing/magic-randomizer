@@ -5,7 +5,6 @@ import {
     validateCommander,
     validateTurnCount,
     validatePlayerOrder,
-    validateFirstPlayer,
     validateWinCondition,
     validateBracket,
     validateUrlParam,
@@ -148,7 +147,6 @@ export default function RoomPage() {
     const [commander, setCommander] = useState('')
     const [turnCount, setTurnCount] = useState('')
     const [playerOrder, setPlayerOrder] = useState('')
-    const [firstPlayer, setFirstPlayer] = useState('')
     const [winCondition, setWinCondition] = useState('')
     const [bracket, setBracket] = useState('')
     
@@ -177,6 +175,16 @@ export default function RoomPage() {
         const validated = validateCommander(e.target.value)
         setCommander(validated.sanitized)
         
+        // Persist to sessionStorage
+        if (validatedCode && validatedParticipantId) {
+            const storageKey = `commander_${validatedCode}_${validatedParticipantId}`
+            if (validated.sanitized) {
+                sessionStorage.setItem(storageKey, validated.sanitized)
+            } else {
+                sessionStorage.removeItem(storageKey)
+            }
+        }
+        
         if (validated.error) {
             setValidationErrors(prev => ({ ...prev, commander: validated.error }))
         } else {
@@ -201,20 +209,6 @@ export default function RoomPage() {
         } else {
             setValidationErrors(prev => {
                 const { playerOrder, ...rest } = prev
-                return rest
-            })
-        }
-    }
-
-    const handleFirstPlayerChange = (e) => {
-        const validated = validateFirstPlayer(e.target.value)
-        setFirstPlayer(validated.sanitized)
-        
-        if (validated.error) {
-            setValidationErrors(prev => ({ ...prev, firstPlayer: validated.error }))
-        } else {
-            setValidationErrors(prev => {
-                const { firstPlayer, ...rest } = prev
                 return rest
             })
         }
@@ -320,7 +314,6 @@ export default function RoomPage() {
         const commanderVal = validateCommander(commander)
         const turnCountVal = validateTurnCount(turnCount)
         const playerOrderVal = validatePlayerOrder(playerOrder)
-        const firstPlayerVal = validateFirstPlayer(firstPlayer)
         const winConditionVal = validateWinCondition(winCondition)
         const bracketVal = validateBracket(bracket)
         
@@ -332,9 +325,6 @@ export default function RoomPage() {
         }
         if (playerOrderVal.sanitized && playerOrderVal.valid) {
             statistics['PlayerOrder'] = playerOrderVal.sanitized
-        }
-        if (firstPlayerVal.sanitized && firstPlayerVal.valid) {
-            statistics['FirstPlayer'] = firstPlayerVal.sanitized
         }
         if (bracketVal.sanitized && bracketVal.valid) {
             statistics['Bracket'] = bracketVal.sanitized
@@ -420,7 +410,6 @@ export default function RoomPage() {
                 setCommander('')
                 setTurnCount('')
                 setPlayerOrder('')
-                setFirstPlayer('')
                 setWinCondition('')
                 setBracket('')
             }
@@ -471,6 +460,20 @@ export default function RoomPage() {
             }
         }
     }, [navigate])
+
+    // Load commander from sessionStorage on mount
+    useEffect(() => {
+        if (validatedCode && validatedParticipantId) {
+            const storageKey = `commander_${validatedCode}_${validatedParticipantId}`
+            const storedCommander = sessionStorage.getItem(storageKey)
+            if (storedCommander && !commander) {
+                const validated = validateCommander(storedCommander)
+                if (validated.valid) {
+                    setCommander(validated.sanitized)
+                }
+            }
+        }
+    }, [validatedCode, validatedParticipantId])
 
     return (
         <div style={styles.container}>
@@ -560,18 +563,7 @@ export default function RoomPage() {
                                 style={{...styles.reportButton, ...styles.dropButton}}
                             >
                                 {reportLoading ? <span style={styles.spinner}></span> : ''} Drop
-                            </button>
-                            <button
-                                onClick={handleUpdateStatistics}
-                                disabled={reportLoading || Object.keys(validationErrors).length > 0}
-                                style={{
-                                    ...styles.reportButton, 
-                                    ...styles.updateButton,
-                                    ...(Object.keys(validationErrors).length > 0 ? { opacity: 0.6 } : {})
-                                }}
-                            >
-                                {reportLoading ? <span style={styles.spinner}></span> : ''} Update Statistics
-                            </button>
+                            </button>                       
                         </div>
                         {reportMessage && (
                             <div style={styles.successMessage}>
@@ -613,11 +605,11 @@ export default function RoomPage() {
                                     type="number"
                                     value={bracket}
                                     onChange={handleBracketChange}
-                                    placeholder="Average Bracket (0-10)"
+                                    placeholder="Average Bracket (1-5)"
                                     style={styles.textInput}
                                     disabled={reportLoading}
-                                    min="0"
-                                    max="10"
+                                    min="1"
+                                    max="5"
                                 />
                             </label>
                             <label style={styles.inputLabel}>
@@ -653,28 +645,7 @@ export default function RoomPage() {
                                         {validationErrors.playerOrder}
                                     </span>
                                 )}
-                            </label>
-                            <label style={styles.inputLabel}>
-                                First Player
-                                <input
-                                    type="text"
-                                    value={firstPlayer}
-                                    onChange={handleFirstPlayerChange}
-                                    placeholder="Who went first"
-                                    style={{
-                                        ...styles.textInput,
-                                        ...(validationErrors.firstPlayer ? styles.inputError : {})
-                                    }}
-                                    disabled={reportLoading}
-                                    maxLength={50}
-                                    aria-invalid={!!validationErrors.firstPlayer}
-                                />
-                                {validationErrors.firstPlayer && (
-                                    <span style={styles.validationError}>
-                                        {validationErrors.firstPlayer}
-                                    </span>
-                                )}
-                            </label>
+                            </label> 
                             <label style={styles.inputLabel}>
                                 Win Condition
                                 <input
@@ -696,6 +667,17 @@ export default function RoomPage() {
                                     </span>
                                 )}
                             </label>
+                            <button
+                                onClick={handleUpdateStatistics}
+                                disabled={reportLoading || Object.keys(validationErrors).length > 0}
+                                style={{
+                                    ...styles.reportButton,
+                                    ...styles.updateButton,
+                                    ...(Object.keys(validationErrors).length > 0 ? { opacity: 0.6 } : {})
+                                }}
+                            >
+                                {reportLoading ? <span style={styles.spinner}></span> : ''} Update Statistics
+                            </button>
                         </div>
                     </div>
                 </div>

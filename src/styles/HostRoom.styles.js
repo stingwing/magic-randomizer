@@ -17,6 +17,23 @@ export const styles = {
         backgroundClip: 'text',
         margin: 0
     },
+    hostInfo: {
+        marginTop: '0.75rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        fontSize: '1rem'
+    },
+    hostLabel: {
+        color: 'var(--text-secondary)',
+        fontWeight: '500'
+    },
+    hostId: {
+        color: 'var(--accent-color)',
+        fontWeight: '700',
+        fontSize: '1.1rem'
+    },
     codeBanner: {
         background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
         borderRadius: '16px',

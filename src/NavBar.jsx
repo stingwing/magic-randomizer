@@ -27,10 +27,19 @@ export default function NavBar() {
                         to="/" 
                         style={{
                             ...styles.navLink,
-                            ...(isActive('/') && !isActive('/manual') && !isActive('/new') && !isActive('/view') ? styles.navLinkActive : {})
+                            ...(isActive('/') && !isActive('/manual') && !isActive('/new') && !isActive('/view') && !isActive('/rejoin') ? styles.navLinkActive : {})
                         }}
                     >
                         🏠 Join
+                    </Link>
+                    <Link 
+                        to="/rejoin" 
+                        style={{
+                            ...styles.navLink,
+                            ...(isActive('/rejoin') ? styles.navLinkActive : {})
+                        }}
+                    >
+                        🔄 Rejoin
                     </Link>
                     <Link 
                         to="/manual" 
