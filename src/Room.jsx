@@ -1,6 +1,20 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiBase } from './api'
+import {
+    validateCommander,
+    validateTurnCount,
+    validatePlayerOrder,
+    validateFirstPlayer,
+    validateWinCondition,
+    validateBracket,
+    validateUrlParam,
+    RateLimiter
+} from './utils/validation'
+import { styles } from './styles/Room.styles'
+
+// Rate limiter for report actions
+const reportRateLimiter = new RateLimiter(10, 60000) // 10 reports per minute
 
 function RoundTimer({ startedAtUtc }) {
     const [elapsed, setElapsed] = useState('')
@@ -58,7 +72,7 @@ function RoundResults({ data }) {
     return (
         <div style={styles.resultsCard}>
             <div style={styles.resultsHeader}>
-                <h3 style={styles.resultsTitle}> Your Group Assignment</h3>
+                <h3 style={styles.resultsTitle}>Your Group Assignment</h3>
                 {startedAtUtc && <RoundTimer startedAtUtc={startedAtUtc} />}
             </div>
 
@@ -137,10 +151,97 @@ export default function RoomPage() {
     const [firstPlayer, setFirstPlayer] = useState('')
     const [winCondition, setWinCondition] = useState('')
     const [bracket, setBracket] = useState('')
+    
+    // Validation errors state
+    const [validationErrors, setValidationErrors] = useState({})
+
+    // Validated URL parameters
+    const [validatedCode, setValidatedCode] = useState('')
+    const [validatedParticipantId, setValidatedParticipantId] = useState('')
+
+    useEffect(() => {
+        // Validate URL parameters
+        const codeValidation = validateUrlParam(code)
+        const participantValidation = validateUrlParam(participantId)
+
+        if (!codeValidation.valid || !participantValidation.valid) {
+            navigate('/')
+            return
+        }
+
+        setValidatedCode(codeValidation.sanitized)
+        setValidatedParticipantId(participantValidation.sanitized)
+    }, [code, participantId, navigate])
+
+    const handleCommanderChange = (e) => {
+        const validated = validateCommander(e.target.value)
+        setCommander(validated.sanitized)
+        
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, commander: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { commander, ...rest } = prev
+                return rest
+            })
+        }
+    }
+
+    const handleTurnCountChange = (e) => {
+        const validated = validateTurnCount(e.target.value)
+        setTurnCount(validated.sanitized)
+    }
+
+    const handlePlayerOrderChange = (e) => {
+        const validated = validatePlayerOrder(e.target.value)
+        setPlayerOrder(validated.sanitized)
+        
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, playerOrder: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { playerOrder, ...rest } = prev
+                return rest
+            })
+        }
+    }
+
+    const handleFirstPlayerChange = (e) => {
+        const validated = validateFirstPlayer(e.target.value)
+        setFirstPlayer(validated.sanitized)
+        
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, firstPlayer: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { firstPlayer, ...rest } = prev
+                return rest
+            })
+        }
+    }
+
+    const handleWinConditionChange = (e) => {
+        const validated = validateWinCondition(e.target.value)
+        setWinCondition(validated.sanitized)
+        
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, winCondition: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { winCondition, ...rest } = prev
+                return rest
+            })
+        }
+    }
+
+    const handleBracketChange = (e) => {
+        const validated = validateBracket(e.target.value)
+        setBracket(validated.sanitized)
+    }
 
     const fetchGroupResult = async () => {
-        if (!code || !participantId) return false
-        const url = `${apiBase}/${encodeURIComponent(code)}/group/${encodeURIComponent(participantId)}`
+        if (!validatedCode || !validatedParticipantId) return false
+        const url = `${apiBase}/${encodeURIComponent(validatedCode)}/group/${encodeURIComponent(validatedParticipantId)}`
         setRoomLoading(true)
         try {
             const res = await fetch(url)
@@ -150,8 +251,8 @@ export default function RoomPage() {
             }
 
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                const safeMessage = 'Unable to fetch group information'
+                throw new Error(safeMessage)
             }
 
             const data = await res.json().catch(() => null)
@@ -167,7 +268,7 @@ export default function RoomPage() {
             return false
         } catch (err) {
             console.error('Error fetching group result', err)
-            setRoomError(err.message || 'Unknown error fetching results')
+            setRoomError('Unable to load group information')
             return false
         } finally {
             setRoomLoading(false)
@@ -183,15 +284,15 @@ export default function RoomPage() {
     }
 
     const fetchRoom = async () => {
-        if (!code) return
-        const roomUrl = `${apiBase}/${encodeURIComponent(code)}`
+        if (!validatedCode) return
+        const roomUrl = `${apiBase}/${encodeURIComponent(validatedCode)}`
         setRoomLoading(true)
         setRoomError(null)
         try {
             const res = await fetch(roomUrl)
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                const safeMessage = res.status === 404 ? 'Room not found' : 'Unable to load room'
+                throw new Error(safeMessage)
             }
             const data = await res.json().catch(() => null)
             setRoomData(data)
@@ -206,7 +307,7 @@ export default function RoomPage() {
             }
         } catch (err) {
             console.error('Error fetching room', err)
-            setRoomError(err.message || 'Unknown error')
+            setRoomError(err.message || 'Unable to load room')
         } finally {
             setRoomLoading(false)
         }
@@ -215,41 +316,75 @@ export default function RoomPage() {
     const buildStatistics = () => {
         const statistics = {}
         
-        if (commander.trim()) {
-            statistics[`${participantId}_Commander`] = commander.trim()
+        // Validate all statistics before building
+        const commanderVal = validateCommander(commander)
+        const turnCountVal = validateTurnCount(turnCount)
+        const playerOrderVal = validatePlayerOrder(playerOrder)
+        const firstPlayerVal = validateFirstPlayer(firstPlayer)
+        const winConditionVal = validateWinCondition(winCondition)
+        const bracketVal = validateBracket(bracket)
+        
+        if (commanderVal.sanitized && commanderVal.valid) {
+            statistics[`${validatedParticipantId}_Commander`] = commanderVal.sanitized
         }
-        if (turnCount.trim()) {
-            statistics['TurnCount'] = turnCount.trim()
+        if (turnCountVal.sanitized && turnCountVal.valid) {
+            statistics['TurnCount'] = turnCountVal.sanitized
         }
-        if (playerOrder.trim()) {
-            statistics['PlayerOrder'] = playerOrder.trim()
+        if (playerOrderVal.sanitized && playerOrderVal.valid) {
+            statistics['PlayerOrder'] = playerOrderVal.sanitized
         }
-        if (firstPlayer.trim()) {
-            statistics['FirstPlayer'] = firstPlayer.trim()
+        if (firstPlayerVal.sanitized && firstPlayerVal.valid) {
+            statistics['FirstPlayer'] = firstPlayerVal.sanitized
         }
-        if (bracket.trim()) {
-            statistics['Bracket'] = bracket.trim()
+        if (bracketVal.sanitized && bracketVal.valid) {
+            statistics['Bracket'] = bracketVal.sanitized
         }
-        if (winCondition.trim()) {
-            statistics['WinCondition'] = winCondition.trim()
+        if (winConditionVal.sanitized && winConditionVal.valid) {
+            statistics['WinCondition'] = winConditionVal.sanitized
         }
 
         return statistics
     }
 
     const handleReportResult = async (result) => {
-        if (!code || !participantId) return
+        if (!validatedCode || !validatedParticipantId) return
+
+        // Show confirmation dialog for Drop action
+        if (result === 'Drop') {
+            if (!window.confirm('Are you sure you want to drop from this game?')) {
+                return
+            }
+        }
+
+        // Check for validation errors
+        if (Object.keys(validationErrors).length > 0) {
+            setRoomError('Please fix validation errors before submitting')
+            return
+        }
+
+        // Check rate limiting
+        if (!reportRateLimiter.canAttempt(validatedParticipantId)) {
+            setRoomError('Too many report attempts. Please wait a moment.')
+            return
+        }
+
+        // Validate result value
+        const validResults = ['Win', 'Draw', 'Drop', 'data']
+        if (!validResults.includes(result)) {
+            setRoomError('Invalid result type')
+            return
+        }
 
         setReportLoading(true)
         setReportMessage(null)
         setRoomError(null)
 
         try {
-            const url = `${apiBase}/${encodeURIComponent(code)}/report`
+            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/report`
             const statistics = buildStatistics()
             
             const body = {
-                participantId: participantId,
+                participantId: validatedParticipantId,
                 result: result
             }
 
@@ -267,8 +402,10 @@ export default function RoomPage() {
             })
 
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                const safeMessage = res.status === 400 
+                    ? 'Invalid request' 
+                    : 'Unable to submit report'
+                throw new Error(safeMessage)
             }
 
             const data = await res.json().catch(() => null)
@@ -277,9 +414,19 @@ export default function RoomPage() {
                     ? data.message
                     : `${result} reported successfully`
             )
+            
+            // Clear statistics after successful submission
+            if (result !== 'data') {
+                setCommander('')
+                setTurnCount('')
+                setPlayerOrder('')
+                setFirstPlayer('')
+                setWinCondition('')
+                setBracket('')
+            }
         } catch (err) {
             console.error('Report result error', err)
-            setRoomError(err.message || 'Unknown error reporting result')
+            setRoomError(err.message || 'Unable to submit report')
         } finally {
             setReportLoading(false)
         }
@@ -290,13 +437,12 @@ export default function RoomPage() {
     }
 
     useEffect(() => {
-        if (!code || !participantId) {
-            navigate('/')
+        if (!validatedCode || !validatedParticipantId) {
             return
         }
 
-        localStorage.setItem('currentRoomCode', code)
-        localStorage.setItem('currentParticipantId', participantId)
+        sessionStorage.setItem('currentRoomCode', validatedCode)
+        sessionStorage.setItem('currentParticipantId', validatedParticipantId)
 
         fetchRoom()
 
@@ -310,16 +456,21 @@ export default function RoomPage() {
                 pollRef.current = null
             }
         }
-    }, [code, participantId, started])
+    }, [validatedCode, validatedParticipantId, started])
 
     useEffect(() => {
-        const savedCode = localStorage.getItem('currentRoomCode')
-        const savedParticipantId = localStorage.getItem('currentParticipantId')
+        const savedCode = sessionStorage.getItem('currentRoomCode')
+        const savedParticipantId = sessionStorage.getItem('currentParticipantId')
 
         if (savedCode && savedParticipantId && window.location.pathname === '/') {
-            navigate(`/room/${savedCode}/${savedParticipantId}`)
+            const codeVal = validateUrlParam(savedCode)
+            const participantVal = validateUrlParam(savedParticipantId)
+            
+            if (codeVal.valid && participantVal.valid) {
+                navigate(`/room/${encodeURIComponent(codeVal.sanitized)}/${encodeURIComponent(participantVal.sanitized)}`)
+            }
         }
-    }, [])
+    }, [navigate])
 
     return (
         <div style={styles.container}>
@@ -327,7 +478,7 @@ export default function RoomPage() {
                 <h1 style={styles.title}>Game Room</h1>
                 <div style={styles.codeDisplay}>
                     <span style={styles.codeLabel}>Room Code:</span>
-                    <span style={styles.code}>{code}</span>
+                    <span style={styles.code}>{validatedCode}</span>
                 </div>
             </div>
 
@@ -412,8 +563,12 @@ export default function RoomPage() {
                             </button>
                             <button
                                 onClick={handleUpdateStatistics}
-                                disabled={reportLoading}
-                                style={{...styles.reportButton, ...styles.updateButton}}
+                                disabled={reportLoading || Object.keys(validationErrors).length > 0}
+                                style={{
+                                    ...styles.reportButton, 
+                                    ...styles.updateButton,
+                                    ...(Object.keys(validationErrors).length > 0 ? { opacity: 0.6 } : {})
+                                }}
                             >
                                 {reportLoading ? <span style={styles.spinner}></span> : ''} Update Statistics
                             </button>
@@ -436,21 +591,33 @@ export default function RoomPage() {
                                 <input
                                     type="text"
                                     value={commander}
-                                    onChange={(e) => setCommander(e.target.value)}
+                                    onChange={handleCommanderChange}
                                     placeholder="Your commander name"
-                                    style={styles.textInput}
+                                    style={{
+                                        ...styles.textInput,
+                                        ...(validationErrors.commander ? styles.inputError : {})
+                                    }}
                                     disabled={reportLoading}
+                                    maxLength={100}
+                                    aria-invalid={!!validationErrors.commander}
                                 />
+                                {validationErrors.commander && (
+                                    <span style={styles.validationError}>
+                                        {validationErrors.commander}
+                                    </span>
+                                )}
                             </label>
                             <label style={styles.inputLabel}>
                                 Bracket
                                 <input
                                     type="number"
                                     value={bracket}
-                                    onChange={(e) => setBracket(e.target.value)}
-                                    placeholder="Average Bracket"
+                                    onChange={handleBracketChange}
+                                    placeholder="Average Bracket (0-10)"
                                     style={styles.textInput}
                                     disabled={reportLoading}
+                                    min="0"
+                                    max="10"
                                 />
                             </label>
                             <label style={styles.inputLabel}>
@@ -458,10 +625,12 @@ export default function RoomPage() {
                                 <input
                                     type="number"
                                     value={turnCount}
-                                    onChange={(e) => setTurnCount(e.target.value)}
+                                    onChange={handleTurnCountChange}
                                     placeholder="Number of turns"
                                     style={styles.textInput}
                                     disabled={reportLoading}
+                                    min="0"
+                                    max="999"
                                 />
                             </label>
                             <label style={styles.inputLabel}>
@@ -469,33 +638,63 @@ export default function RoomPage() {
                                 <input
                                     type="text"
                                     value={playerOrder}
-                                    onChange={(e) => setPlayerOrder(e.target.value)}
+                                    onChange={handlePlayerOrderChange}
                                     placeholder="e.g., 1st, 2nd, 3rd, 4th"
-                                    style={styles.textInput}
+                                    style={{
+                                        ...styles.textInput,
+                                        ...(validationErrors.playerOrder ? styles.inputError : {})
+                                    }}
                                     disabled={reportLoading}
+                                    maxLength={50}
+                                    aria-invalid={!!validationErrors.playerOrder}
                                 />
+                                {validationErrors.playerOrder && (
+                                    <span style={styles.validationError}>
+                                        {validationErrors.playerOrder}
+                                    </span>
+                                )}
                             </label>
                             <label style={styles.inputLabel}>
                                 First Player
                                 <input
                                     type="text"
                                     value={firstPlayer}
-                                    onChange={(e) => setFirstPlayer(e.target.value)}
+                                    onChange={handleFirstPlayerChange}
                                     placeholder="Who went first"
-                                    style={styles.textInput}
+                                    style={{
+                                        ...styles.textInput,
+                                        ...(validationErrors.firstPlayer ? styles.inputError : {})
+                                    }}
                                     disabled={reportLoading}
+                                    maxLength={50}
+                                    aria-invalid={!!validationErrors.firstPlayer}
                                 />
+                                {validationErrors.firstPlayer && (
+                                    <span style={styles.validationError}>
+                                        {validationErrors.firstPlayer}
+                                    </span>
+                                )}
                             </label>
                             <label style={styles.inputLabel}>
                                 Win Condition
                                 <input
                                     type="text"
                                     value={winCondition}
-                                    onChange={(e) => setWinCondition(e.target.value)}
+                                    onChange={handleWinConditionChange}
                                     placeholder="How the game was won"
-                                    style={styles.textInput}
+                                    style={{
+                                        ...styles.textInput,
+                                        ...(validationErrors.winCondition ? styles.inputError : {})
+                                    }}
                                     disabled={reportLoading}
+                                    maxLength={200}
+                                    aria-invalid={!!validationErrors.winCondition}
                                 />
+                                {validationErrors.winCondition && (
+                                    <span style={styles.validationError}>
+                                        {validationErrors.winCondition}
+                                    </span>
+                                )}
                             </label>
                         </div>
                     </div>
@@ -503,389 +702,4 @@ export default function RoomPage() {
             )}
         </div>
     )
-}
-
-const styles = {
-    container: {
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '2rem 1rem'
-    },
-    header: {
-        textAlign: 'center',
-        marginBottom: '2rem'
-    },
-    title: {
-        fontSize: '2rem',
-        fontWeight: '700',
-        marginBottom: '1rem',
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text'
-    },
-    codeDisplay: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.75rem 1.5rem',
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '12px',
-        boxShadow: '0 2px 8px var(--shadow-color)'
-    },
-    codeLabel: {
-        fontSize: '0.9rem',
-        color: 'var(--text-secondary)',
-        fontWeight: '500'
-    },
-    code: {
-        fontSize: '1.5rem',
-        fontWeight: '700',
-        color: 'var(--accent-color)',
-        letterSpacing: '0.1em'
-    },
-    errorBanner: {
-        padding: '1rem 1.5rem',
-        borderRadius: '12px',
-        background: 'var(--error-bg)',
-        border: '1px solid var(--error-border)',
-        color: 'var(--error-text)',
-        fontSize: '0.95rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        marginBottom: '1.5rem',
-        animation: 'slideIn 0.3s ease'
-    },
-    errorIcon: {
-        fontSize: '1.25rem'
-    },
-    waitingCard: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '3rem 2rem',
-        textAlign: 'center',
-        boxShadow: '0 4px 12px var(--shadow-color)'
-    },
-    waitingIcon: {
-        fontSize: '4rem',
-        marginBottom: '1rem',
-        animation: 'pulse 2s ease-in-out infinite'
-    },
-    waitingTitle: {
-        fontSize: '1.5rem',
-        fontWeight: '600',
-        marginBottom: '0.5rem',
-        color: 'var(--text-primary)'
-    },
-    waitingText: {
-        fontSize: '1rem',
-        color: 'var(--text-secondary)',
-        marginBottom: '1.5rem',
-        lineHeight: '1.6'
-    },
-    loadingIndicator: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.75rem',
-        padding: '1rem',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        fontSize: '0.9rem',
-        color: 'var(--text-secondary)'
-    },
-    participantsCard: {
-        marginTop: '2rem',
-        padding: '1.5rem',
-        background: 'var(--bg-secondary)',
-        borderRadius: '12px'
-    },
-    participantsTitle: {
-        fontSize: '1.1rem',
-        fontWeight: '600',
-        marginBottom: '1rem',
-        color: 'var(--text-primary)'
-    },
-    participantsList: {
-        listStyle: 'none',
-        padding: 0,
-        margin: 0,
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '0.5rem'
-    },
-    participantItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.5rem',
-        fontSize: '0.95rem',
-        color: 'var(--text-primary)'
-    },
-    participantDot: {
-        color: 'var(--success-color)',
-        fontSize: '0.6rem'
-    },
-    lastUpdated: {
-        marginTop: '1rem',
-        fontSize: '0.85rem',
-        color: 'var(--text-tertiary)',
-        textAlign: 'center'
-    },
-    startedContent: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.5rem'
-    },
-    loadingText: {
-        textAlign: 'center',
-        padding: '2rem',
-        fontSize: '1.1rem',
-        color: 'var(--text-secondary)'
-    },
-    noResults: {
-        textAlign: 'center',
-        padding: '2rem',
-        background: 'var(--card-bg)',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
-        color: 'var(--text-secondary)'
-    },
-    resultsCard: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '2rem',
-        boxShadow: '0 4px 12px var(--shadow-color)'
-    },
-    resultsHeader: {
-        marginBottom: '1.5rem',
-        paddingBottom: '1rem',
-        borderBottom: '2px solid var(--border-color)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1rem'
-    },
-    resultsTitle: {
-        fontSize: '1.3rem',
-        fontWeight: '600',
-        margin: 0,
-        color: 'var(--text-primary)'
-    },
-    timerDisplay: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.5rem 1rem',
-        background: 'linear-gradient(135deg, rgba(100, 108, 255, 0.1) 0%, rgba(83, 91, 242, 0.1) 100%)',
-        border: '1px solid var(--accent-color)',
-        borderRadius: '8px'
-    },
-    timerIcon: {
-        fontSize: '1.2rem'
-    },
-    timerContent: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.1rem'
-    },
-    timerLabel: {
-        fontSize: '0.7rem',
-        color: 'var(--text-secondary)',
-        fontWeight: '500',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em'
-    },
-    timerValue: {
-        fontSize: '1rem',
-        fontWeight: '700',
-        color: 'var(--accent-color)',
-        fontFamily: 'monospace'
-    },
-    resultDetails: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        marginBottom: '1.5rem'
-    },
-    detailRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '0.75rem',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px'
-    },
-    detailLabel: {
-        fontSize: '0.9rem',
-        fontWeight: '500',
-        color: 'var(--text-secondary)'
-    },
-    detailValue: {
-        fontSize: '1rem',
-        fontWeight: '600',
-        color: 'var(--text-primary)'
-    },
-    membersSection: {
-        marginTop: '1.5rem',
-        paddingTop: '1.5rem',
-        borderTop: '2px solid var(--border-color)'
-    },
-    membersTitle: {
-        fontSize: '1.1rem',
-        fontWeight: '600',
-        marginBottom: '1rem',
-        color: 'var(--text-primary)'
-    },
-    membersList: {
-        listStyle: 'none',
-        padding: 0,
-        margin: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem'
-    },
-    memberItem: {
-        padding: '0.75rem 1rem',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        fontSize: '0.95rem',
-        color: 'var(--text-primary)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
-    memberItemYou: {
-        background: 'linear-gradient(135deg, rgba(100, 108, 255, 0.1) 0%, rgba(83, 91, 242, 0.1) 100%)',
-        border: '1px solid var(--accent-color)',
-        fontWeight: '600'
-    },
-    youBadge: {
-        padding: '0.25rem 0.5rem',
-        background: 'var(--accent-color)',
-        color: 'white',
-        borderRadius: '4px',
-        fontSize: '0.75rem',
-        fontWeight: '700'
-    },
-    statisticsCard: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '2rem',
-        boxShadow: '0 4px 12px var(--shadow-color)'
-    },
-    statisticsTitle: {
-        fontSize: '1.3rem',
-        fontWeight: '600',
-        marginBottom: '0.5rem',
-        color: 'var(--text-primary)'
-    },
-    statisticsDescription: {
-        fontSize: '0.95rem',
-        color: 'var(--text-secondary)',
-        marginBottom: '1.5rem'
-    },
-    inputGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '1rem'
-    },
-    inputLabel: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-        fontSize: '0.9rem',
-        fontWeight: '500',
-        color: 'var(--text-primary)'
-    },
-    textInput: {
-        padding: '0.75rem',
-        fontSize: '1rem',
-        borderRadius: '8px',
-        border: '1px solid var(--border-color)',
-        background: 'var(--input-bg)',
-        color: 'var(--text-primary)',
-        transition: 'all 0.2s ease',
-        outline: 'none'
-    },
-    reportCard: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '2rem',
-        boxShadow: '0 4px 12px var(--shadow-color)'
-    },
-    reportTitle: {
-        fontSize: '1.3rem',
-        fontWeight: '600',
-        marginBottom: '0.5rem',
-        color: 'var(--text-primary)'
-    },
-    reportDescription: {
-        fontSize: '0.95rem',
-        color: 'var(--text-secondary)',
-        marginBottom: '1.5rem'
-    },
-    reportButtons: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-        gap: '1rem'
-    },
-    reportButton: {
-        padding: '1rem 1.5rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: '10px',
-        border: 'none',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        boxShadow: '0 2px 8px var(--shadow-color)'
-    },
-    winButton: {
-        background: 'linear-gradient(135deg, #51cf66 0%, #37b24d 100%)',
-        color: 'white'
-    },
-    drawButton: {
-        background: 'linear-gradient(135deg, #ffd43b 0%, #fab005 100%)',
-        color: '#333'
-    },
-    dropButton: {
-        background: 'linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%)',
-        color: 'white'
-    },
-    updateButton: {
-        background: 'linear-gradient(135deg, #748ffc 0%, #5c7cfa 100%)',
-        color: 'white'
-    },
-    successMessage: {
-        marginTop: '1rem',
-        padding: '0.75rem 1rem',
-        background: 'var(--success-bg)',
-        border: '1px solid var(--success-border)',
-        borderRadius: '8px',
-        color: 'var(--success-text)',
-        fontSize: '0.9rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem'
-    },
-    spinner: {
-        width: '16px',
-        height: '16px',
-        border: '2px solid rgba(255, 255, 255, 0.3)',
-        borderTopColor: 'white',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-        display: 'inline-block'
-    }
 }

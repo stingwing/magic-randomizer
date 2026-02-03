@@ -1,6 +1,12 @@
 ﻿import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiBase } from './api'
+import { validateName, validateRoomCode, RateLimiter } from './utils/validation'
+import { styles } from './styles/Join.styles'
+
+// Rate limiter to prevent API abuse
+const joinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
+const createRateLimiter = new RateLimiter(3, 60000) // 3 creates per minute
 
 export default function JoinPage() {
     const [code, setCode] = useState('')
@@ -8,27 +14,81 @@ export default function JoinPage() {
     const [loading, setLoading] = useState(false)
     const [creating, setCreating] = useState(false)
     const [error, setError] = useState(null)
+    const [validationErrors, setValidationErrors] = useState({})
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
 
     useEffect(() => {
         const codeParam = searchParams.get('code')
         if (codeParam) {
-            setCode(codeParam)
+            const validated = validateRoomCode(codeParam)
+            setCode(validated.sanitized)
         }
     }, [searchParams])
 
+    const handleCodeChange = (e) => {
+        const validated = validateRoomCode(e.target.value)
+        setCode(validated.sanitized)
+        
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, code: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { code, ...rest } = prev
+                return rest
+            })
+        }
+    }
+
+    const handleNameChange = (e) => {
+        const validated = validateName(e.target.value)
+        setName(validated.sanitized)
+        
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, name: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { name, ...rest } = prev
+                return rest
+            })
+        }
+    }
+
     const handleJoin = async () => {
-        const trimmedCode = code.trim()
-        const trimmedName = name.trim()
+        // Validate inputs
+        const codeValidation = validateRoomCode(code)
+        const nameValidation = validateName(name)
+        
+        const errors = {}
+        if (!codeValidation.valid) errors.code = codeValidation.error
+        if (!nameValidation.valid) errors.name = nameValidation.error
+        
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors)
+            setError('Please fix the validation errors')
+            return
+        }
+        
+        // Check rate limiting
+        if (!joinRateLimiter.canAttempt('join')) {
+            setError('Too many attempts. Please wait a moment and try again.')
+            return
+        }
+
+        const trimmedCode = codeValidation.sanitized
+        const trimmedName = nameValidation.sanitized
+        
         if (!trimmedCode || !trimmedName) {
             setError('Please enter both a code and a name')
             return
         }
+        
         const url = `${apiBase}/${encodeURIComponent(trimmedCode)}/join`
 
         setLoading(true)
         setError(null)
+        setValidationErrors({})
+        
         try {
             const res = await fetch(url, {
                 method: 'POST',
@@ -43,8 +103,13 @@ export default function JoinPage() {
 
             if (!res.ok) {
                 const text = await res.text().catch(() => '')
-                const message = text || `Server returned ${res.status}`
-                setError(`Join failed: ${message}`)
+                // Don't expose detailed server errors to users
+                const safeMessage = res.status === 404 
+                    ? 'Room not found' 
+                    : res.status === 400 
+                    ? 'Invalid request' 
+                    : 'Failed to join room'
+                setError(safeMessage)
                 return
             }
 
@@ -54,21 +119,30 @@ export default function JoinPage() {
                 (data && (data.participantId || data.id || data.participant?.participantId)) ||
                 trimmedName
 
+            // Validate participant ID before navigation
+            const sanitizedParticipantId = validateName(participantId).sanitized
+
             navigate(
-                `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(participantId)}`
+                `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(sanitizedParticipantId)}`
             )
 
             setCode('')
             setName('')
         } catch (err) {
             console.error('Join error', err)
-            setError('Network error while attempting to join. Check console for details.')
+            setError('Network error while attempting to join.')
         } finally {
             setLoading(false)
         }
     }
 
     const handleCreateNewGame = async () => {
+        // Check rate limiting
+        if (!createRateLimiter.canAttempt('create')) {
+            setError('Too many game creation attempts. Please wait a moment and try again.')
+            return
+        }
+        
         setCreating(true)
         setError(null)
         try {
@@ -81,8 +155,11 @@ export default function JoinPage() {
             })
 
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                const safeMessage = res.status === 500 
+                    ? 'Server error. Please try again.' 
+                    : 'Failed to create game'
+                setError(safeMessage)
+                return
             }
 
             const data = await res.json().catch(() => null)
@@ -99,14 +176,16 @@ export default function JoinPage() {
                 })()
 
             if (roomCode) {
-                localStorage.setItem('hostRoomCode', roomCode)
-                navigate(`/host/${roomCode}`)
+                // Validate room code before storing and navigating
+                const validated = validateRoomCode(roomCode)
+                sessionStorage.setItem('hostRoomCode', validated.sanitized)
+                navigate(`/host/${encodeURIComponent(validated.sanitized)}`)
             } else {
-                setError('Unable to extract room code from server response')
+                setError('Unable to create game. Please try again.')
             }
         } catch (err) {
             console.error('Create room error', err)
-            setError(err.message || 'Unknown error while creating room')
+            setError('Network error while creating game.')
         } finally {
             setCreating(false)
         }
@@ -126,6 +205,82 @@ export default function JoinPage() {
             </div>
 
             <div style={styles.cardGrid}>
+               
+
+                {/* Join Existing Game Card */}
+                <div style={styles.card}>
+                    <div style={styles.cardIcon}></div>
+                    <h2 style={styles.cardTitle}>Join Existing Game</h2>
+                    <p style={styles.cardDescription}>
+                        Enter the game code provided by your host to join an active session.
+                    </p>
+                    <div style={styles.inputGroup}>
+                        <label style={styles.label}>
+                            Game Code
+                            <input
+                                type="text"
+                                value={code}
+                                onChange={handleCodeChange}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Enter join code"
+                                style={{
+                                    ...styles.input,
+                                    ...(validationErrors.code ? styles.inputError : {})
+                                }}
+                                disabled={loading}
+                                maxLength={20}
+                                aria-invalid={!!validationErrors.code}
+                                aria-describedby={validationErrors.code ? "code-error" : undefined}
+                            />
+                            {validationErrors.code && (
+                                <span id="code-error" style={styles.validationError}>
+                                    {validationErrors.code}
+                                </span>
+                            )}
+                        </label>
+                        <label style={styles.label}>
+                            Your Name
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={handleNameChange}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Enter your name"
+                                style={{
+                                    ...styles.input,
+                                    ...(validationErrors.name ? styles.inputError : {})
+                                }}
+                                disabled={loading}
+                                maxLength={50}
+                                aria-invalid={!!validationErrors.name}
+                                aria-describedby={validationErrors.name ? "name-error" : undefined}
+                            />
+                            {validationErrors.name && (
+                                <span id="name-error" style={styles.validationError}>
+                                    {validationErrors.name}
+                                </span>
+                            )}
+                        </label>
+                        <button
+                            onClick={handleJoin}
+                            disabled={loading || Object.keys(validationErrors).length > 0}
+                            style={{
+                                ...styles.secondaryButton,
+                                ...((loading || Object.keys(validationErrors).length > 0) ? styles.buttonDisabled : {})
+                            }}
+                        >
+                            {loading ? (
+                                <>
+                                    <span style={styles.spinner}></span>
+                                    Joining…
+                                </>
+                            ) : (
+                                <>Join Game</>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
                 {/* Host New Game Card */}
                 <div style={styles.card}>
                     <div style={styles.cardIcon}></div>
@@ -151,58 +306,6 @@ export default function JoinPage() {
                         )}
                     </button>
                 </div>
-
-                {/* Join Existing Game Card */}
-                <div style={styles.card}>
-                    <div style={styles.cardIcon}></div>
-                    <h2 style={styles.cardTitle}>Join Existing Game</h2>
-                    <p style={styles.cardDescription}>
-                        Enter the game code provided by your host to join an active session.
-                    </p>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>
-                            Game Code
-                            <input
-                                type="text"
-                                value={code}
-                                onChange={e => setCode(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Enter join code"
-                                style={styles.input}
-                                disabled={loading}
-                            />
-                        </label>
-                        <label style={styles.label}>
-                            Your Name
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Enter your name"
-                                style={styles.input}
-                                disabled={loading}
-                            />
-                        </label>
-                        <button
-                            onClick={handleJoin}
-                            disabled={loading}
-                            style={{
-                                ...styles.secondaryButton,
-                                ...(loading ? styles.buttonDisabled : {})
-                            }}
-                        >
-                            {loading ? (
-                                <>
-                                    <span style={styles.spinner}></span>
-                                    Joining…
-                                </>
-                            ) : (
-                                <>Join Game</>
-                            )}
-                        </button>
-                    </div>
-                </div>
             </div>
 
             {/* Error Message */}
@@ -214,148 +317,4 @@ export default function JoinPage() {
             )}
         </div>
     )
-}
-
-const styles = {
-    container: {
-        maxWidth: '1000px',
-        margin: '0 auto',
-        padding: '2rem 1rem',
-        fontFamily: 'system-ui, Avenir, Helvetica, Arial, sans-serif'
-    },
-    header: {
-        textAlign: 'center',
-        marginBottom: '3rem'
-    },
-    title: {
-        fontSize: '2.5rem',
-        fontWeight: '700',
-        marginBottom: '0.5rem',
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text'
-    },
-    subtitle: {
-        fontSize: '1.1rem',
-        color: '#888',
-        margin: 0
-    },
-    cardGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: '2rem',
-        marginBottom: '2rem'
-    },
-    card: {
-        background: 'rgba(255, 255, 255, 0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '16px',
-        padding: '2rem',
-        transition: 'all 0.3s ease',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        backdropFilter: 'blur(10px)'
-    },
-    cardIcon: {
-        fontSize: '3rem',
-        marginBottom: '1rem'
-    },
-    cardTitle: {
-        fontSize: '1.5rem',
-        fontWeight: '600',
-        marginTop: 0,
-        marginBottom: '0.75rem'
-    },
-    cardDescription: {
-        fontSize: '0.95rem',
-        color: '#888',
-        lineHeight: '1.6',
-        marginBottom: '1.5rem'
-    },
-    inputGroup: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem'
-    },
-    label: {
-        display: 'flex',
-        flexDirection: 'column',
-        fontSize: '0.9rem',
-        fontWeight: '500',
-        gap: '0.5rem',
-        textAlign: 'left'
-    },
-    input: {
-        width: '100%',
-        padding: '0.75rem 1rem',
-        fontSize: '1rem',
-        borderRadius: '8px',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(0, 0, 0, 0.2)',
-        color: 'inherit',
-        transition: 'all 0.2s ease',
-        outline: 'none',
-        boxSizing: 'border-box'
-    },
-    primaryButton: {
-        width: '100%',
-        padding: '0.875rem 1.5rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: '8px',
-        border: 'none',
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        color: 'white',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        boxShadow: '0 4px 12px rgba(100, 108, 255, 0.3)'
-    },
-    secondaryButton: {
-        width: '100%',
-        padding: '0.875rem 1.5rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: '8px',
-        border: '1px solid #646cff',
-        background: 'transparent',
-        color: '#646cff',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem'
-    },
-    buttonDisabled: {
-        opacity: 0.6,
-        cursor: 'not-allowed'
-    },
-    errorBanner: {
-        padding: '1rem 1.5rem',
-        borderRadius: '8px',
-        background: 'rgba(220, 38, 38, 0.1)',
-        border: '1px solid rgba(220, 38, 38, 0.3)',
-        color: '#fca5a5',
-        fontSize: '0.95rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        animation: 'slideIn 0.3s ease'
-    },
-    errorIcon: {
-        fontSize: '1.25rem'
-    },
-    spinner: {
-        width: '16px',
-        height: '16px',
-        border: '2px solid rgba(255, 255, 255, 0.3)',
-        borderTopColor: 'white',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-        display: 'inline-block'
-    }
 }

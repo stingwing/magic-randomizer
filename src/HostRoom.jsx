@@ -2,6 +2,12 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { apiBase } from './api'
+import { validateName, validateUrlParam, RateLimiter } from './utils/validation'
+import { styles } from './styles/HostRoom.styles'
+// Rate limiters for different actions
+const addPlayerRateLimiter = new RateLimiter(10, 60000) // 10 additions per minute
+const dropPlayerRateLimiter = new RateLimiter(20, 60000) // 20 drops per minute
+const gameActionRateLimiter = new RateLimiter(15, 60000) // 15 game actions per minute
 
 function RoundTimer({ startedAtUtc }) {
     const [elapsed, setElapsed] = useState('')
@@ -70,6 +76,7 @@ function RoundDisplay({ round, index, label }) {
         groups = round.groups ?? []
         startedAtUtc = round.startedAtUtc
     }
+    
     return (
         <div style={styles.roundCard}>
             <div style={styles.roundHeader}>
@@ -155,19 +162,49 @@ export default function HostRoomPage() {
     const [droppingPlayer, setDroppingPlayer] = useState({})
     const [showQR, setShowQR] = useState(false)
     const pollRef = useRef(null)
+    
+    // Validation state
+    const [validationErrors, setValidationErrors] = useState({})
+    const [validatedCode, setValidatedCode] = useState('')
+
+    // Validate URL parameter on mount
+    useEffect(() => {
+        const codeValidation = validateUrlParam(code)
+        
+        if (!codeValidation.valid) {
+            navigate('/')
+            return
+        }
+        
+        setValidatedCode(codeValidation.sanitized)
+    }, [code, navigate])
 
     const getJoinUrl = () => {
         const baseUrl = window.location.origin
-        return `${baseUrl}/?code=${encodeURIComponent(code)}`
+        return `${baseUrl}/?code=${encodeURIComponent(validatedCode)}`
+    }
+
+    const handlePlayerNameChange = (e) => {
+        const validated = validateName(e.target.value)
+        setNewPlayerName(validated.sanitized)
+        
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, playerName: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { playerName, ...rest } = prev
+                return rest
+            })
+        }
     }
 
     const fetchParticipants = async () => {
-        if (!code) return
+        if (!validatedCode) return
         try {
-            const res = await fetch(`${apiBase}/${encodeURIComponent(code)}`)
+            const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}`)
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                const safeMessage = res.status === 404 ? 'Room not found' : 'Unable to load participants'
+                throw new Error(safeMessage)
             }
             const data = await res.json().catch(() => null)
             if (data && Array.isArray(data.participants)) {
@@ -179,16 +216,15 @@ export default function HostRoomPage() {
     }
 
     const fetchCurrentRound = async () => {
-        if (!code) return
+        if (!validatedCode) return
         try {
-            const res = await fetch(`${apiBase}/${encodeURIComponent(code)}/current`)
+            const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}/current`)
             if (res.status === 404 || res.status === 204) {
                 setCurrentRound(null)
                 return
             }
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                throw new Error('Unable to load current round')
             }
             const data = await res.json().catch(() => null)
             setCurrentRound(data)
@@ -201,16 +237,15 @@ export default function HostRoomPage() {
     }
 
     const fetchArchivedRounds = async () => {
-        if (!code) return
+        if (!validatedCode) return
         try {
-            const res = await fetch(`${apiBase}/${encodeURIComponent(code)}/archived`)
+            const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}/archived`)
             if (res.status === 404 || res.status === 204) {
                 setArchivedRounds([])
                 return
             }
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                throw new Error('Unable to load archived rounds')
             }
             const data = await res.json().catch(() => null)
             if (Array.isArray(data)) {
@@ -237,15 +272,25 @@ export default function HostRoomPage() {
     }
 
     const handleStart = async () => {
+        if (!validatedCode) return
+        
+        // Check rate limiting
+        if (!gameActionRateLimiter.canAttempt('start')) {
+            setError('Too many game actions. Please wait a moment.')
+            return
+        }
+        
         setStarting(true)
         setError(null)
         setMessage(null)
         try {
-            const url = `${apiBase}/${encodeURIComponent(code)}/start`
+            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/start`
             const res = await fetch(url)
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                const safeMessage = res.status === 400 
+                    ? 'Invalid game state' 
+                    : 'Unable to start game'
+                throw new Error(safeMessage)
             }
             const data = await res.json().catch(() => null)
             setMessage(
@@ -257,22 +302,32 @@ export default function HostRoomPage() {
             await fetchAllData()
         } catch (err) {
             console.error('Start game error', err)
-            setError(err.message || 'Unknown error while starting game')
+            setError(err.message || 'Unable to start game')
         } finally {
             setStarting(false)
         }
     }
 
     const handleNewRound = async () => {
+        if (!validatedCode) return
+        
+        // Check rate limiting
+        if (!gameActionRateLimiter.canAttempt('newround')) {
+            setError('Too many game actions. Please wait a moment.')
+            return
+        }
+        
         setStartingNewRound(true)
         setError(null)
         setMessage(null)
         try {
-            const url = `${apiBase}/${encodeURIComponent(code)}/newround`
+            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/newround`
             const res = await fetch(url)
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                const safeMessage = res.status === 400 
+                    ? 'Invalid game state for new round' 
+                    : 'Unable to start new round'
+                throw new Error(safeMessage)
             }
             const data = await res.json().catch(() => null)
             setMessage(
@@ -283,86 +338,149 @@ export default function HostRoomPage() {
             await fetchAllData()
         } catch (err) {
             console.error('New round error', err)
-            setError(err.message || 'Unknown error while starting new round')
+            setError(err.message || 'Unable to start new round')
         } finally {
             setStartingNewRound(false)
         }
     }
 
     const handleAddPlayer = async () => {
-        if (!newPlayerName.trim()) {
-            setError('Please enter a player name')
+        if (!validatedCode) return
+        
+        // Validate player name
+        const nameValidation = validateName(newPlayerName)
+        
+        if (!nameValidation.valid) {
+            setError(nameValidation.error || 'Please enter a valid player name')
+            setValidationErrors({ playerName: nameValidation.error })
+            return
+        }
+        
+        // Check rate limiting
+        if (!addPlayerRateLimiter.canAttempt('add')) {
+            setError('Too many player additions. Please wait a moment.')
             return
         }
 
         setAddingPlayer(true)
         setError(null)
         setMessage(null)
+        setValidationErrors({})
+        
         try {
-            const url = `${apiBase}/${encodeURIComponent(code)}/join`
+            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/join`
+            const sanitizedName = nameValidation.sanitized
+            
             const res = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    participantId: newPlayerName,
-                    participantName: newPlayerName
+                    participantId: sanitizedName,
+                    participantName: sanitizedName
                 })
             })
+            
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                const safeMessage = res.status === 400 
+                    ? 'Invalid player name or duplicate player' 
+                    : 'Unable to add player'
+                throw new Error(safeMessage)
             }
-            setMessage(`Player "${newPlayerName.trim()}" added successfully`)
+            
+            setMessage(`Player "${sanitizedName}" added successfully`)
             setNewPlayerName('')
             await fetchParticipants()
         } catch (err) {
             console.error('Add player error', err)
-            setError(err.message || 'Unknown error while adding player')
+            setError(err.message || 'Unable to add player')
         } finally {
             setAddingPlayer(false)
         }
     }
 
     const handleDropPlayer = async (playerId) => {
+        if (!validatedCode) return
+        
+        // Get player name for confirmation
+        const player = participants.find(p => p.id === playerId)
+        const playerName = player?.name ?? player?.id ?? 'this player'
+        
+        // Show confirmation dialog
+        if (!window.confirm(`Are you sure you want to drop ${playerName}?`)) {
+            return
+        }
+        
+        // Validate player ID
+        const playerIdValidation = validateUrlParam(playerId)
+        if (!playerIdValidation.valid) {
+            setError('Invalid player ID')
+            return
+        }
+        
+        // Check rate limiting
+        if (!dropPlayerRateLimiter.canAttempt('drop')) {
+            setError('Too many drop actions. Please wait a moment.')
+            return
+        }
+        
         setDroppingPlayer(prev => ({ ...prev, [playerId]: true }))
         setError(null)
         setMessage(null)
+        
         try {
-            const url = `${apiBase}/${encodeURIComponent(code)}/report`
+            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/report`
             const res = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    participantId: playerId,
+                    participantId: playerIdValidation.sanitized,
                     result: 'Drop'
                 })
             })
+            
             if (!res.ok) {
-                const txt = await res.text().catch(() => '')
-                throw new Error(txt || `Server returned ${res.status}`)
+                const safeMessage = res.status === 400 
+                    ? 'Invalid drop request' 
+                    : 'Unable to drop player'
+                throw new Error(safeMessage)
             }
+            
             setMessage('Player dropped successfully')
             await fetchAllData()
         } catch (err) {
             console.error('Drop player error', err)
-            setError(err.message || 'Unknown error while dropping player')
+            setError(err.message || 'Unable to drop player')
         } finally {
             setDroppingPlayer(prev => ({ ...prev, [playerId]: false }))
         }
     }
 
     const copyCode = async () => {
-        if (!code) return
+        if (!validatedCode) return
         try {
-            await navigator.clipboard.writeText(code)
+            await navigator.clipboard.writeText(validatedCode)
             setMessage('Code copied to clipboard!')
             setTimeout(() => setMessage(null), 3000)
         } catch {
-            alert(`Copy this code: ${code}`)
+            // Fallback for browsers that don't support clipboard API
+            const textArea = document.createElement('textarea')
+            textArea.value = validatedCode
+            textArea.style.position = 'fixed'
+            textArea.style.opacity = '0'
+            document.body.appendChild(textArea)
+            textArea.select()
+            try {
+                document.execCommand('copy')
+                setMessage('Code copied to clipboard!')
+                setTimeout(() => setMessage(null), 3000)
+            } catch {
+                alert(`Copy this code: ${validatedCode}`)
+            }
+            document.body.removeChild(textArea)
         }
     }
 
@@ -373,7 +491,21 @@ export default function HostRoomPage() {
             setMessage('Join URL copied to clipboard!')
             setTimeout(() => setMessage(null), 3000)
         } catch {
-            alert(`Copy this URL: ${url}`)
+            // Fallback
+            const textArea = document.createElement('textarea')
+            textArea.value = url
+            textArea.style.position = 'fixed'
+            textArea.style.opacity = '0'
+            document.body.appendChild(textArea)
+            textArea.select()
+            try {
+                document.execCommand('copy')
+                setMessage('Join URL copied to clipboard!')
+                setTimeout(() => setMessage(null), 3000)
+            } catch {
+                alert(`Copy this URL: ${url}`)
+            }
+            document.body.removeChild(textArea)
         }
     }
 
@@ -392,12 +524,11 @@ export default function HostRoomPage() {
     }
 
     useEffect(() => {
-        if (!code) {
-            navigate('/')
+        if (!validatedCode) {
             return
         }
 
-        localStorage.setItem('hostRoomCode', code)
+        sessionStorage.setItem('hostRoomCode', validatedCode)
 
         fetchAllData()
 
@@ -411,12 +542,12 @@ export default function HostRoomPage() {
                 pollRef.current = null
             }
         }
-    }, [code])
+    }, [validatedCode])
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1 style={styles.title}> Host Dashboard</h1>
+                <h1 style={styles.title}>🎮 Host Dashboard</h1>
             </div>
 
             {/* Room Code Banner */}
@@ -424,7 +555,7 @@ export default function HostRoomPage() {
                 <div style={styles.codeContent}>
                     <div>
                         <div style={styles.codeLabel}>Room Code</div>
-                        <div style={styles.code}>{code}</div>
+                        <div style={styles.code}>{validatedCode}</div>
                         <div style={styles.codeHint}>Share this code with players to join</div>
                     </div>
                     <div style={styles.codeActions}>
@@ -529,23 +660,39 @@ export default function HostRoomPage() {
             <div style={styles.addPlayerSection}>
                 <h3 style={styles.sectionTitle}>Add Player</h3>
                 <div style={styles.addPlayerForm}>
-                    <input
-                        type="text"
-                        value={newPlayerName}
-                        onChange={(e) => setNewPlayerName(e.target.value)}
-                        onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                                handleAddPlayer()
-                            }
-                        }}
-                        placeholder="Enter player name"
-                        style={styles.playerInput}
-                        disabled={addingPlayer}
-                    />
+                    <label style={styles.inputWrapper}>
+                        <input
+                            type="text"
+                            value={newPlayerName}
+                            onChange={handlePlayerNameChange}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !addingPlayer && !validationErrors.playerName) {
+                                    handleAddPlayer()
+                                }
+                            }}
+                            placeholder="Enter player name"
+                            style={{
+                                ...styles.playerInput,
+                                ...(validationErrors.playerName ? styles.inputError : {})
+                            }}
+                            disabled={addingPlayer}
+                            maxLength={50}
+                            aria-invalid={!!validationErrors.playerName}
+                            aria-describedby={validationErrors.playerName ? "player-name-error" : undefined}
+                        />
+                        {validationErrors.playerName && (
+                            <span id="player-name-error" style={styles.validationError}>
+                                {validationErrors.playerName}
+                            </span>
+                        )}
+                    </label>
                     <button
                         onClick={handleAddPlayer}
-                        disabled={addingPlayer || !newPlayerName.trim()}
-                        style={styles.addButton}
+                        disabled={addingPlayer || !newPlayerName.trim() || !!validationErrors.playerName}
+                        style={{
+                            ...styles.addButton,
+                            ...((addingPlayer || !newPlayerName.trim() || !!validationErrors.playerName) ? styles.buttonDisabled : {})
+                        }}
                     >
                         {addingPlayer ? (
                             <>
@@ -576,6 +723,8 @@ export default function HostRoomPage() {
                                     onClick={() => handleDropPlayer(p.id)}
                                     disabled={droppingPlayer[p.id]}
                                     style={styles.dropButton}
+                                    title="Drop player"
+                                    aria-label={`Drop ${p.name ?? p.id}`}
                                 >
                                     {droppingPlayer[p.id] ? '...' : '🚪'}
                                 </button>
@@ -622,415 +771,4 @@ export default function HostRoomPage() {
             </div>
         </div>
     )
-}
-
-const styles = {
-    container: {
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '2rem 1rem'
-    },
-    header: {
-        textAlign: 'center',
-        marginBottom: '2rem'
-    },
-    title: {
-        fontSize: '2.5rem',
-        fontWeight: '700',
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        margin: 0
-    },
-    codeBanner: {
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        borderRadius: '16px',
-        padding: '2rem',
-        marginBottom: '2rem',
-        boxShadow: '0 8px 24px rgba(100, 108, 255, 0.3)'
-    },
-    codeContent: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '2rem',
-        flexWrap: 'wrap'
-    },
-    codeLabel: {
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontSize: '0.9rem',
-        fontWeight: '500',
-        marginBottom: '0.5rem'
-    },
-    code: {
-        color: 'white',
-        fontSize: '3rem',
-        fontWeight: '700',
-        letterSpacing: '0.15em',
-        marginBottom: '0.5rem'
-    },
-    codeHint: {
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontSize: '0.9rem'
-    },
-    codeActions: {
-        display: 'flex',
-        gap: '1rem',
-        flexWrap: 'wrap'
-    },
-    copyButton: {
-        padding: '1rem 2rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        background: 'white',
-        color: '#646cff',
-        border: 'none',
-        borderRadius: '10px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
-    },
-    qrToggleButton: {
-        padding: '1rem 2rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        background: 'rgba(255, 255, 255, 0.2)',
-        color: 'white',
-        border: '2px solid white',
-        borderRadius: '10px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
-    },
-    qrSection: {
-        marginTop: '2rem',
-        paddingTop: '2rem',
-        borderTop: '2px solid rgba(255, 255, 255, 0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '2rem',
-        flexWrap: 'wrap',
-        justifyContent: 'center'
-    },
-    qrCodeWrapper: {
-        background: 'white',
-        padding: '1.5rem',
-        borderRadius: '16px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)'
-    },
-    qrInfo: {
-        flex: '1 1 300px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem'
-    },
-    qrDescription: {
-        color: 'rgba(255, 255, 255, 0.9)',
-        fontSize: '1rem',
-        lineHeight: '1.6',
-        margin: 0
-    },
-    copyUrlButton: {
-        padding: '0.875rem 1.5rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        background: 'white',
-        color: '#646cff',
-        border: 'none',
-        borderRadius: '10px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-        width: 'fit-content'
-    },
-    errorMessage: {
-        padding: '1rem 1.5rem',
-        borderRadius: '12px',
-        background: 'var(--error-bg)',
-        border: '1px solid var(--error-border)',
-        color: 'var(--error-text)',
-        marginBottom: '1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        animation: 'slideIn 0.3s ease'
-    },
-    successMessage: {
-        padding: '1rem 1.5rem',
-        borderRadius: '12px',
-        background: 'var(--success-bg)',
-        border: '1px solid var(--success-border)',
-        color: 'var(--success-text)',
-        marginBottom: '1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        animation: 'slideIn 0.3s ease'
-    },
-    controlPanel: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '2rem',
-        marginBottom: '2rem',
-        boxShadow: '0 4px 12px var(--shadow-color)'
-    },
-    sectionTitle: {
-        fontSize: '1.3rem',
-        fontWeight: '600',
-        margin: 0,
-        color: 'var(--text-primary)'
-    },
-    sectionTitleRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '1.5rem',
-        flexWrap: 'wrap',
-        gap: '1rem'
-    },
-    buttonGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        gap: '1rem'
-    },
-    actionButton: {
-        padding: '1rem 1.5rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: '10px',
-        border: 'none',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        color: 'white'
-    },
-    startButton: {
-        background: 'linear-gradient(135deg, #51cf66 0%, #37b24d 100%)',
-        boxShadow: '0 4px 12px rgba(81, 207, 102, 0.3)'
-    },
-    newRoundButton: {
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        boxShadow: '0 4px 12px rgba(100, 108, 255, 0.3)'
-    },
-    refreshButton: {
-        background: 'linear-gradient(135deg, #ffd43b 0%, #fab005 100%)',
-        color: '#333',
-        boxShadow: '0 4px 12px rgba(255, 212, 59, 0.3)'
-    },
-    addPlayerSection: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '2rem',
-        marginBottom: '2rem',
-        boxShadow: '0 4px 12px var(--shadow-color)'
-    },
-    addPlayerForm: {
-        display: 'flex',
-        gap: '1rem',
-        flexWrap: 'wrap'
-    },
-    playerInput: {
-        flex: '1 1 300px',
-        padding: '1rem',
-        fontSize: '1rem',
-        borderRadius: '10px'
-    },
-    addButton: {
-        padding: '1rem 2rem',
-        fontSize: '1rem',
-        fontWeight: '600',
-        borderRadius: '10px',
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
-        color: 'white',
-        border: 'none',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem'
-    },
-    participantsSection: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '2rem',
-        marginBottom: '2rem',
-        boxShadow: '0 4px 12px var(--shadow-color)'
-    },
-    participantsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-        gap: '1rem'
-    },
-    participantCard: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '1rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '10px',
-        transition: 'all 0.2s ease'
-    },
-    participantName: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        fontSize: '1rem',
-        fontWeight: '500',
-        color: 'var(--text-primary)'
-    },
-    participantDot: {
-        color: 'var(--success-color)',
-        fontSize: '0.8rem'
-    },
-    dropButton: {
-        padding: '0.5rem 0.75rem',
-        fontSize: '1rem',
-        background: '#ff6b6b',
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease'
-    },
-    roundsSection: {
-        marginBottom: '2rem'
-    },
-    roundsContainer: {
-        display: 'flex',
-        gap: '1.5rem',
-        overflowX: 'auto',
-        paddingBottom: '1rem'
-    },
-    roundCard: {
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '1.5rem',
-        minWidth: '320px',
-        flex: '0 0 320px',
-        boxShadow: '0 4px 12px var(--shadow-color)'
-    },
-    roundHeader: {
-        marginBottom: '1.5rem',
-        paddingBottom: '0.75rem',
-        borderBottom: '2px solid var(--border-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem'
-    },
-    roundTitle: {
-        fontSize: '1.2rem',
-        fontWeight: '600',
-        margin: 0,
-        color: 'var(--text-primary)'
-    },
-    timerDisplay: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.5rem 1rem',
-        background: 'linear-gradient(135deg, rgba(100, 108, 255, 0.1) 0%, rgba(83, 91, 242, 0.1) 100%)',
-        border: '1px solid var(--accent-color)',
-        borderRadius: '8px',
-        width: 'fit-content'
-    },
-    timerIcon: {
-        fontSize: '1.2rem'
-    },
-    timerContent: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.1rem'
-    },
-    timerLabel: {
-        fontSize: '0.7rem',
-        color: 'var(--text-secondary)',
-        fontWeight: '500',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em'
-    },
-    timerValue: {
-        fontSize: '1rem',
-        fontWeight: '700',
-        color: 'var(--accent-color)',
-        fontFamily: 'monospace'
-    },
-    groupContainer: {
-        marginBottom: '1.5rem',
-        padding: '1rem',
-        background: 'var(--bg-secondary)',
-        borderRadius: '10px',
-        border: '1px solid var(--border-color)'
-    },
-    groupHeader: {
-        marginBottom: '0.75rem'
-    },
-    groupNumber: {
-        fontSize: '1rem',
-        fontWeight: '600',
-        color: 'var(--accent-color)'
-    },
-    groupResults: {
-        marginBottom: '0.75rem',
-        paddingBottom: '0.75rem',
-        borderBottom: '1px solid var(--border-color)'
-    },
-    resultItem: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontSize: '0.9rem',
-        marginBottom: '0.25rem'
-    },
-    resultLabel: {
-        color: 'var(--text-secondary)',
-        fontWeight: '500'
-    },
-    resultValue: {
-        color: 'var(--text-primary)',
-        fontWeight: '600'
-    },
-    membersList: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem'
-    },
-    memberItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        fontSize: '0.9rem',
-        color: 'var(--text-primary)'
-    },
-    memberDot: {
-        color: 'var(--success-color)',
-        fontSize: '0.6rem'
-    },
-    emptyState: {
-        padding: '3rem 2rem',
-        textAlign: 'center',
-        color: 'var(--text-secondary)',
-        fontSize: '1rem',
-        background: 'var(--bg-secondary)',
-        borderRadius: '12px',
-        border: '2px dashed var(--border-color)'
-    },
-    spinner: {
-        width: '16px',
-        height: '16px',
-        border: '2px solid rgba(255, 255, 255, 0.3)',
-        borderTopColor: 'white',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-        display: 'inline-block'
-    }
 }
