@@ -1,13 +1,15 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { apiBase } from './api'
+import * as signalR from '@microsoft/signalr'
+import { apiBase, signalRBase } from './api'
 import { validateName, validateUrlParam, RateLimiter } from './utils/validation'
 import { styles } from './styles/HostRoom.styles'
+
 // Rate limiters for different actions
-const addPlayerRateLimiter = new RateLimiter(60, 60000) // 10 additions per minute
-const dropPlayerRateLimiter = new RateLimiter(60, 60000) // 20 drops per minute
-const gameActionRateLimiter = new RateLimiter(15, 60000) // 15 game actions per minute
+const addPlayerRateLimiter = new RateLimiter(60, 60000)
+const dropPlayerRateLimiter = new RateLimiter(60, 60000)
+const gameActionRateLimiter = new RateLimiter(15, 60000)
 
 function RoundTimer({ startedAtUtc }) {
     const [elapsed, setElapsed] = useState('')
@@ -162,11 +164,13 @@ export default function HostRoomPage() {
     const [droppingPlayer, setDroppingPlayer] = useState({})
     const [showQR, setShowQR] = useState(false)
     const pollRef = useRef(null)
+    const hubConnectionRef = useRef(null)
     
     // Validation state
     const [validationErrors, setValidationErrors] = useState({})
     const [validatedCode, setValidatedCode] = useState('')
     const [validatedHostId, setValidatedHostId] = useState('')
+    const [connectionStatus, setConnectionStatus] = useState('disconnected')
 
     // Validate URL parameters on mount
     useEffect(() => {
@@ -296,13 +300,7 @@ export default function HostRoomPage() {
         try {
             const url = `${apiBase}/${encodeURIComponent(validatedCode)}/handlegame`
             
-            // Build players object from current participants
             const players = {}
-            //participants.forEach(p => {
-            //    if (p.id) {
-            //        players[p.id] = p.name ?? p.id
-            //    }
-            //})
             
             const res = await fetch(url, {
                 method: 'POST',
@@ -345,6 +343,7 @@ export default function HostRoomPage() {
                 setGameStarted(true)
             }
             
+            // SignalR will trigger updates automatically, but refresh immediately for immediate feedback
             await fetchAllData()
         } catch (err) {
             console.error('Handle game error', err)
@@ -411,7 +410,7 @@ export default function HostRoomPage() {
             
             setMessage(`Player "${sanitizedName}" added successfully`)
             setNewPlayerName('')
-            await fetchParticipants()
+            // SignalR will trigger fetchParticipants automatically
         } catch (err) {
             console.error('Add player error', err)
             setError(err.message || 'Unable to add player')
@@ -470,7 +469,7 @@ export default function HostRoomPage() {
             }
             
             setMessage('Player dropped successfully')
-            await fetchAllData()
+            // SignalR will trigger updates automatically
         } catch (err) {
             console.error('Drop player error', err)
             setError(err.message || 'Unable to drop player')
@@ -543,6 +542,7 @@ export default function HostRoomPage() {
         return null
     }
 
+    // SignalR Connection Setup
     useEffect(() => {
         if (!validatedCode || !validatedHostId) {
             return
@@ -551,13 +551,120 @@ export default function HostRoomPage() {
         sessionStorage.setItem('hostRoomCode', validatedCode)
         sessionStorage.setItem(`hostId_${validatedCode}`, validatedHostId)
 
+        // Initial data fetch
         fetchAllData()
 
-        pollRef.current = setInterval(() => {
+        // Setup SignalR connection
+        const hubUrl = `${signalRBase}/hubs/rooms`
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(hubUrl)
+            .withAutomaticReconnect({
+                nextRetryDelayInMilliseconds: (retryContext) => {
+                    // Exponential backoff: 0s, 2s, 10s, 30s, then 60s max
+                    if (retryContext.previousRetryCount === 0) return 0
+                    if (retryContext.previousRetryCount === 1) return 2000
+                    if (retryContext.previousRetryCount === 2) return 10000
+                    if (retryContext.previousRetryCount === 3) return 30000
+                    return 60000
+                }
+            })
+            .configureLogging(signalR.LogLevel.Information)
+            .build()
+
+        hubConnectionRef.current = connection
+
+        // Connection event handlers
+        connection.onreconnecting(() => {
+            console.log('SignalR reconnecting...')
+            setConnectionStatus('connecting')
+        })
+
+        connection.onreconnected(() => {
+            console.log('SignalR reconnected')
+            setConnectionStatus('connected')
+            // Rejoin the room group
+            connection.invoke('JoinRoomGroup', validatedCode).catch(err => 
+                console.error('Error rejoining room:', err)
+            )
+            // Refresh data after reconnection
             fetchAllData()
-        }, 60000)
+        })
+
+        connection.onclose(() => {
+            console.log('SignalR connection closed')
+            setConnectionStatus('disconnected')
+        })
+
+        // SignalR message handlers
+        connection.on('ParticipantJoined', (data) => {
+            console.log('ParticipantJoined event received:', data)
+            fetchParticipants()
+        })
+
+        connection.on('RoundGenerated', (data) => {
+            console.log('RoundGenerated event received:', data)
+            fetchCurrentRound()
+            fetchArchivedRounds()
+        })
+
+        connection.on('RoundStarted', (data) => {
+            console.log('RoundStarted event received:', data)
+            fetchCurrentRound()
+            fetchArchivedRounds()
+        })
+
+        connection.on('ParticipantDroppedOut', (data) => {
+            console.log('ParticipantDroppedOut event received:', data)
+            fetchParticipants()
+            fetchCurrentRound()
+        })
+
+        connection.on('GroupEnded', (data) => {
+            console.log('GroupEnded event received:', data)
+            fetchCurrentRound()
+        })
+
+        connection.on('SettingsChanged', (data) => {
+            console.log('SettingsChanged event received:', data)
+            fetchAllData()
+        })
+
+        connection.on('RoomExpired', (data) => {
+            console.log('RoomExpired event received:', data)
+            setError('This room has expired.')
+            if (hubConnectionRef.current) {
+                hubConnectionRef.current.stop()
+            }
+        })
+
+        // Start the connection
+        setConnectionStatus('connecting')
+        connection.start()
+            .then(() => {
+                console.log('SignalR Connected')
+                setConnectionStatus('connected')
+                // Join the room group
+                return connection.invoke('JoinRoomGroup', validatedCode)
+            })
+            .then(() => {
+                console.log(`Joined room: ${validatedCode}`)
+            })
+            .catch(err => {
+                console.error('SignalR Connection Error:', err)
+                setConnectionStatus('disconnected')
+                // Fallback to polling if SignalR fails
+                console.log('Falling back to polling...')
+                pollRef.current = setInterval(() => {
+                    fetchAllData()
+                }, 60000)
+            })
 
         return () => {
+            if (hubConnectionRef.current) {
+                hubConnectionRef.current.stop()
+                    .then(() => console.log('SignalR connection stopped'))
+                    .catch(err => console.error('Error stopping SignalR:', err))
+            }
             if (pollRef.current) {
                 clearInterval(pollRef.current)
                 pollRef.current = null
@@ -572,6 +679,16 @@ export default function HostRoomPage() {
                 <div style={styles.hostInfo}>
                     <span style={styles.hostLabel}>Host ID:</span>
                     <span style={styles.hostId}>{validatedHostId}</span>
+                    {connectionStatus === 'connected' && (
+                        <span style={{ color: 'var(--success-color)', fontSize: '0.85rem', marginLeft: '1rem' }}>
+                            ● Live
+                        </span>
+                    )}
+                    {connectionStatus === 'connecting' && (
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginLeft: '1rem' }}>
+                            ⟳ Connecting...
+                        </span>
+                    )}
                 </div>
             </div>
 

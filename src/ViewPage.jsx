@@ -1,12 +1,13 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { apiBase } from './api'
+import * as signalR from '@microsoft/signalr'
+import { apiBase, signalRBase } from './api'
 import { validateRoomCode, validateUrlParam, RateLimiter } from './utils/validation'
 import { styles } from './styles/ViewPage.styles'
 
 // Rate limiters for different actions
-const viewRoomRateLimiter = new RateLimiter(5, 60000) // 5 views per minute
-const refreshRateLimiter = new RateLimiter(10, 60000) // 10 refreshes per minute
+const viewRoomRateLimiter = new RateLimiter(5, 60000)
+const refreshRateLimiter = new RateLimiter(10, 60000)
 
 function RoundTimer({ startedAtUtc }) {
     const [elapsed, setElapsed] = useState('')
@@ -47,7 +48,7 @@ function RoundTimer({ startedAtUtc }) {
 
     return (
         <div style={styles.timerDisplay}>
-            <span style={styles.timerIcon}></span>
+            <span style={styles.timerIcon}>⏱️</span>
             <div style={styles.timerContent}>
                 <span style={styles.timerLabel}>Round Time:</span>
                 <span style={styles.timerValue}>{elapsed}</span>
@@ -190,6 +191,8 @@ export default function ViewPage() {
     const [gameStarted, setGameStarted] = useState(false)
     const [isViewing, setIsViewing] = useState(false)
     const pollRef = useRef(null)
+    const hubConnectionRef = useRef(null)
+    const [connectionStatus, setConnectionStatus] = useState('disconnected')
     
     // Validation state
     const [validationErrors, setValidationErrors] = useState({})
@@ -360,6 +363,15 @@ export default function ViewPage() {
         setError(null)
         setValidationErrors({})
         navigate('/view', { replace: true })
+        
+        // Disconnect SignalR
+        if (hubConnectionRef.current) {
+            hubConnectionRef.current.invoke('LeaveRoomGroup', validatedCode)
+                .catch(err => console.error('Error leaving room group:', err))
+                .finally(() => {
+                    hubConnectionRef.current.stop()
+                })
+        }
         if (pollRef.current) {
             clearInterval(pollRef.current)
             pollRef.current = null
@@ -386,21 +398,129 @@ export default function ViewPage() {
         return null
     }
 
+    // SignalR Connection Setup
     useEffect(() => {
-        if (isViewing && validatedCode) {
-            // Start polling for updates every minute
-            pollRef.current = setInterval(() => {
-                // Use refresh rate limiter for polling
-                if (refreshRateLimiter.canAttempt('poll')) {
-                    fetchAllData(validatedCode)
-                }
-            }, 60000)
+        if (!isViewing || !validatedCode) {
+            return
+        }
 
-            return () => {
-                if (pollRef.current) {
-                    clearInterval(pollRef.current)
-                    pollRef.current = null
+        // Setup SignalR connection
+        const hubUrl = `${signalRBase}/hubs/rooms`
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(hubUrl)
+            .withAutomaticReconnect({
+                nextRetryDelayInMilliseconds: (retryContext) => {
+                    if (retryContext.previousRetryCount === 0) return 0
+                    if (retryContext.previousRetryCount === 1) return 2000
+                    if (retryContext.previousRetryCount === 2) return 10000
+                    if (retryContext.previousRetryCount === 3) return 30000
+                    return 60000
                 }
+            })
+            .configureLogging(signalR.LogLevel.Information)
+            .build()
+
+        hubConnectionRef.current = connection
+
+        // Connection event handlers
+        connection.onreconnecting(() => {
+            console.log('SignalR reconnecting...')
+            setConnectionStatus('connecting')
+        })
+
+        connection.onreconnected(() => {
+            console.log('SignalR reconnected')
+            setConnectionStatus('connected')
+            connection.invoke('JoinRoomGroup', validatedCode).catch(err => 
+                console.error('Error rejoining room:', err)
+            )
+            fetchAllData(validatedCode)
+        })
+
+        connection.onclose(() => {
+            console.log('SignalR connection closed')
+            setConnectionStatus('disconnected')
+        })
+
+        // SignalR message handlers
+        connection.on('ParticipantJoined', (data) => {
+            console.log('ParticipantJoined event received:', data)
+            fetchParticipants(validatedCode)
+        })
+
+        connection.on('RoundGenerated', (data) => {
+            console.log('RoundGenerated event received:', data)
+            fetchCurrentRound(validatedCode)
+            fetchArchivedRounds(validatedCode)
+        })
+
+        connection.on('RoundStarted', (data) => {
+            console.log('RoundStarted event received:', data)
+            fetchCurrentRound(validatedCode)
+            fetchArchivedRounds(validatedCode)
+        })
+
+        connection.on('ParticipantDroppedOut', (data) => {
+            console.log('ParticipantDroppedOut event received:', data)
+            fetchParticipants(validatedCode)
+            fetchCurrentRound(validatedCode)
+        })
+
+        connection.on('GroupEnded', (data) => {
+            console.log('GroupEnded event received:', data)
+            fetchCurrentRound(validatedCode)
+        })
+
+        connection.on('SettingsChanged', (data) => {
+            console.log('SettingsChanged event received:', data)
+            fetchAllData(validatedCode)
+        })
+
+        connection.on('RoomExpired', (data) => {
+            console.log('RoomExpired event received:', data)
+            setError('This room has expired.')
+            if (hubConnectionRef.current) {
+                hubConnectionRef.current.stop()
+            }
+        })
+
+        // Start the connection
+        setConnectionStatus('connecting')
+        connection.start()
+            .then(() => {
+                console.log('SignalR Connected')
+                setConnectionStatus('connected')
+                return connection.invoke('JoinRoomGroup', validatedCode)
+            })
+            .then(() => {
+                console.log(`Joined room: ${validatedCode}`)
+            })
+            .catch(err => {
+                console.error('SignalR Connection Error:', err)
+                setConnectionStatus('disconnected')
+                // Fallback to polling
+                console.log('Falling back to polling...')
+                pollRef.current = setInterval(() => {
+                    if (refreshRateLimiter.canAttempt('poll')) {
+                        fetchAllData(validatedCode)
+                    }
+                }, 60000)
+            })
+
+        return () => {
+            if (hubConnectionRef.current) {
+                // Leave the room group before stopping
+                hubConnectionRef.current.invoke('LeaveRoomGroup', validatedCode)
+                    .catch(err => console.error('Error leaving room group:', err))
+                    .finally(() => {
+                        hubConnectionRef.current.stop()
+                            .then(() => console.log('SignalR connection stopped'))
+                            .catch(err => console.error('Error stopping SignalR:', err))
+                    })
+            }
+            if (pollRef.current) {
+                clearInterval(pollRef.current)
+                pollRef.current = null
             }
         }
     }, [isViewing, validatedCode])
@@ -477,7 +597,7 @@ export default function ViewPage() {
                         <li>See all players in the game</li>
                         <li>View current and past rounds</li>
                         <li>Track game progress and results</li>
-                        <li>Auto-refreshes every minute</li>
+                        <li>Real-time updates via SignalR</li>
                     </ul>
                 </div>
             </div>
@@ -488,6 +608,16 @@ export default function ViewPage() {
         <div style={styles.container}>
             <div style={styles.header}>
                 <h1 style={styles.title}>Viewing Game</h1>
+                {connectionStatus === 'connected' && (
+                    <span style={{ color: 'var(--success-color)', fontSize: '0.85rem', marginLeft: '1rem' }}>
+                        ● Live
+                    </span>
+                )}
+                {connectionStatus === 'connecting' && (
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginLeft: '1rem' }}>
+                        ⟳ Connecting...
+                    </span>
+                )}
             </div>
 
             {/* Room Code Banner */}
@@ -496,7 +626,7 @@ export default function ViewPage() {
                     <div>
                         <div style={styles.codeLabel}>Room Code</div>
                         <div style={styles.code}>{validatedCode}</div>
-                        <div style={styles.codeHint}>Read-only view • Auto-refreshing</div>
+                        <div style={styles.codeHint}>Read-only view • Real-time updates</div>
                     </div>
                     <button onClick={handleNewSearch} style={styles.changeButton}>
                         🔍 View Different Game
