@@ -5,8 +5,8 @@ import { apiBase } from './api'
 import { validateName, validateUrlParam, RateLimiter } from './utils/validation'
 import { styles } from './styles/HostRoom.styles'
 // Rate limiters for different actions
-const addPlayerRateLimiter = new RateLimiter(10, 60000) // 10 additions per minute
-const dropPlayerRateLimiter = new RateLimiter(20, 60000) // 20 drops per minute
+const addPlayerRateLimiter = new RateLimiter(60, 60000) // 10 additions per minute
+const dropPlayerRateLimiter = new RateLimiter(60, 60000) // 20 drops per minute
 const gameActionRateLimiter = new RateLimiter(15, 60000) // 15 game actions per minute
 
 function RoundTimer({ startedAtUtc }) {
@@ -274,77 +274,94 @@ export default function HostRoomPage() {
         setLoading(false)
     }
 
-    const handleStart = async () => {
-        if (!validatedCode) return
+    const handleGame = async (result) => {
+        if (!validatedCode || !validatedHostId) return
         
         // Check rate limiting
-        if (!gameActionRateLimiter.canAttempt('start')) {
+        if (!gameActionRateLimiter.canAttempt(result)) {
             setError('Too many game actions. Please wait a moment.')
             return
         }
         
-        setStarting(true)
+        // Set loading state based on action
+        if (result === 'generatefirst' || result === 'regenerate') {
+            setStarting(true)
+        } else if (result === 'generate') {
+            setStartingNewRound(true)
+        }
+        
         setError(null)
         setMessage(null)
+        
         try {
-            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/start`
-            const res = await fetch(url)
+            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/handlegame`
+            
+            // Build players object from current participants
+            const players = {}
+            //participants.forEach(p => {
+            //    if (p.id) {
+            //        players[p.id] = p.name ?? p.id
+            //    }
+            //})
+            
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    result: result,
+                    hostId: validatedHostId,
+                    players: players
+                })
+            })
+            
             if (!res.ok) {
                 const safeMessage = res.status === 400 
                     ? 'Invalid game state' 
-                    : 'Unable to start game'
+                    : `Unable to ${result === 'generate' ? 'start new round' : 'start game'}`
                 throw new Error(safeMessage)
             }
+            
             const data = await res.json().catch(() => null)
-            setMessage(
-                data && data.message
-                    ? `${gameStarted ? 'Reset' : 'Started'}: ${data.message}`
-                    : `Game ${gameStarted ? 'reset' : 'started'} successfully`
-            )
-            setGameStarted(true)
+            
+            // Set appropriate success message
+            let successMessage = ''
+            if (result === 'generatefirst') {
+                successMessage = 'Game started successfully'
+            } else if (result === 'regenerate') {
+                successMessage = 'Game reset successfully'
+            } else if (result === 'generate') {
+                successMessage = 'New round started successfully'
+            }
+            
+            if (data && data.message) {
+                successMessage = data.message
+            }
+            
+            setMessage(successMessage)
+            
+            if (result === 'generatefirst' || result === 'regenerate') {
+                setGameStarted(true)
+            }
+            
             await fetchAllData()
         } catch (err) {
-            console.error('Start game error', err)
-            setError(err.message || 'Unable to start game')
+            console.error('Handle game error', err)
+            setError(err.message || 'Unable to process game action')
         } finally {
             setStarting(false)
+            setStartingNewRound(false)
         }
     }
 
+    const handleStart = async () => {
+        const result = gameStarted ? 'regenerate' : 'generatefirst'
+        await handleGame(result)
+    }
+
     const handleNewRound = async () => {
-        if (!validatedCode) return
-        
-        // Check rate limiting
-        if (!gameActionRateLimiter.canAttempt('newround')) {
-            setError('Too many game actions. Please wait a moment.')
-            return
-        }
-        
-        setStartingNewRound(true)
-        setError(null)
-        setMessage(null)
-        try {
-            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/newround`
-            const res = await fetch(url)
-            if (!res.ok) {
-                const safeMessage = res.status === 400 
-                    ? 'Invalid game state for new round' 
-                    : 'Unable to start new round'
-                throw new Error(safeMessage)
-            }
-            const data = await res.json().catch(() => null)
-            setMessage(
-                data && data.message
-                    ? data.message
-                    : 'New round started successfully'
-            )
-            await fetchAllData()
-        } catch (err) {
-            console.error('New round error', err)
-            setError(err.message || 'Unable to start new round')
-        } finally {
-            setStartingNewRound(false)
-        }
+        await handleGame('generate')
     }
 
     const handleAddPlayer = async () => {
