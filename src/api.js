@@ -3,9 +3,9 @@
 
 // For REST API calls
 //export const apiBase = 'https://localhost:7086/api/Rooms'
-// For SignalR hub (if needed separately)
+ //For SignalR hub (if needed separately)
 //export const signalRBase = 'https://localhost:7086'
 
 //
-export const apiBase = 'https://magicreactrandomizerapi.onrender.com:443'
+export const signalRBase = 'https://magicreactrandomizerapi.onrender.com:443'
 export const apiBase = 'https://magicreactrandomizerapi.onrender.com:443/api/Rooms'
