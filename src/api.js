@@ -1,11 +1,8 @@
 // Central API base used across the app.
-// Replace this string or wire it to an env var (e.g. import.meta.env.VITE_API_BASE) if desired.
+// Uses environment variables in production, falls back to localhost in development
 
 // For REST API calls
-//export const apiBase = 'https://localhost:7086/api/Rooms'
- //For SignalR hub (if needed separately)
-//export const signalRBase = 'https://localhost:7086'
+export const apiBase = import.meta.env.VITE_API_BASE || 'https://localhost:7086/api/Rooms'
 
-//
-export const signalRBase = 'https://magicreactrandomizerapi.onrender.com:443'
-export const apiBase = 'https://magicreactrandomizerapi.onrender.com:443/api/Rooms'
+// For SignalR hub (if needed separately)
+export const signalRBase = import.meta.env.VITE_SIGNALR_BASE || 'https://localhost:7086'
