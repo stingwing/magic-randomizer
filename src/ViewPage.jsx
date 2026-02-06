@@ -3,55 +3,46 @@ import { useParams, useNavigate } from 'react-router-dom'
 import * as signalR from '@microsoft/signalr'
 import { apiBase, signalRBase } from './api'
 import { validateRoomCode, validateUrlParam, RateLimiter } from './utils/validation'
+import { calculateTimeRemaining } from './utils/timerUtils'
 import { styles } from './styles/ViewPage.styles'
 
 // Rate limiters for different actions
 const viewRoomRateLimiter = new RateLimiter(5, 60000)
 const refreshRateLimiter = new RateLimiter(10, 60000)
 
-function RoundTimer({ startedAtUtc }) {
-    const [elapsed, setElapsed] = useState('')
+function RoundCountdownTimer({ startedAtUtc, roundLength, roundStarted }) {
+    const [timeRemaining, setTimeRemaining] = useState(null)
 
     useEffect(() => {
-        if (!startedAtUtc) return
-
-        const calculateElapsed = () => {
-            const startTime = new Date(startedAtUtc)
-            const now = new Date()
-            const diffMs = now - startTime
-
-            if (diffMs < 0) {
-                setElapsed('Not started')
-                return
-            }
-
-            const hours = Math.floor(diffMs / (1000 * 60 * 60))
-            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000)
-
-            if (hours > 0) {
-                setElapsed(`${hours}h ${minutes}m ${seconds}s`)
-            } else if (minutes > 0) {
-                setElapsed(`${minutes}m ${seconds}s`)
-            } else {
-                setElapsed(`${seconds}s`)
-            }
+        if (!roundStarted || !startedAtUtc || !roundLength) {
+            setTimeRemaining(null)
+            return
         }
 
-        calculateElapsed()
-        const interval = setInterval(calculateElapsed, 1000)
+        const updateTimer = () => {
+            const timerData = calculateTimeRemaining(startedAtUtc, roundLength)
+            setTimeRemaining(timerData)
+        }
+
+        updateTimer()
+        const interval = setInterval(updateTimer, 1000)
 
         return () => clearInterval(interval)
-    }, [startedAtUtc])
+    }, [startedAtUtc, roundLength, roundStarted])
 
-    if (!startedAtUtc) return null
+    if (!roundStarted || !timeRemaining) return null
 
     return (
         <div style={styles.timerDisplay}>
             <span style={styles.timerIcon}>⏱️</span>
             <div style={styles.timerContent}>
-                <span style={styles.timerLabel}>Round Time:</span>
-                <span style={styles.timerValue}>{elapsed}</span>
+                <span style={styles.timerLabel}>Time Remaining:</span>
+                <span style={{
+                    ...styles.timerValue,
+                    color: timeRemaining.isNegative ? '#ff4444' : 'inherit'
+                }}>
+                    {timeRemaining.display}
+                </span>
             </div>
         </div>
     )
@@ -63,18 +54,28 @@ function RoundDisplay({ round, index, label }) {
     let groups = []
     let roundNumber = 'N/A'
     let startedAtUtc = null
+    let roundStarted = false
+    let roundLength = null
 
     if (Array.isArray(round)) {
         groups = round
-        if (groups.length > 0 && groups[0].round !== undefined) {
-            roundNumber = groups[0].round
-        } else if (index !== undefined) {
-            roundNumber = index + 1
+        if (groups.length > 0) {
+            if (groups[0].round !== undefined) {
+                roundNumber = groups[0].round
+            } else if (index !== undefined) {
+                roundNumber = index + 1
+            }
+            // Extract timer data from first group
+            startedAtUtc = groups[0].startedAtUtc
+            roundStarted = groups[0].roundStarted ?? false
+            roundLength = groups[0].roundLength
         }
     } else {
         roundNumber = round.round ?? round.roundNumber ?? (index !== undefined ? index + 1 : 'N/A')
         groups = round.groups ?? []
         startedAtUtc = round.startedAtUtc
+        roundStarted = round.roundStarted ?? false
+        roundLength = round.roundLength
     }
     
     return (
@@ -83,7 +84,6 @@ function RoundDisplay({ round, index, label }) {
                 <h4 style={styles.roundTitle}>
                     {label || `Round ${roundNumber}`}
                 </h4>
-                {startedAtUtc && <RoundTimer startedAtUtc={startedAtUtc} />}
             </div>
 
             {groups.length > 0 ? (
@@ -156,6 +156,8 @@ function RoundDisplay({ round, index, label }) {
                                                 displayKey = 'Player Order'
                                             } else if (key === 'WinCondition') {
                                                 displayKey = 'Win Condition'
+                                            } else if (key === 'Bracket') {
+                                                displayKey = 'Bracket'
                                             }
 
                                             return (
@@ -384,18 +386,30 @@ export default function ViewPage() {
         }
     }
 
-    // Extract startedAtUtc from current round for the section-level timer
-    const getCurrentRoundStartTime = () => {
-        if (!currentRound) return null
+    // Extract timer data from current round for the section-level timer
+    const getCurrentRoundTimerData = () => {
+        if (!currentRound) return { startedAtUtc: null, roundStarted: false, roundLength: null }
+
+        let groups = []
 
         if (Array.isArray(currentRound)) {
-            if (currentRound.length > 0 && currentRound[0].startedAtUtc) {
-                return currentRound[0].startedAtUtc
-            }
+            groups = currentRound
         } else {
-            return currentRound.startedAtUtc
+            groups = currentRound.groups ?? []
         }
-        return null
+
+        // Check if any group has roundStarted === true
+        const startedGroup = groups.find(group => group.roundStarted === true)
+
+        if (startedGroup) {
+            return {
+                startedAtUtc: startedGroup.startedAtUtc ?? null,
+                roundStarted: true,
+                roundLength: startedGroup.roundLength ?? null
+            }
+        }
+
+        return { startedAtUtc: null, roundStarted: false, roundLength: null }
     }
 
     // SignalR Connection Setup
@@ -604,6 +618,8 @@ export default function ViewPage() {
         )
     }
 
+    const timerData = getCurrentRoundTimerData()
+
     return (
         <div style={styles.container}>
             <div style={styles.header}>
@@ -673,26 +689,11 @@ export default function ViewPage() {
                 <div style={styles.roundsHeader}>
                     <h3 style={styles.sectionTitle}>Game Rounds</h3>
                     <div style={styles.headerActions}>
-                        {currentRound && getCurrentRoundStartTime() && (
-                            <RoundTimer startedAtUtc={getCurrentRoundStartTime()} />
-                        )}
-                        <button
-                            onClick={handleRefresh}
-                            disabled={loading}
-                            style={{
-                                ...styles.refreshButton,
-                                ...(loading ? styles.buttonDisabled : {})
-                            }}
-                        >
-                            {loading ? (
-                                <>
-                                    <span style={styles.spinner}></span>
-                                    Refreshing...
-                                </>
-                            ) : (
-                                '🔄 Refresh'
-                            )}
-                        </button>
+                        <RoundCountdownTimer 
+                            startedAtUtc={timerData.startedAtUtc}
+                            roundLength={timerData.roundLength}
+                            roundStarted={timerData.roundStarted}
+                        />
                     </div>
                 </div>
                 {loading && archivedRounds.length === 0 && !currentRound ? (

@@ -2,6 +2,7 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiBase } from './api'
 import { validateName, validateRoomCode, validateCommander, validateHostId, RateLimiter } from './utils/validation'
+import { useCommanderSearch } from './utils/commanderSearch'
 import { styles, modeStyles } from './styles/Join.styles'
 
 // Rate limiter to prevent API abuse
@@ -13,12 +14,18 @@ export default function JoinPage() {
     const [code, setCode] = useState('')
     const [name, setName] = useState('')
     const [commander, setCommander] = useState('')
+    const [partner, setPartner] = useState('')
+    const [showPartner, setShowPartner] = useState(false)
     const [hostId, setHostId] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [validationErrors, setValidationErrors] = useState({})
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
+
+    // Use commander search hooks
+    const commanderSearch = useCommanderSearch(300)
+    const partnerSearch = useCommanderSearch(300)
 
     useEffect(() => {
         const codeParam = searchParams.get('code')
@@ -28,6 +35,36 @@ export default function JoinPage() {
             setMode('player')
         }
     }, [searchParams])
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            // Only close commander dropdown if clicking outside both commander input and dropdown
+            if (
+                commanderSearch.dropdownRef.current &&
+                !commanderSearch.dropdownRef.current.contains(event.target) &&
+                commanderSearch.inputRef.current &&
+                !commanderSearch.inputRef.current.contains(event.target)
+            ) {
+                commanderSearch.setShowDropdown(false)
+            }
+
+            // Only close partner dropdown if clicking outside both partner input and dropdown
+            if (
+                partnerSearch.dropdownRef.current &&
+                !partnerSearch.dropdownRef.current.contains(event.target) &&
+                partnerSearch.inputRef.current &&
+                !partnerSearch.inputRef.current.contains(event.target)
+            ) {
+                partnerSearch.setShowDropdown(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [commanderSearch, partnerSearch])
 
     const handleCodeChange = (e) => {
         const validated = validateRoomCode(e.target.value)
@@ -58,7 +95,8 @@ export default function JoinPage() {
     }
 
     const handleCommanderChange = (e) => {
-        const validated = validateCommander(e.target.value)
+        const value = e.target.value
+        const validated = validateCommander(value)
         setCommander(validated.sanitized)
 
         if (validated.error) {
@@ -66,6 +104,68 @@ export default function JoinPage() {
         } else {
             setValidationErrors(prev => {
                 const { commander, ...rest } = prev
+                return rest
+            })
+        }
+
+        // Use the debounced search from the hook
+        commanderSearch.debouncedSearch(validated.sanitized)
+    }
+
+    const handleCommanderSelect = (commanderName) => {
+        const validated = validateCommander(commanderName)
+        setCommander(validated.sanitized)
+        commanderSearch.setShowDropdown(false)
+        commanderSearch.clearSearch()
+
+        // Clear any validation errors
+        setValidationErrors(prev => {
+            const { commander, ...rest } = prev
+            return rest
+        })
+    }
+
+    const handlePartnerChange = (e) => {
+        const value = e.target.value
+        const validated = validateCommander(value)
+        setPartner(validated.sanitized)
+
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, partner: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { partner, ...rest } = prev
+                return rest
+            })
+        }
+
+        // Use the debounced search from the hook
+        partnerSearch.debouncedSearch(validated.sanitized)
+    }
+
+    const handlePartnerSelect = (partnerName) => {
+        const validated = validateCommander(partnerName)
+        setPartner(validated.sanitized)
+        partnerSearch.setShowDropdown(false)
+        partnerSearch.clearSearch()
+
+        // Clear any validation errors
+        setValidationErrors(prev => {
+            const { partner, ...rest } = prev
+            return rest
+        })
+    }
+
+    const handleTogglePartner = () => {
+        const newShowPartner = !showPartner
+        setShowPartner(newShowPartner)
+
+        if (!newShowPartner) {
+            // Clear partner field when hiding
+            setPartner('')
+            partnerSearch.clearSearch()
+            setValidationErrors(prev => {
+                const { partner, ...rest } = prev
                 return rest
             })
         }
@@ -89,6 +189,10 @@ export default function JoinPage() {
         setMode(newMode)
         setError(null)
         setValidationErrors({})
+        // Reset partner field when changing modes
+        setShowPartner(false)
+        setPartner('')
+        partnerSearch.clearSearch()
     }
 
     const handleJoinPlayer = async () => {
@@ -96,11 +200,13 @@ export default function JoinPage() {
         const codeValidation = validateRoomCode(code)
         const nameValidation = validateName(name)
         const commanderValidation = validateCommander(commander)
+        const partnerValidation = validateCommander(partner)
 
         const errors = {}
         if (!codeValidation.valid) errors.code = codeValidation.error
         if (!nameValidation.valid) errors.name = nameValidation.error
         if (commander && !commanderValidation.valid) errors.commander = commanderValidation.error
+        if (partner && !partnerValidation.valid) errors.partner = partnerValidation.error
 
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors)
@@ -117,10 +223,17 @@ export default function JoinPage() {
         const trimmedCode = codeValidation.sanitized
         const trimmedName = nameValidation.sanitized
         const trimmedCommander = commanderValidation.sanitized
+        const trimmedPartner = partnerValidation.sanitized
 
         if (!trimmedCode || !trimmedName) {
             setError('Please enter both a code and a name')
             return
+        }
+
+        // Combine commander and partner if both are present
+        let commanderValue = trimmedCommander
+        if (trimmedCommander && trimmedPartner) {
+            commanderValue = `${trimmedCommander} : ${trimmedPartner}`
         }
 
         const url = `${apiBase}/${encodeURIComponent(trimmedCode)}/join`
@@ -137,7 +250,8 @@ export default function JoinPage() {
                 },
                 body: JSON.stringify({
                     participantId: trimmedName,
-                    participantName: trimmedName
+                    participantName: trimmedName,
+                    commander: commanderValue
                 })
             })
 
@@ -163,8 +277,8 @@ export default function JoinPage() {
             const sanitizedParticipantId = validateName(participantId).sanitized
 
             // Store commander in sessionStorage to pass to Room page
-            if (trimmedCommander) {
-                sessionStorage.setItem(`commander_${trimmedCode}_${sanitizedParticipantId}`, trimmedCommander)
+            if (commanderValue) {
+                sessionStorage.setItem(`commander_${trimmedCode}_${sanitizedParticipantId}`, commanderValue)
             }
 
             navigate(
@@ -174,6 +288,8 @@ export default function JoinPage() {
             setCode('')
             setName('')
             setCommander('')
+            setPartner('')
+            setShowPartner(false)
         } catch (err) {
             console.error('Join error', err)
             setError('Network error while attempting to join.')
@@ -315,8 +431,7 @@ export default function JoinPage() {
                     <p style={styles.cardDescription}>
                         {mode === 'player'
                             ? 'Enter the game code provided by your host to join an active session.'
-                            : 'Create a new game room and share the code with players to join your session.'
-                        }
+                            : 'Create a new game room and share the code with players to join your session.'}
                     </p>
                     <div style={styles.inputGroup}>
                         {mode === 'player' ? (
@@ -369,28 +484,183 @@ export default function JoinPage() {
                                     )}
                                 </label>
                                 <label style={styles.label}>
-                                    Commander (Optional)
-                                    <input
-                                        type="text"
-                                        value={commander}
-                                        onChange={handleCommanderChange}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder="Enter your commander name"
-                                        style={{
-                                            ...styles.input,
-                                            ...(validationErrors.commander ? styles.inputError : {})
-                                        }}
-                                        disabled={loading}
-                                        maxLength={100}
-                                        aria-invalid={!!validationErrors.commander}
-                                        aria-describedby={validationErrors.commander ? "commander-error" : undefined}
-                                    />
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <span>Commander (Optional)</span>
+                                        <button
+                                            type="button"
+                                            onClick={handleTogglePartner}
+                                            style={{
+                                                background: showPartner ? '#dc2626' : '#3b82f6',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                cursor: 'pointer',
+                                                fontSize: '16px',
+                                                padding: '4px 8px',
+                                                transition: 'background-color 0.2s'
+                                            }}
+                                            disabled={loading}
+                                            title={showPartner ? 'Remove partner' : 'Add partner'}
+                                        >
+                                            {showPartner ? 'Remove partner' : 'Add partner'}
+                                        </button>
+                                    </div>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            ref={commanderSearch.inputRef}
+                                            type="text"
+                                            value={commander}
+                                            onChange={handleCommanderChange}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Start typing to search commanders..."
+                                            style={{
+                                                ...styles.input,
+                                                ...(validationErrors.commander ? styles.inputError : {})
+                                            }}
+                                            disabled={loading}
+                                            maxLength={100}
+                                            aria-invalid={!!validationErrors.commander}
+                                            aria-describedby={validationErrors.commander ? "commander-error" : undefined}
+                                            autoComplete="off"
+                                        />
+                                        {commanderSearch.loading && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                fontSize: '14px'
+                                            }}>
+                                                🔍
+                                            </div>
+                                        )}
+                                        {commanderSearch.showDropdown && commanderSearch.results.length > 0 && (
+                                            <div
+                                                ref={commanderSearch.dropdownRef}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 0,
+                                                    right: 0,
+                                                    backgroundColor: '#1e293b',
+                                                    border: '1px solid #334155',
+                                                    borderRadius: '8px',
+                                                    marginTop: '4px',
+                                                    maxHeight: '200px',
+                                                    overflowY: 'auto',
+                                                    zIndex: 1000,
+                                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+                                                }}
+                                            >
+                                                {commanderSearch.results.map((result, index) => (
+                                                    <div
+                                                        key={index}
+                                                        onClick={() => handleCommanderSelect(result)}
+                                                        style={{
+                                                            padding: '10px 12px',
+                                                            cursor: 'pointer',
+                                                            borderBottom: index < commanderSearch.results.length - 1 ? '1px solid #334155' : 'none',
+                                                            transition: 'background-color 0.2s'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.backgroundColor = '#334155'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.backgroundColor = 'transparent'
+                                                        }}
+                                                    >
+                                                        {result}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     {validationErrors.commander && (
                                         <span id="commander-error" style={styles.validationError}>
                                             {validationErrors.commander}
                                         </span>
                                     )}
                                 </label>
+                                {showPartner && (
+                                    <label style={styles.label}>
+                                        Partner (Optional)
+                                        <div style={{ position: 'relative' }}>
+                                            <input
+                                                ref={partnerSearch.inputRef}
+                                                type="text"
+                                                value={partner}
+                                                onChange={handlePartnerChange}
+                                                onKeyPress={handleKeyPress}
+                                                placeholder="Start typing to search partners..."
+                                                style={{
+                                                    ...styles.input,
+                                                    ...(validationErrors.partner ? styles.inputError : {})
+                                                }}
+                                                disabled={loading}
+                                                maxLength={100}
+                                                aria-invalid={!!validationErrors.partner}
+                                                aria-describedby={validationErrors.partner ? "partner-error" : undefined}
+                                                autoComplete="off"
+                                            />
+                                            {partnerSearch.loading && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    right: '12px',
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    fontSize: '14px'
+                                                }}>
+                                                    🔍
+                                                </div>
+                                            )}
+                                            {partnerSearch.showDropdown && partnerSearch.results.length > 0 && (
+                                                <div
+                                                    ref={partnerSearch.dropdownRef}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '100%',
+                                                        left: 0,
+                                                        right: 0,
+                                                        backgroundColor: '#1e293b',
+                                                        border: '1px solid #334155',
+                                                        borderRadius: '8px',
+                                                        marginTop: '4px',
+                                                        maxHeight: '200px',
+                                                        overflowY: 'auto',
+                                                        zIndex: 1000,
+                                                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+                                                    }}
+                                                >
+                                                    {partnerSearch.results.map((result, index) => (
+                                                        <div
+                                                            key={index}
+                                                            onClick={() => handlePartnerSelect(result)}
+                                                            style={{
+                                                                padding: '10px 12px',
+                                                                cursor: 'pointer',
+                                                                borderBottom: index < partnerSearch.results.length - 1 ? '1px solid #334155' : 'none',
+                                                                transition: 'background-color 0.2s'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#334155'
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.backgroundColor = 'transparent'
+                                                            }}
+                                                        >
+                                                            {result}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {validationErrors.partner && (
+                                            <span id="partner-error" style={styles.validationError}>
+                                                {validationErrors.partner}
+                                            </span>
+                                        )}
+                                    </label>
+                                )}
                             </>
                         ) : (
                             <label style={styles.label}>

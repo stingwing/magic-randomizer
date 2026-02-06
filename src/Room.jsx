@@ -11,54 +11,46 @@ import {
     validateUrlParam,
     RateLimiter
 } from './utils/validation'
+import { calculateTimeRemaining } from './utils/timerUtils'
+import { useCommanderSearch } from './utils/commanderSearch'
 import { styles } from './styles/Room.styles'
 
 // Rate limiter for report actions
 const reportRateLimiter = new RateLimiter(10, 60000) // 10 reports per minute
 
-function RoundTimer({ startedAtUtc }) {
-    const [elapsed, setElapsed] = useState('')
+function RoundCountdownTimer({ startedAtUtc, roundLength, roundStarted }) {
+    const [timeRemaining, setTimeRemaining] = useState(null)
 
     useEffect(() => {
-        if (!startedAtUtc) return
-
-        const calculateElapsed = () => {
-            const startTime = new Date(startedAtUtc)
-            const now = new Date()
-            const diffMs = now - startTime
-            
-            if (diffMs < 0) {
-                setElapsed('Not started')
-                return
-            }
-
-            const hours = Math.floor(diffMs / (1000 * 60 * 60))
-            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000)
-
-            if (hours > 0) {
-                setElapsed(`${hours}h ${minutes}m ${seconds}s`)
-            } else if (minutes > 0) {
-                setElapsed(`${minutes}m ${seconds}s`)
-            } else {
-                setElapsed(`${seconds}s`)
-            }
+        if (!roundStarted || !startedAtUtc || !roundLength) {
+            setTimeRemaining(null)
+            return
         }
 
-        calculateElapsed()
-        const interval = setInterval(calculateElapsed, 1000)
+        const updateTimer = () => {
+            const timerData = calculateTimeRemaining(startedAtUtc, roundLength)
+            setTimeRemaining(timerData)
+        }
+
+        updateTimer()
+        const interval = setInterval(updateTimer, 1000)
 
         return () => clearInterval(interval)
-    }, [startedAtUtc])
+    }, [startedAtUtc, roundLength, roundStarted])
 
-    if (!startedAtUtc) return null
+    if (!roundStarted || !timeRemaining) return null
 
     return (
         <div style={styles.timerDisplay}>
             <span style={styles.timerIcon}>⏱️</span>
             <div style={styles.timerContent}>
-                <span style={styles.timerLabel}>Round Time:</span>
-                <span style={styles.timerValue}>{elapsed}</span>
+                <span style={styles.timerLabel}>Time Remaining:</span>
+                <span style={{
+                    ...styles.timerValue,
+                    color: timeRemaining.isNegative ? '#ff4444' : 'inherit'
+                }}>
+                    {timeRemaining.display}
+                </span>
             </div>
         </div>
     )
@@ -67,13 +59,17 @@ function RoundTimer({ startedAtUtc }) {
 function RoundResults({ data }) {
     if (!data) return <div style={styles.noResults}>No results returned.</div>
 
-    const { roomCode, participantId, groupNumber, members, round, result, winner, draw, startedAtUtc } = data
+    const { roomCode, participantId, groupNumber, members, round, result, winner, draw, startedAtUtc, roundStarted, roundLength } = data
 
     return (
         <div style={styles.resultsCard}>
             <div style={styles.resultsHeader}>
                 <h3 style={styles.resultsTitle}>Your Group Assignment</h3>
-                {startedAtUtc && <RoundTimer startedAtUtc={startedAtUtc} />}
+                <RoundCountdownTimer 
+                    startedAtUtc={startedAtUtc} 
+                    roundLength={roundLength}
+                    roundStarted={roundStarted}
+                />
             </div>
 
             <div style={styles.resultDetails}>
@@ -119,8 +115,17 @@ function RoundResults({ data }) {
                                         ...(isYou ? styles.memberItemYou : {})
                                     }}
                                 >
-                                    {member.name ?? member.id ?? 'Unknown'}
-                                    {isYou && <span style={styles.youBadge}>YOU</span>}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div>
+                                            {member.name ?? member.id ?? 'Unknown'}
+                                            {isYou && <span style={styles.youBadge}>YOU</span>}
+                                        </div>
+                                        {member.commander && (
+                                            <div style={{ fontSize: '0.85em', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                                Commander: {member.commander}
+                                            </div>
+                                        )}
+                                    </div>
                                 </li>
                             )
                         })}
@@ -147,6 +152,8 @@ export default function RoomPage() {
 
     // Statistics state
     const [commander, setCommander] = useState('')
+    const [partner, setPartner] = useState('')
+    const [showPartner, setShowPartner] = useState(false)
     const [turnCount, setTurnCount] = useState('')
     const [playerOrder, setPlayerOrder] = useState('')
     const [winCondition, setWinCondition] = useState('')
@@ -154,6 +161,10 @@ export default function RoomPage() {
     
     // Validation errors state
     const [validationErrors, setValidationErrors] = useState({})
+
+    // Use commander search hooks
+    const commanderSearch = useCommanderSearch(300)
+    const partnerSearch = useCommanderSearch(300)
 
     // Validated URL parameters
     const [validatedCode, setValidatedCode] = useState('')
@@ -174,8 +185,39 @@ export default function RoomPage() {
         setValidatedParticipantId(participantValidation.sanitized)
     }, [code, participantId, navigate])
 
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            // Only close commander dropdown if clicking outside both commander input and dropdown
+            if (
+                commanderSearch.dropdownRef.current &&
+                !commanderSearch.dropdownRef.current.contains(event.target) &&
+                commanderSearch.inputRef.current &&
+                !commanderSearch.inputRef.current.contains(event.target)
+            ) {
+                commanderSearch.setShowDropdown(false)
+            }
+            
+            // Only close partner dropdown if clicking outside both partner input and dropdown
+            if (
+                partnerSearch.dropdownRef.current &&
+                !partnerSearch.dropdownRef.current.contains(event.target) &&
+                partnerSearch.inputRef.current &&
+                !partnerSearch.inputRef.current.contains(event.target)
+            ) {
+                partnerSearch.setShowDropdown(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [commanderSearch, partnerSearch])
+
     const handleCommanderChange = (e) => {
-        const validated = validateCommander(e.target.value)
+        const value = e.target.value
+        const validated = validateCommander(value)
         setCommander(validated.sanitized)
         
         // Persist to sessionStorage
@@ -193,6 +235,74 @@ export default function RoomPage() {
         } else {
             setValidationErrors(prev => {
                 const { commander, ...rest } = prev
+                return rest
+            })
+        }
+
+        // Use the debounced search from the hook
+        commanderSearch.debouncedSearch(validated.sanitized)
+    }
+
+    const handleCommanderSelect = (commanderName) => {
+        const validated = validateCommander(commanderName)
+        setCommander(validated.sanitized)
+        commanderSearch.setShowDropdown(false)
+        commanderSearch.clearSearch()
+        
+        // Persist to sessionStorage
+        if (validatedCode && validatedParticipantId && validated.sanitized) {
+            const storageKey = `commander_${validatedCode}_${validatedParticipantId}`
+            sessionStorage.setItem(storageKey, validated.sanitized)
+        }
+        
+        // Clear any validation errors
+        setValidationErrors(prev => {
+            const { commander, ...rest } = prev
+            return rest
+        })
+    }
+
+    const handlePartnerChange = (e) => {
+        const value = e.target.value
+        const validated = validateCommander(value)
+        setPartner(validated.sanitized)
+
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, partner: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { partner, ...rest } = prev
+                return rest
+            })
+        }
+
+        // Use the debounced search from the hook
+        partnerSearch.debouncedSearch(validated.sanitized)
+    }
+
+    const handlePartnerSelect = (partnerName) => {
+        const validated = validateCommander(partnerName)
+        setPartner(validated.sanitized)
+        partnerSearch.setShowDropdown(false)
+        partnerSearch.clearSearch()
+        
+        // Clear any validation errors
+        setValidationErrors(prev => {
+            const { partner, ...rest } = prev
+            return rest
+        })
+    }
+
+    const handleTogglePartner = () => {
+        const newShowPartner = !showPartner
+        setShowPartner(newShowPartner)
+        
+        if (!newShowPartner) {
+            // Clear partner field when hiding
+            setPartner('')
+            partnerSearch.clearSearch()
+            setValidationErrors(prev => {
+                const { partner, ...rest } = prev
                 return rest
             })
         }
@@ -256,6 +366,62 @@ export default function RoomPage() {
             if (data) {
                 setGroupResult(data)
                 setStarted(true)
+                
+                // Populate commander and partner fields from API response
+                if (data.members && Array.isArray(data.members)) {
+                    const currentMember = data.members.find(m => m.id === validatedParticipantId)
+                    if (currentMember && currentMember.commander && currentMember.commander.trim() !== '') {
+                        const commanderValue = currentMember.commander.trim()
+                        
+                        // Check if it contains a partner (separated by " : ")
+                        if (commanderValue.includes(' : ')) {
+                            const [cmd, prt] = commanderValue.split(' : ')
+                            setCommander(cmd.trim())
+                            setPartner(prt.trim())
+                            setShowPartner(true)
+                        } else {
+                            setCommander(commanderValue)
+                            setPartner('')
+                            setShowPartner(false)
+                        }
+                    }
+                }
+                
+                // Populate statistics fields from API response
+                if (data.statistics) {
+                    // Update Bracket
+                    if (data.statistics.Bracket !== undefined && data.statistics.Bracket !== null) {
+                        const bracketValidated = validateBracket(data.statistics.Bracket)
+                        if (bracketValidated.valid) {
+                            setBracket(bracketValidated.sanitized)
+                        }
+                    }
+                    
+                    // Update Turn Count
+                    if (data.statistics.TurnCount !== undefined && data.statistics.TurnCount !== null) {
+                        const turnCountValidated = validateTurnCount(data.statistics.TurnCount)
+                        if (turnCountValidated.valid) {
+                            setTurnCount(turnCountValidated.sanitized)
+                        }
+                    }
+                    
+                    // Update Player Order
+                    if (data.statistics.PlayerOrder !== undefined && data.statistics.PlayerOrder !== null) {
+                        const playerOrderValidated = validatePlayerOrder(data.statistics.PlayerOrder)
+                        if (playerOrderValidated.valid) {
+                            setPlayerOrder(playerOrderValidated.sanitized)
+                        }
+                    }
+                    
+                    // Update Win Condition
+                    if (data.statistics.WinCondition !== undefined && data.statistics.WinCondition !== null) {
+                        const winConditionValidated = validateWinCondition(data.statistics.WinCondition)
+                        if (winConditionValidated.valid) {
+                            setWinCondition(winConditionValidated.sanitized)
+                        }
+                    }
+                }
+                
                 return true
             }
             return false
@@ -311,14 +477,21 @@ export default function RoomPage() {
         
         // Validate all statistics before building
         const commanderVal = validateCommander(commander)
+        const partnerVal = validateCommander(partner)
         const turnCountVal = validateTurnCount(turnCount)
         const playerOrderVal = validatePlayerOrder(playerOrder)
         const winConditionVal = validateWinCondition(winCondition)
         const bracketVal = validateBracket(bracket)
         
+        // Combine commander and partner if both are present
         if (commanderVal.sanitized && commanderVal.valid) {
-            statistics[`${validatedParticipantId}_Commander`] = commanderVal.sanitized
+            let commanderValue = commanderVal.sanitized
+            if (partnerVal.sanitized && partnerVal.valid) {
+                commanderValue = `${commanderVal.sanitized} : ${partnerVal.sanitized}`
+            }
+            statistics[`${validatedParticipantId}_Commander`] = commanderValue
         }
+        
         if (turnCountVal.sanitized && turnCountVal.valid) {
             statistics['TurnCount'] = turnCountVal.sanitized
         }
@@ -371,15 +544,25 @@ export default function RoomPage() {
         try {
             const url = `${apiBase}/${encodeURIComponent(validatedCode)}/report`
             const statistics = buildStatistics()
-            
-            const body = {
-                participantId: validatedParticipantId,
-                result: result
+
+            // Combine commander and partner for the commander field
+            const commanderVal = validateCommander(commander)
+            const partnerVal = validateCommander(partner)
+            let commanderValue = ''
+
+
+            if (commanderVal.sanitized && commanderVal.valid) {
+                commanderValue = commanderVal.sanitized
+                if (partnerVal.sanitized && partnerVal.valid) {
+                    commanderValue = `${commanderVal.sanitized} : ${partnerVal.sanitized}`
+                }
             }
 
-            // Only include statistics if there are any
-            if (Object.keys(statistics).length > 0) {
-                body.statistics = statistics
+            const body = {
+                participantId: validatedParticipantId,
+                result: result,
+                commander: commanderValue,
+                statistics: statistics
             }
 
             const res = await fetch(url, {
@@ -391,28 +574,104 @@ export default function RoomPage() {
             })
 
             if (!res.ok) {
-                const safeMessage = res.status === 400 
-                    ? 'Invalid request' 
+                const safeMessage = res.status === 400
+                    ? 'Invalid request'
                     : 'Unable to submit report'
                 throw new Error(safeMessage)
             }
 
             const data = await res.json().catch(() => null)
+            
+            // Update group result with response data
+            if (data && groupResult) {
+                setGroupResult(prevResult => ({
+                    ...prevResult,
+                    members: data.members || prevResult.members,
+                    statistics: data.statistics || prevResult.statistics,
+                    result: data.result !== undefined ? (data.result === 'data' ? prevResult.result : true) : prevResult.result,
+                    winner: data.winnerParticipantId || prevResult.winner
+                }))
+                
+                // Update local statistics fields from response if they exist
+                if (data.statistics) {
+                    // Update Bracket
+                    if (data.statistics.Bracket !== undefined && data.statistics.Bracket !== null) {
+                        const bracketValidated = validateBracket(data.statistics.Bracket)
+                        if (bracketValidated.valid) {
+                            setBracket(bracketValidated.sanitized)
+                        }
+                    }
+                    
+                    // Update Turn Count
+                    if (data.statistics.TurnCount !== undefined && data.statistics.TurnCount !== null) {
+                        const turnCountValidated = validateTurnCount(data.statistics.TurnCount)
+                        if (turnCountValidated.valid) {
+                            setTurnCount(turnCountValidated.sanitized)
+                        }
+                    }
+                    
+                    // Update Player Order
+                    if (data.statistics.PlayerOrder !== undefined && data.statistics.PlayerOrder !== null) {
+                        const playerOrderValidated = validatePlayerOrder(data.statistics.PlayerOrder)
+                        if (playerOrderValidated.valid) {
+                            setPlayerOrder(playerOrderValidated.sanitized)
+                        }
+                    }
+                    
+                    // Update Win Condition
+                    if (data.statistics.WinCondition !== undefined && data.statistics.WinCondition !== null) {
+                        const winConditionValidated = validateWinCondition(data.statistics.WinCondition)
+                        if (winConditionValidated.valid) {
+                            setWinCondition(winConditionValidated.sanitized)
+                        }
+                    }
+                }
+                
+                // Update commander/partner from response members array
+                if (data.members && Array.isArray(data.members)) {
+                    const currentMember = data.members.find(m => m.id === validatedParticipantId)
+                    if (currentMember && currentMember.commander) {
+                        const responseCommander = currentMember.commander.trim()
+                        
+                        // Only update if it's different from what we currently have
+                        const currentCombined = partner 
+                            ? `${commander} : ${partner}`.trim() 
+                            : commander.trim()
+                        
+                        if (responseCommander !== currentCombined && responseCommander !== '') {
+                            // Check if it contains a partner (separated by " : ")
+                            if (responseCommander.includes(' : ')) {
+                                const [cmd, prt] = responseCommander.split(' : ')
+                                setCommander(cmd.trim())
+                                setPartner(prt.trim())
+                                setShowPartner(true)
+                            } else {
+                                setCommander(responseCommander)
+                                setPartner('')
+                                setShowPartner(false)
+                            }
+                        }
+                    }
+                }
+            }
+            
             setReportMessage(
                 data && data.message
                     ? data.message
                     : `${result} reported successfully`
             )
-            
-            // Clear statistics after successful submission
+
+            // Clear statistics after successful submission (only for Win/Draw/Drop, not data updates)
             if (result !== 'data') {
                 setCommander('')
+                setPartner('')
+                setShowPartner(false)
                 setTurnCount('')
                 setPlayerOrder('')
                 setWinCondition('')
                 setBracket('')
             }
-            
+
             // SignalR will update automatically, but refresh for immediate feedback
             await fetchGroupResult()
         } catch (err) {
@@ -504,6 +763,75 @@ export default function RoomPage() {
 
         connection.on('GroupEnded', (data) => {
             console.log('GroupEnded event received:', data)
+            
+            // Update statistics if included in the event data
+            if (data && data.statistics) {
+                // Update Bracket
+                if (data.statistics.Bracket !== undefined && data.statistics.Bracket !== null) {
+                    const bracketValidated = validateBracket(data.statistics.Bracket)
+                    if (bracketValidated.valid) {
+                        setBracket(bracketValidated.sanitized)
+                    }
+                }
+                
+                // Update Turn Count
+                if (data.statistics.TurnCount !== undefined && data.statistics.TurnCount !== null) {
+                    const turnCountValidated = validateTurnCount(data.statistics.TurnCount)
+                    if (turnCountValidated.valid) {
+                        setTurnCount(turnCountValidated.sanitized)
+                    }
+                }
+                
+                // Update Player Order
+                if (data.statistics.PlayerOrder !== undefined && data.statistics.PlayerOrder !== null) {
+                    const playerOrderValidated = validatePlayerOrder(data.statistics.PlayerOrder)
+                    if (playerOrderValidated.valid) {
+                        setPlayerOrder(playerOrderValidated.sanitized)
+                    }
+                }
+                
+                // Update Win Condition
+                if (data.statistics.WinCondition !== undefined && data.statistics.WinCondition !== null) {
+                    const winConditionValidated = validateWinCondition(data.statistics.WinCondition)
+                    if (winConditionValidated.valid) {
+                        setWinCondition(winConditionValidated.sanitized)
+                    }
+                }
+            }
+            
+            // Update group result data
+            if (data && groupResult) {
+                setGroupResult(prevResult => ({
+                    ...prevResult,
+                    ...data,
+                    members: data.members || prevResult.members,
+                    statistics: data.statistics || prevResult.statistics
+                }))
+                
+                // Update commander/partner from members if present
+                if (data.members && Array.isArray(data.members)) {
+                    const currentMember = data.members.find(m => m.id === validatedParticipantId)
+                    if (currentMember && currentMember.commander) {
+                        const responseCommander = currentMember.commander.trim()
+                        
+                        if (responseCommander !== '') {
+                            // Check if it contains a partner (separated by " : ")
+                            if (responseCommander.includes(' : ')) {
+                                const [cmd, prt] = responseCommander.split(' : ')
+                                setCommander(cmd.trim())
+                                setPartner(prt.trim())
+                                setShowPartner(true)
+                            } else {
+                                setCommander(responseCommander)
+                                setPartner('')
+                                setShowPartner(false)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Fetch latest group result to ensure sync
             fetchGroupResult()
         })
 
@@ -557,7 +885,7 @@ export default function RoomPage() {
                 pollRef.current = null
             }
         }
-    }, [validatedCode, validatedParticipantId]) // REMOVED 'started' from dependencies
+    }, [validatedCode, validatedParticipantId])
 
     useEffect(() => {
         const savedCode = sessionStorage.getItem('currentRoomCode')
@@ -573,19 +901,27 @@ export default function RoomPage() {
         }
     }, [navigate])
 
-    // Load commander from sessionStorage on mount
+    // Load commander from sessionStorage on mount (fallback if API doesn't have it)
     useEffect(() => {
-        if (validatedCode && validatedParticipantId) {
+        if (validatedCode && validatedParticipantId && !commander) {
             const storageKey = `commander_${validatedCode}_${validatedParticipantId}`
             const storedCommander = sessionStorage.getItem(storageKey)
-            if (storedCommander && !commander) {
+            if (storedCommander) {
                 const validated = validateCommander(storedCommander)
                 if (validated.valid) {
-                    setCommander(validated.sanitized)
+                    // Check if it contains a partner (separated by " : ")
+                    if (validated.sanitized.includes(' : ')) {
+                        const [cmd, prt] = validated.sanitized.split(' : ')
+                        setCommander(cmd.trim())
+                        setPartner(prt.trim())
+                        setShowPartner(true)
+                    } else {
+                        setCommander(validated.sanitized)
+                    }
                 }
             }
         }
-    }, [validatedCode, validatedParticipantId])
+    }, [validatedCode, validatedParticipantId, commander])
 
     return (
         <div style={styles.container}>
@@ -701,26 +1037,179 @@ export default function RoomPage() {
                         </p>
                         <div style={styles.inputGrid}>
                             <label style={styles.inputLabel}>
-                                Commander
-                                <input
-                                    type="text"
-                                    value={commander}
-                                    onChange={handleCommanderChange}
-                                    placeholder="Your commander name"
-                                    style={{
-                                        ...styles.textInput,
-                                        ...(validationErrors.commander ? styles.inputError : {})
-                                    }}
-                                    disabled={reportLoading}
-                                    maxLength={100}
-                                    aria-invalid={!!validationErrors.commander}
-                                />
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                    <span>Commander</span>
+                                    <button
+                                        type="button"
+                                        onClick={handleTogglePartner}
+                                        style={{
+                                            background: showPartner ? '#dc2626' : '#3b82f6',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                            padding: '2px 6px',
+                                            transition: 'background-color 0.2s'
+                                        }}
+                                        disabled={reportLoading}
+                                        title={showPartner ? 'Remove partner' : 'Add partner'}
+                                    >
+                                        {showPartner ? 'Remove partner' : 'Add partner'}
+                                    </button>
+                                </div>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        ref={commanderSearch.inputRef}
+                                        type="text"
+                                        value={commander}
+                                        onChange={handleCommanderChange}
+                                        placeholder="Start typing to search commanders..."
+                                        style={{
+                                            ...styles.textInput,
+                                            ...(validationErrors.commander ? styles.inputError : {})
+                                        }}
+                                        disabled={reportLoading}
+                                        maxLength={100}
+                                        aria-invalid={!!validationErrors.commander}
+                                        autoComplete="off"
+                                    />
+                                    {commanderSearch.loading && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            right: '12px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            fontSize: '14px'
+                                        }}>
+                                            🔍
+                                        </div>
+                                    )}
+                                    {commanderSearch.showDropdown && commanderSearch.results.length > 0 && (
+                                        <div
+                                            ref={commanderSearch.dropdownRef}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '100%',
+                                                left: 0,
+                                                right: 0,
+                                                backgroundColor: '#1e293b',
+                                                border: '1px solid #334155',
+                                                borderRadius: '8px',
+                                                marginTop: '4px',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto',
+                                                zIndex: 1000,
+                                                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+                                            }}
+                                        >
+                                            {commanderSearch.results.map((result, index) => (
+                                                <div
+                                                    key={index}
+                                                    onClick={() => handleCommanderSelect(result)}
+                                                    style={{
+                                                        padding: '10px 12px',
+                                                        cursor: 'pointer',
+                                                        borderBottom: index < commanderSearch.results.length - 1 ? '1px solid #334155' : 'none',
+                                                        transition: 'background-color 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.backgroundColor = '#334155'
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor = 'transparent'
+                                                    }}
+                                                >
+                                                    {result}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                                 {validationErrors.commander && (
                                     <span style={styles.validationError}>
                                         {validationErrors.commander}
                                     </span>
                                 )}
                             </label>
+                            {showPartner && (
+                                <label style={styles.inputLabel}>
+                                    Partner (Optional)
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            ref={partnerSearch.inputRef}
+                                            type="text"
+                                            value={partner}
+                                            onChange={handlePartnerChange}
+                                            placeholder="Start typing to search partners..."
+                                            style={{
+                                                ...styles.textInput,
+                                                ...(validationErrors.partner ? styles.inputError : {})
+                                            }}
+                                            disabled={reportLoading}
+                                            maxLength={100}
+                                            aria-invalid={!!validationErrors.partner}
+                                            autoComplete="off"
+                                        />
+                                        {partnerSearch.loading && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                fontSize: '14px'
+                                            }}>
+                                                🔍
+                                            </div>
+                                        )}
+                                        {partnerSearch.showDropdown && partnerSearch.results.length > 0 && (
+                                            <div
+                                                ref={partnerSearch.dropdownRef}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 0,
+                                                    right: 0,
+                                                    backgroundColor: '#1e293b',
+                                                    border: '1px solid #334155',
+                                                    borderRadius: '8px',
+                                                    marginTop: '4px',
+                                                    maxHeight: '200px',
+                                                    overflowY: 'auto',
+                                                    zIndex: 1000,
+                                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+                                                }}
+                                            >
+                                                {partnerSearch.results.map((result, index) => (
+                                                    <div
+                                                        key={index}
+                                                        onClick={() => handlePartnerSelect(result)}
+                                                        style={{
+                                                            padding: '10px 12px',
+                                                            cursor: 'pointer',
+                                                            borderBottom: index < partnerSearch.results.length - 1 ? '1px solid #334155' : 'none',
+                                                            transition: 'background-color 0.2s'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.backgroundColor = '#334155'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.backgroundColor = 'transparent'
+                                                        }}
+                                                    >
+                                                        {result}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {validationErrors.partner && (
+                                        <span style={styles.validationError}>
+                                            {validationErrors.partner}
+                                        </span>
+                                    )}
+                                </label>
+                            )}
                             <label style={styles.inputLabel}>
                                 Bracket
                                 <input
