@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import * as signalR from '@microsoft/signalr'
 import { apiBase, signalRBase } from './api'
@@ -52,6 +52,123 @@ function RoundCountdownTimer({ startedAtUtc, roundLength, roundStarted }) {
                     {timeRemaining.display}
                 </span>
             </div>
+        </div>
+    )
+}
+
+function DraggablePlayerOrder({ members, participantId, onOrderChange }) {
+    const [orderedPlayers, setOrderedPlayers] = useState([])
+    const [draggedIndex, setDraggedIndex] = useState(null)
+
+    // Initialize ordered players from members
+    useEffect(() => {
+        if (members && Array.isArray(members) && members.length > 0) {
+            // Put current user first, then others
+            const currentUser = members.find(m => m.id === participantId)
+            const otherUsers = members.filter(m => m.id !== participantId)
+            
+            if (currentUser) {
+                setOrderedPlayers([currentUser, ...otherUsers])
+            } else {
+                setOrderedPlayers([...members])
+            }
+        }
+    }, [members, participantId])
+
+    // Notify parent of order changes - now sending player names
+    useEffect(() => {
+        if (orderedPlayers.length > 0) {
+            const orderString = orderedPlayers
+                .map(player => player.name ?? player.id ?? 'Unknown')
+                .join(', ')
+            onOrderChange(orderString)
+        }
+    }, [orderedPlayers, onOrderChange])
+
+    const handleDragStart = (e, index) => {
+        setDraggedIndex(index)
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/html', e.currentTarget)
+    }
+
+    const handleDragOver = (e, index) => {
+        e.preventDefault()
+        
+        if (draggedIndex === null || draggedIndex === index) return
+
+        const newOrder = [...orderedPlayers]
+        const draggedItem = newOrder[draggedIndex]
+        
+        // Remove from old position
+        newOrder.splice(draggedIndex, 1)
+        // Insert at new position
+        newOrder.splice(index, 0, draggedItem)
+        
+        setOrderedPlayers(newOrder)
+        setDraggedIndex(index)
+    }
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null)
+    }
+
+    const handleTouchStart = (e, index) => {
+        setDraggedIndex(index)
+    }
+
+    const handleTouchMove = (e) => {
+        e.preventDefault()
+    }
+
+    const handleTouchEnd = () => {
+        setDraggedIndex(null)
+    }
+
+    if (!orderedPlayers || orderedPlayers.length === 0) {
+        return (
+            <div style={styles.playerOrderEmpty}>
+                No players available to order
+            </div>
+        )
+    }
+
+    return (
+        <div style={styles.playerOrderContainer}>
+            {orderedPlayers.map((player, index) => {
+                const isYou = player.id === participantId
+                
+                return (
+                    <div
+                        key={player.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onTouchStart={(e) => handleTouchStart(e, index)}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                        style={{
+                            ...styles.playerOrderItem,
+                            ...(draggedIndex === index ? styles.playerOrderItemDragging : {}),
+                            ...(isYou ? styles.playerOrderItemYou : {}),
+                            cursor: 'grab',
+                            border: '2px solid #334155',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 16px'
+                        }}
+                    >
+                        <div style={styles.playerOrderName}>
+                            {player.name ?? player.id ?? 'Unknown'}
+                        </div>
+                        <div style={styles.playerOrderDragHandle}>
+                            ⋮⋮
+                        </div>
+                    </div>
+                )
+            })}
         </div>
     )
 }
@@ -119,7 +236,7 @@ function RoundResults({ data }) {
                                         ...(isYou ? styles.memberItemYou : {})
                                     }}
                                 >
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
                                         <div>
                                             {member.name ?? member.id ?? 'Unknown'}
                                             {isYou && <span style={styles.youBadge}>YOU</span>}
@@ -162,7 +279,7 @@ export default function RoomPage() {
     const [playerOrder, setPlayerOrder] = useState('')
     const [winCondition, setWinCondition] = useState('')
     const [bracket, setBracket] = useState('')
-    
+
     // Validation errors state
     const [validationErrors, setValidationErrors] = useState({})
 
@@ -317,8 +434,8 @@ export default function RoomPage() {
         setTurnCount(validated.sanitized)
     }
 
-    const handlePlayerOrderChange = (e) => {
-        const validated = validatePlayerOrder(e.target.value)
+    const handlePlayerOrderChange = useCallback((orderString) => {
+        const validated = validatePlayerOrder(orderString)
         setPlayerOrder(validated.sanitized)
         
         if (validated.error) {
@@ -329,7 +446,7 @@ export default function RoomPage() {
                 return rest
             })
         }
-    }
+    }, [])
 
     const handleWinConditionChange = (e) => {
         const validated = validateWinCondition(e.target.value)
@@ -1113,7 +1230,7 @@ export default function RoomPage() {
                     <div style={styles.statisticsCard}>
                         <h3 style={styles.statisticsTitle}>Your Commander</h3>
                         <p style={styles.statisticsDescription}>
-                            Select your commander for this game
+                            Select your Commander for this game (Optional)
                         </p>
                         <div style={styles.inputGrid}>
                             <label style={styles.inputLabel}>
@@ -1346,41 +1463,23 @@ export default function RoomPage() {
                                         max="999"
                                     />
                                 </label>
-                                <label style={styles.inputLabel}>
-                                    Player Order
-                                    <input
-                                        type="text"
-                                        value={playerOrder}
-                                        onChange={handlePlayerOrderChange}
-                                        placeholder="e.g., 1st, 2nd, 3rd, 4th"
-                                        style={{
-                                            ...styles.textInput,
-                                            ...(validationErrors.playerOrder ? styles.inputError : {})
-                                        }}
-                                        disabled={reportLoading}
-                                        maxLength={50}
-                                        aria-invalid={!!validationErrors.playerOrder}
-                                    />
-                                    {validationErrors.playerOrder && (
-                                        <span style={styles.validationError}>
-                                            {validationErrors.playerOrder}
-                                        </span>
-                                    )}
-                                </label> 
-                                <label style={styles.inputLabel}>
+                                <label style={{ ...styles.inputLabel, gridColumn: '1 / -1' }}>
                                     Win Condition
-                                    <input
-                                        type="text"
+                                    <textarea
                                         value={winCondition}
                                         onChange={handleWinConditionChange}
                                         placeholder="How the game was won"
                                         style={{
                                             ...styles.textInput,
-                                            ...(validationErrors.winCondition ? styles.inputError : {})
+                                            ...(validationErrors.winCondition ? styles.inputError : {}),
+                                            minHeight: '80px',
+                                            resize: 'vertical',
+                                            fontFamily: 'inherit'
                                         }}
                                         disabled={reportLoading}
                                         maxLength={200}
                                         aria-invalid={!!validationErrors.winCondition}
+                                        rows={3}
                                     />
                                     {validationErrors.winCondition && (
                                         <span style={styles.validationError}>
@@ -1388,13 +1487,29 @@ export default function RoomPage() {
                                         </span>
                                     )}
                                 </label>
+                                <div style={{ ...styles.playerOrderWrapper, gridColumn: '1 / -1' }}>
+                                    <label style={styles.inputLabel}>
+                                        Player Order
+                                    </label>
+                                    <DraggablePlayerOrder 
+                                        members={groupResult.members}
+                                        participantId={validatedParticipantId}
+                                        onOrderChange={handlePlayerOrderChange}
+                                    />
+                                    {validationErrors.playerOrder && (
+                                        <span style={styles.validationError}>
+                                            {validationErrors.playerOrder}
+                                        </span>
+                                    )}
+                                </div>
                                 <button
                                     onClick={handleUpdateStatistics}
                                     disabled={reportLoading || Object.keys(validationErrors).filter(k => k !== 'commander' && k !== 'partner').length > 0}
                                     style={{
                                         ...styles.reportButton,
                                         ...styles.updateButton,
-                                        ...(Object.keys(validationErrors).filter(k => k !== 'commander' && k !== 'partner').length > 0 ? { opacity: 0.6 } : {})
+                                        ...(Object.keys(validationErrors).filter(k => k !== 'commander' && k !== 'partner').length > 0 ? { opacity: 0.6 } : {}),
+                                        gridColumn: '1 / -1'
                                     }}
                                 >
                                     {reportLoading ? <span style={styles.spinner}></span> : ''} Update Statistics

@@ -15,7 +15,6 @@ export default function JoinPage() {
     const [name, setName] = useState('')
     const [commander, setCommander] = useState('')
     const [partner, setPartner] = useState('')
-    const [showPartner, setShowPartner] = useState(false)
     const [hostId, setHostId] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
@@ -156,41 +155,11 @@ export default function JoinPage() {
         })
     }
 
-    const handleTogglePartner = () => {
-        const newShowPartner = !showPartner
-        setShowPartner(newShowPartner)
-
-        if (!newShowPartner) {
-            // Clear partner field when hiding
-            setPartner('')
-            partnerSearch.clearSearch()
-            setValidationErrors(prev => {
-                const { partner, ...rest } = prev
-                return rest
-            })
-        }
-    }
-
-    const handleHostIdChange = (e) => {
-        const validated = validateHostId(e.target.value)
-        setHostId(validated.sanitized)
-
-        if (validated.error) {
-            setValidationErrors(prev => ({ ...prev, hostId: validated.error }))
-        } else {
-            setValidationErrors(prev => {
-                const { hostId, ...rest } = prev
-                return rest
-            })
-        }
-    }
-
     const handleModeChange = (newMode) => {
         setMode(newMode)
         setError(null)
         setValidationErrors({})
-        // Reset partner field when changing modes
-        setShowPartner(false)
+        // Clear partner field when changing modes
         setPartner('')
         partnerSearch.clearSearch()
     }
@@ -289,7 +258,6 @@ export default function JoinPage() {
             setName('')
             setCommander('')
             setPartner('')
-            setShowPartner(false)
         } catch (err) {
             console.error('Join error', err)
             setError('Network error while attempting to join.')
@@ -484,27 +452,7 @@ export default function JoinPage() {
                                     )}
                                 </label>
                                 <label style={styles.label}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <span>Commander (Optional)</span>
-                                        <button
-                                            type="button"
-                                            onClick={handleTogglePartner}
-                                            style={{
-                                                background: showPartner ? '#dc2626' : '#3b82f6',
-                                                border: 'none',
-                                                borderRadius: '4px',
-                                                color: 'white',
-                                                cursor: 'pointer',
-                                                fontSize: '16px',
-                                                padding: '4px 8px',
-                                                transition: 'background-color 0.2s'
-                                            }}
-                                            disabled={loading}
-                                            title={showPartner ? 'Remove partner' : 'Add partner'}
-                                        >
-                                            {showPartner ? 'Remove partner' : 'Add partner'}
-                                        </button>
-                                    </div>
+                                    Commander (Optional)
                                     <div style={{ position: 'relative' }}>
                                         <input
                                             ref={commanderSearch.inputRef}
@@ -581,86 +529,84 @@ export default function JoinPage() {
                                         </span>
                                     )}
                                 </label>
-                                {showPartner && (
-                                    <label style={styles.label}>
-                                        Partner (Optional)
-                                        <div style={{ position: 'relative' }}>
-                                            <input
-                                                ref={partnerSearch.inputRef}
-                                                type="text"
-                                                value={partner}
-                                                onChange={handlePartnerChange}
-                                                onKeyPress={handleKeyPress}
-                                                placeholder="Start typing to search partners..."
-                                                style={{
-                                                    ...styles.input,
-                                                    ...(validationErrors.partner ? styles.inputError : {})
-                                                }}
-                                                disabled={loading}
-                                                maxLength={100}
-                                                aria-invalid={!!validationErrors.partner}
-                                                aria-describedby={validationErrors.partner ? "partner-error" : undefined}
-                                                autoComplete="off"
-                                            />
-                                            {partnerSearch.loading && (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    right: '12px',
-                                                    top: '50%',
-                                                    transform: 'translateY(-50%)',
-                                                    fontSize: '14px'
-                                                }}>
-                                                    🔍
-                                                </div>
-                                            )}
-                                            {partnerSearch.showDropdown && partnerSearch.results.length > 0 && (
-                                                <div
-                                                    ref={partnerSearch.dropdownRef}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '100%',
-                                                        left: 0,
-                                                        right: 0,
-                                                        backgroundColor: '#1e293b',
-                                                        border: '1px solid #334155',
-                                                        borderRadius: '8px',
-                                                        marginTop: '4px',
-                                                        maxHeight: '200px',
-                                                        overflowY: 'auto',
-                                                        zIndex: 1000,
-                                                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
-                                                    }}
-                                                >
-                                                    {partnerSearch.results.map((result, index) => (
-                                                        <div
-                                                            key={index}
-                                                            onClick={() => handlePartnerSelect(result)}
-                                                            style={{
-                                                                padding: '10px 12px',
-                                                                cursor: 'pointer',
-                                                                borderBottom: index < partnerSearch.results.length - 1 ? '1px solid #334155' : 'none',
-                                                                transition: 'background-color 0.2s'
-                                                            }}
-                                                            onMouseEnter={(e) => {
-                                                                e.currentTarget.style.backgroundColor = '#334155'
-                                                            }}
-                                                            onMouseLeave={(e) => {
-                                                                e.currentTarget.style.backgroundColor = 'transparent'
-                                                            }}
-                                                        >
-                                                            {result}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {validationErrors.partner && (
-                                            <span id="partner-error" style={styles.validationError}>
-                                                {validationErrors.partner}
-                                            </span>
+                                <label style={styles.label}>
+                                    Partner (Optional)
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            ref={partnerSearch.inputRef}
+                                            type="text"
+                                            value={partner}
+                                            onChange={handlePartnerChange}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Start typing to search partners..."
+                                            style={{
+                                                ...styles.input,
+                                                ...(validationErrors.partner ? styles.inputError : {})
+                                            }}
+                                            disabled={loading}
+                                            maxLength={100}
+                                            aria-invalid={!!validationErrors.partner}
+                                            aria-describedby={validationErrors.partner ? "partner-error" : undefined}
+                                            autoComplete="off"
+                                        />
+                                        {partnerSearch.loading && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                fontSize: '14px'
+                                            }}>
+                                                🔍
+                                            </div>
                                         )}
-                                    </label>
-                                )}
+                                        {partnerSearch.showDropdown && partnerSearch.results.length > 0 && (
+                                            <div
+                                                ref={partnerSearch.dropdownRef}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 0,
+                                                    right: 0,
+                                                    backgroundColor: '#1e293b',
+                                                    border: '1px solid #334155',
+                                                    borderRadius: '8px',
+                                                    marginTop: '4px',
+                                                    maxHeight: '200px',
+                                                    overflowY: 'auto',
+                                                    zIndex: 1000,
+                                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+                                                }}
+                                            >
+                                                {partnerSearch.results.map((result, index) => (
+                                                    <div
+                                                        key={index}
+                                                        onClick={() => handlePartnerSelect(result)}
+                                                        style={{
+                                                            padding: '10px 12px',
+                                                            cursor: 'pointer',
+                                                            borderBottom: index < partnerSearch.results.length - 1 ? '1px solid #334155' : 'none',
+                                                            transition: 'background-color 0.2s'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.backgroundColor = '#334155'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.backgroundColor = 'transparent'
+                                                        }}
+                                                    >
+                                                        {result}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {validationErrors.partner && (
+                                        <span id="partner-error" style={styles.validationError}>
+                                            {validationErrors.partner}
+                                        </span>
+                                    )}
+                                </label>
                             </>
                         ) : (
                             <label style={styles.label}>

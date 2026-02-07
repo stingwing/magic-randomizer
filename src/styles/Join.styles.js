@@ -72,7 +72,9 @@ export const styles = {
         padding: 'clamp(0.6rem, 2vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
         fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         borderRadius: '8px',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderWidth: '1px',
+        borderStyle: 'solid',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
         background: 'rgba(0, 0, 0, 0.2)',
         color: 'inherit',
         transition: 'all 0.2s ease',
@@ -80,7 +82,7 @@ export const styles = {
         boxSizing: 'border-box'
     },
     inputError: {
-        border: '1px solid #ff6b6b',
+        borderColor: '#ff6b6b',
         background: 'rgba(255, 107, 107, 0.1)'
     },
     validationError: {

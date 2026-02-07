@@ -265,8 +265,8 @@ export const styles = {
         fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
         color: 'var(--text-primary)',
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
         gap: '0.5rem',
         wordBreak: 'break-word'
     },
@@ -282,6 +282,7 @@ export const styles = {
         borderRadius: '4px',
         fontSize: 'clamp(0.7rem, 2vw, 0.75rem)',
         fontWeight: '700',
+        marginLeft: '0.5rem',
         flexShrink: 0
     },
     statisticsCard: {
@@ -336,6 +337,86 @@ export const styles = {
         color: '#ff6b6b',
         fontSize: 'clamp(0.75rem, 2vw, 0.85rem)',
         marginTop: '0.25rem'
+    },
+    playerOrderWrapper: {
+        gridColumn: '1 / -1',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem'
+    },
+    playerOrderContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+        padding: 'clamp(0.5rem, 2vw, 0.75rem)',
+       // background: 'var(--bg-secondary)',
+     //   borderRadius: '8px',
+     //   border: '1px solid var(--border-color)'
+    },
+    playerOrderHint: {
+        fontSize: 'clamp(0.75rem, 2vw, 0.85rem)',
+        color: 'var(--text-secondary)',
+        fontStyle: 'italic',
+        marginBottom: '0.5rem'
+    },
+    playerOrderItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        padding: 'clamp(0.5rem, 2vw, 0.75rem)',
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '8px',
+        cursor: 'move',
+        transition: 'all 0.2s ease',
+        userSelect: 'none'
+    },
+    playerOrderItemDragging: {
+        opacity: 0.5,
+        transform: 'scale(0.95)'
+    },
+    playerOrderItemYou: {
+        background: 'linear-gradient(135deg, rgba(100, 108, 255, 0.15) 0%, rgba(83, 91, 242, 0.15) 100%)',
+        border: '1px solid var(--accent-color)',
+        fontWeight: '600'
+    },
+    playerOrderDragHandle: {
+        fontSize: 'clamp(1rem, 3vw, 1.2rem)',
+        color: 'var(--text-secondary)',
+        cursor: 'grab',
+        lineHeight: 1,
+        flexShrink: 0
+    },
+    playerOrderPosition: {
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
+        fontWeight: '700',
+        color: 'var(--accent-color)',
+        minWidth: '3ch',
+        flexShrink: 0
+    },
+    playerOrderName: {
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
+        color: 'var(--text-primary)',
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem'
+    },
+    playerOrderYouBadge: {
+        padding: '0.2rem 0.4rem',
+        background: 'var(--accent-color)',
+        color: 'white',
+        borderRadius: '4px',
+        fontSize: 'clamp(0.65rem, 1.8vw, 0.7rem)',
+        fontWeight: '700',
+        flexShrink: 0
+    },
+    playerOrderEmpty: {
+        padding: 'clamp(1rem, 3vw, 1.5rem)',
+        textAlign: 'center',
+        color: 'var(--text-secondary)',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+        fontStyle: 'italic'
     },
     reportCard: {
         background: 'var(--card-bg)',
