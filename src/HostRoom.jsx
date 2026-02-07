@@ -501,7 +501,9 @@ export default function HostRoomPage() {
                 },
                 body: JSON.stringify({
                     participantId: playerIdValidation.sanitized,
-                    result: 'Drop'
+                    result: 'drop',
+                    commander: '',
+                    statistics: {}
                 })
             })
 

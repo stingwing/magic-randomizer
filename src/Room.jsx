@@ -81,23 +81,27 @@ function RoundResults({ data }) {
                     <span style={styles.detailLabel}>Group Number:</span>
                     <span style={styles.detailValue}>{groupNumber ?? 'N/A'}</span>
                 </div>
-                <div style={styles.detailRow}>
-                    <span style={styles.detailLabel}>Result Reported:</span>
-                    <span style={styles.detailValue}>{result ? '✅ Yes' : '⏳ No'}</span>
-                </div>
-                {winner !== undefined && winner !== null && (
-                    <div style={styles.detailRow}>
-                        <span style={styles.detailLabel}>Winner:</span>
-                        <span style={{...styles.detailValue, color: 'var(--success-color)', fontWeight: '600'}}>
-                            🏆 {winner}
-                        </span>
-                    </div>
-                )}
-                {draw !== undefined && (
-                    <div style={styles.detailRow}>
-                        <span style={styles.detailLabel}>Draw:</span>
-                        <span style={styles.detailValue}>{draw ? '✅ Yes' : '❌ No'}</span>
-                    </div>
+                {roundStarted && (
+                    <>
+                        <div style={styles.detailRow}>
+                            <span style={styles.detailLabel}>Result Reported:</span>
+                            <span style={styles.detailValue}>{result ? '✅ Yes' : '⏳ No'}</span>
+                        </div>
+                        {winner !== undefined && winner !== null && (
+                            <div style={styles.detailRow}>
+                                <span style={styles.detailLabel}>Winner:</span>
+                                <span style={{...styles.detailValue, color: 'var(--success-color)', fontWeight: '600'}}>
+                                    🏆 {winner}
+                                </span>
+                            </div>
+                        )}
+                        {draw !== undefined && (
+                            <div style={styles.detailRow}>
+                                <span style={styles.detailLabel}>Draw:</span>
+                                <span style={styles.detailValue}>{draw ? '✅ Yes' : '❌ No'}</span>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
@@ -512,7 +516,7 @@ export default function RoomPage() {
         if (!validatedCode || !validatedParticipantId) return
 
         // Show confirmation dialog for Drop action
-        if (result === 'Drop') {
+        if (result === 'drop') {
             if (!window.confirm('Are you sure you want to drop from this game?')) {
                 return
             }
@@ -531,7 +535,7 @@ export default function RoomPage() {
         }
 
         // Validate result value
-        const validResults = ['Win', 'Draw', 'Drop', 'data']
+        const validResults = ['win', 'draw', 'drop', 'data']
         if (!validResults.includes(result)) {
             setRoomError('Invalid result type')
             return
@@ -581,7 +585,7 @@ export default function RoomPage() {
             }
 
             const data = await res.json().catch(() => null)
-            
+
             // Update group result with response data
             if (data && groupResult) {
                 setGroupResult(prevResult => ({
@@ -591,7 +595,7 @@ export default function RoomPage() {
                     result: data.result !== undefined ? (data.result === 'data' ? prevResult.result : true) : prevResult.result,
                     winner: data.winnerParticipantId || prevResult.winner
                 }))
-                
+
                 // Update local statistics fields from response if they exist
                 if (data.statistics) {
                     // Update Bracket
@@ -601,7 +605,7 @@ export default function RoomPage() {
                             setBracket(bracketValidated.sanitized)
                         }
                     }
-                    
+
                     // Update Turn Count
                     if (data.statistics.TurnCount !== undefined && data.statistics.TurnCount !== null) {
                         const turnCountValidated = validateTurnCount(data.statistics.TurnCount)
@@ -609,7 +613,7 @@ export default function RoomPage() {
                             setTurnCount(turnCountValidated.sanitized)
                         }
                     }
-                    
+
                     // Update Player Order
                     if (data.statistics.PlayerOrder !== undefined && data.statistics.PlayerOrder !== null) {
                         const playerOrderValidated = validatePlayerOrder(data.statistics.PlayerOrder)
@@ -617,7 +621,7 @@ export default function RoomPage() {
                             setPlayerOrder(playerOrderValidated.sanitized)
                         }
                     }
-                    
+
                     // Update Win Condition
                     if (data.statistics.WinCondition !== undefined && data.statistics.WinCondition !== null) {
                         const winConditionValidated = validateWinCondition(data.statistics.WinCondition)
@@ -626,18 +630,18 @@ export default function RoomPage() {
                         }
                     }
                 }
-                
+
                 // Update commander/partner from response members array
                 if (data.members && Array.isArray(data.members)) {
                     const currentMember = data.members.find(m => m.id === validatedParticipantId)
                     if (currentMember && currentMember.commander) {
                         const responseCommander = currentMember.commander.trim()
-                        
+
                         // Only update if it's different from what we currently have
-                        const currentCombined = partner 
-                            ? `${commander} : ${partner}`.trim() 
+                        const currentCombined = partner
+                            ? `${commander} : ${partner}`.trim()
                             : commander.trim()
-                        
+
                         if (responseCommander !== currentCombined && responseCommander !== '') {
                             // Check if it contains a partner (separated by " : ")
                             if (responseCommander.includes(' : ')) {
@@ -654,14 +658,14 @@ export default function RoomPage() {
                     }
                 }
             }
-            
+
             setReportMessage(
                 data && data.message
                     ? data.message
                     : `${result} reported successfully`
             )
 
-            // Clear statistics after successful submission (only for Win/Draw/Drop, not data updates)
+            // Clear statistics after successful submission (only for win/draw/drop, not data updates)
             if (result !== 'data') {
                 setCommander('')
                 setPartner('')
@@ -684,6 +688,115 @@ export default function RoomPage() {
 
     const handleUpdateStatistics = async () => {
         await handleReportResult('data')
+    }
+
+    const handleUpdateCommander = async () => {
+        if (!validatedCode || !validatedParticipantId) return
+
+        // Check for validation errors
+        const commanderErrors = {}
+        if (validationErrors.commander) commanderErrors.commander = validationErrors.commander
+        if (validationErrors.partner) commanderErrors.partner = validationErrors.partner
+        
+        if (Object.keys(commanderErrors).length > 0) {
+            setRoomError('Please fix validation errors before updating commander')
+            return
+        }
+
+        // Check rate limiting
+        if (!reportRateLimiter.canAttempt(validatedParticipantId)) {
+            setRoomError('Too many update attempts. Please wait a moment.')
+            return
+        }
+
+        setReportLoading(true)
+        setReportMessage(null)
+        setRoomError(null)
+
+        try {
+            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/report`
+
+            // Combine commander and partner for the commander field
+            const commanderVal = validateCommander(commander)
+            const partnerVal = validateCommander(partner)
+            let commanderValue = ''
+
+            if (commanderVal.sanitized && commanderVal.valid) {
+                commanderValue = commanderVal.sanitized
+                if (partnerVal.sanitized && partnerVal.valid) {
+                    commanderValue = `${commanderVal.sanitized} : ${partnerVal.sanitized}`
+                }
+            }
+
+            const body = {
+                participantId: validatedParticipantId,
+                result: 'data',
+                commander: commanderValue,
+                statistics: {}
+            }
+
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            })
+
+            if (!res.ok) {
+                const safeMessage = res.status === 400
+                    ? 'Invalid request'
+                    : 'Unable to update commander'
+                throw new Error(safeMessage)
+            }
+
+            const data = await res.json().catch(() => null)
+
+            // Update group result with response data
+            if (data && groupResult) {
+                setGroupResult(prevResult => ({
+                    ...prevResult,
+                    members: data.members || prevResult.members
+                }))
+
+                // Update commander/partner from response members array
+                if (data.members && Array.isArray(data.members)) {
+                    const currentMember = data.members.find(m => m.id === validatedParticipantId)
+                    if (currentMember && currentMember.commander) {
+                        const responseCommander = currentMember.commander.trim()
+
+                        // Only update if it's different from what we currently have
+                        const currentCombined = partner
+                            ? `${commander} : ${partner}`.trim()
+                            : commander.trim()
+
+                        if (responseCommander !== currentCombined && responseCommander !== '') {
+                            // Check if it contains a partner (separated by " : ")
+                            if (responseCommander.includes(' : ')) {
+                                const [cmd, prt] = responseCommander.split(' : ')
+                                setCommander(cmd.trim())
+                                setPartner(prt.trim())
+                                setShowPartner(true)
+                            } else {
+                                setCommander(responseCommander)
+                                setPartner('')
+                                setShowPartner(false)
+                            }
+                        }
+                    }
+                }
+            }
+
+            setReportMessage('Commander updated successfully')
+
+            // SignalR will update automatically, but refresh for immediate feedback
+            await fetchGroupResult()
+        } catch (err) {
+            console.error('Update commander error', err)
+            setRoomError(err.message || 'Unable to update commander')
+        } finally {
+            setReportLoading(false)
+        }
     }
 
     // SignalR Connection Setup
@@ -996,68 +1109,15 @@ export default function RoomPage() {
                         !roomLoading && <div style={styles.noResults}>No results returned.</div>
                     )}
 
-                    <div style={styles.reportCard}>
-                        <h3 style={styles.reportTitle}>Report Your Game Result</h3>
-                        <p style={styles.reportDescription}>
-                        </p>
-                        <div style={styles.reportButtons}>
-                            <button
-                                onClick={() => handleReportResult('Win')}
-                                disabled={reportLoading}
-                                style={{...styles.reportButton, ...styles.winButton}}
-                            >
-                                {reportLoading ? <span style={styles.spinner}></span> : ''} I won
-                            </button>
-                            <button
-                                onClick={() => handleReportResult('Draw')}
-                                disabled={reportLoading}
-                                style={{...styles.reportButton, ...styles.drawButton}}
-                            >
-                                {reportLoading ? <span style={styles.spinner}></span> : ''} Draw
-                            </button>
-                            <button
-                                onClick={() => handleReportResult('Drop')}
-                                disabled={reportLoading}
-                                style={{...styles.reportButton, ...styles.dropButton}}
-                            >
-                                {reportLoading ? <span style={styles.spinner}></span> : ''} Drop
-                            </button>                       
-                        </div>
-                        {reportMessage && (
-                            <div style={styles.successMessage}>
-                                <span>✅</span> {reportMessage}
-                            </div>
-                        )}
-                    </div>
-
+                    {/* Commander/Partner Card - Always visible when started */}
                     <div style={styles.statisticsCard}>
-                        <h3 style={styles.statisticsTitle}>Game Statistics</h3>
+                        <h3 style={styles.statisticsTitle}>Your Commander</h3>
                         <p style={styles.statisticsDescription}>
-                            Track details about your game (optional)
+                            Select your commander for this game
                         </p>
                         <div style={styles.inputGrid}>
                             <label style={styles.inputLabel}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                    <span>Commander</span>
-                                    <button
-                                        type="button"
-                                        onClick={handleTogglePartner}
-                                        style={{
-                                            background: showPartner ? '#dc2626' : '#3b82f6',
-                                            border: 'none',
-                                            borderRadius: '4px',
-                                            color: 'white',
-                                            cursor: 'pointer',
-                                            fontSize: '12px',
-                                            padding: '2px 6px',
-                                            transition: 'background-color 0.2s'
-                                        }}
-                                        disabled={reportLoading}
-                                        title={showPartner ? 'Remove partner' : 'Add partner'}
-                                    >
-                                        {showPartner ? 'Remove partner' : 'Add partner'}
-                                    </button>
-                                </div>
+                                Commander
                                 <div style={{ position: 'relative' }}>
                                     <input
                                         ref={commanderSearch.inputRef}
@@ -1132,164 +1192,226 @@ export default function RoomPage() {
                                     </span>
                                 )}
                             </label>
-                            {showPartner && (
-                                <label style={styles.inputLabel}>
-                                    Partner (Optional)
-                                    <div style={{ position: 'relative' }}>
-                                        <input
-                                            ref={partnerSearch.inputRef}
-                                            type="text"
-                                            value={partner}
-                                            onChange={handlePartnerChange}
-                                            placeholder="Start typing to search partners..."
-                                            style={{
-                                                ...styles.textInput,
-                                                ...(validationErrors.partner ? styles.inputError : {})
-                                            }}
-                                            disabled={reportLoading}
-                                            maxLength={100}
-                                            aria-invalid={!!validationErrors.partner}
-                                            autoComplete="off"
-                                        />
-                                        {partnerSearch.loading && (
-                                            <div style={{
-                                                position: 'absolute',
-                                                right: '12px',
-                                                top: '50%',
-                                                transform: 'translateY(-50%)',
-                                                fontSize: '14px'
-                                            }}>
-                                                🔍
-                                            </div>
-                                        )}
-                                        {partnerSearch.showDropdown && partnerSearch.results.length > 0 && (
-                                            <div
-                                                ref={partnerSearch.dropdownRef}
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: '100%',
-                                                    left: 0,
-                                                    right: 0,
-                                                    backgroundColor: '#1e293b',
-                                                    border: '1px solid #334155',
-                                                    borderRadius: '8px',
-                                                    marginTop: '4px',
-                                                    maxHeight: '200px',
-                                                    overflowY: 'auto',
-                                                    zIndex: 1000,
-                                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
-                                                }}
-                                            >
-                                                {partnerSearch.results.map((result, index) => (
-                                                    <div
-                                                        key={index}
-                                                        onClick={() => handlePartnerSelect(result)}
-                                                        style={{
-                                                            padding: '10px 12px',
-                                                            cursor: 'pointer',
-                                                            borderBottom: index < partnerSearch.results.length - 1 ? '1px solid #334155' : 'none',
-                                                            transition: 'background-color 0.2s'
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.backgroundColor = '#334155'
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.backgroundColor = 'transparent'
-                                                        }}
-                                                    >
-                                                        {result}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {validationErrors.partner && (
-                                        <span style={styles.validationError}>
-                                            {validationErrors.partner}
-                                        </span>
+                            <label style={styles.inputLabel}>
+                                Partner (Optional)
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        ref={partnerSearch.inputRef}
+                                        type="text"
+                                        value={partner}
+                                        onChange={handlePartnerChange}
+                                        placeholder="Start typing to search partners..."
+                                        style={{
+                                            ...styles.textInput,
+                                            ...(validationErrors.partner ? styles.inputError : {})
+                                        }}
+                                        disabled={reportLoading}
+                                        maxLength={100}
+                                        aria-invalid={!!validationErrors.partner}
+                                        autoComplete="off"
+                                    />
+                                    {partnerSearch.loading && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            right: '12px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            fontSize: '14px'
+                                        }}>
+                                            🔍
+                                        </div>
                                     )}
-                                </label>
-                            )}
-                            <label style={styles.inputLabel}>
-                                Bracket
-                                <input
-                                    type="number"
-                                    value={bracket}
-                                    onChange={handleBracketChange}
-                                    placeholder="Average Bracket (1-5)"
-                                    style={styles.textInput}
-                                    disabled={reportLoading}
-                                    min="1"
-                                    max="5"
-                                />
-                            </label>
-                            <label style={styles.inputLabel}>
-                                Turn Count
-                                <input
-                                    type="number"
-                                    value={turnCount}
-                                    onChange={handleTurnCountChange}
-                                    placeholder="Number of turns"
-                                    style={styles.textInput}
-                                    disabled={reportLoading}
-                                    min="0"
-                                    max="999"
-                                />
-                            </label>
-                            <label style={styles.inputLabel}>
-                                Player Order
-                                <input
-                                    type="text"
-                                    value={playerOrder}
-                                    onChange={handlePlayerOrderChange}
-                                    placeholder="e.g., 1st, 2nd, 3rd, 4th"
-                                    style={{
-                                        ...styles.textInput,
-                                        ...(validationErrors.playerOrder ? styles.inputError : {})
-                                    }}
-                                    disabled={reportLoading}
-                                    maxLength={50}
-                                    aria-invalid={!!validationErrors.playerOrder}
-                                />
-                                {validationErrors.playerOrder && (
+                                    {partnerSearch.showDropdown && partnerSearch.results.length > 0 && (
+                                        <div
+                                            ref={partnerSearch.dropdownRef}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '100%',
+                                                left: 0,
+                                                right: 0,
+                                                backgroundColor: '#1e293b',
+                                                border: '1px solid #334155',
+                                                borderRadius: '8px',
+                                                marginTop: '4px',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto',
+                                                zIndex: 1000,
+                                                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+                                            }}
+                                        >
+                                            {partnerSearch.results.map((result, index) => (
+                                                <div
+                                                    key={index}
+                                                    onClick={() => handlePartnerSelect(result)}
+                                                    style={{
+                                                        padding: '10px 12px',
+                                                        cursor: 'pointer',
+                                                        borderBottom: index < partnerSearch.results.length - 1 ? '1px solid #334155' : 'none',
+                                                        transition: 'background-color 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.backgroundColor = '#334155'
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor = 'transparent'
+                                                    }}
+                                                >
+                                                    {result}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                {validationErrors.partner && (
                                     <span style={styles.validationError}>
-                                        {validationErrors.playerOrder}
-                                    </span>
-                                )}
-                            </label> 
-                            <label style={styles.inputLabel}>
-                                Win Condition
-                                <input
-                                    type="text"
-                                    value={winCondition}
-                                    onChange={handleWinConditionChange}
-                                    placeholder="How the game was won"
-                                    style={{
-                                        ...styles.textInput,
-                                        ...(validationErrors.winCondition ? styles.inputError : {})
-                                    }}
-                                    disabled={reportLoading}
-                                    maxLength={200}
-                                    aria-invalid={!!validationErrors.winCondition}
-                                />
-                                {validationErrors.winCondition && (
-                                    <span style={styles.validationError}>
-                                        {validationErrors.winCondition}
+                                        {validationErrors.partner}
                                     </span>
                                 )}
                             </label>
                             <button
-                                onClick={handleUpdateStatistics}
-                                disabled={reportLoading || Object.keys(validationErrors).length > 0}
+                                onClick={handleUpdateCommander}
+                                disabled={reportLoading || validationErrors.commander || validationErrors.partner}
                                 style={{
                                     ...styles.reportButton,
                                     ...styles.updateButton,
-                                    ...(Object.keys(validationErrors).length > 0 ? { opacity: 0.6 } : {})
+                                    ...((validationErrors.commander || validationErrors.partner) ? { opacity: 0.6 } : {})
                                 }}
                             >
-                                {reportLoading ? <span style={styles.spinner}></span> : ''} Update Statistics
+                                {reportLoading ? <span style={styles.spinner}></span> : ''} Update Commander
                             </button>
                         </div>
+                    </div>
+
+                    {/* Report Result Card - Only visible when round has started */}
+                    {groupResult && groupResult.roundStarted && (
+                        <div style={styles.reportCard}>
+                            <h3 style={styles.reportTitle}>Report Your Game Result</h3>
+                            <p style={styles.reportDescription}>
+                            </p>
+                            <div style={styles.reportButtons}>
+                                <button
+                                    onClick={() => handleReportResult('win')}
+                                    disabled={reportLoading}
+                                    style={{ ...styles.reportButton, ...styles.winButton }}
+                                >
+                                    {reportLoading ? <span style={styles.spinner}></span> : ''} I won
+                                </button>
+                                <button
+                                    onClick={() => handleReportResult('draw')}
+                                    disabled={reportLoading}
+                                    style={{ ...styles.reportButton, ...styles.drawButton }}
+                                >
+                                    {reportLoading ? <span style={styles.spinner}></span> : ''} Draw
+                                </button>
+                            </div>
+                            {reportMessage && (
+                                <div style={styles.successMessage}>
+                                    <span>✅</span> {reportMessage}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Game Statistics Card - Only visible when round has started */}
+                    {groupResult && groupResult.roundStarted && (
+                        <div style={styles.statisticsCard}>
+                            <h3 style={styles.statisticsTitle}>Game Statistics</h3>
+                            <p style={styles.statisticsDescription}>
+                                Track details about your game (optional)
+                            </p>
+                            <div style={styles.inputGrid}>
+                                <label style={styles.inputLabel}>
+                                    Bracket
+                                    <input
+                                        type="number"
+                                        value={bracket}
+                                        onChange={handleBracketChange}
+                                        placeholder="Average Bracket (1-5)"
+                                        style={styles.textInput}
+                                        disabled={reportLoading}
+                                        min="1"
+                                        max="5"
+                                    />
+                                </label>
+                                <label style={styles.inputLabel}>
+                                    Turn Count
+                                    <input
+                                        type="number"
+                                        value={turnCount}
+                                        onChange={handleTurnCountChange}
+                                        placeholder="Number of turns"
+                                        style={styles.textInput}
+                                        disabled={reportLoading}
+                                        min="0"
+                                        max="999"
+                                    />
+                                </label>
+                                <label style={styles.inputLabel}>
+                                    Player Order
+                                    <input
+                                        type="text"
+                                        value={playerOrder}
+                                        onChange={handlePlayerOrderChange}
+                                        placeholder="e.g., 1st, 2nd, 3rd, 4th"
+                                        style={{
+                                            ...styles.textInput,
+                                            ...(validationErrors.playerOrder ? styles.inputError : {})
+                                        }}
+                                        disabled={reportLoading}
+                                        maxLength={50}
+                                        aria-invalid={!!validationErrors.playerOrder}
+                                    />
+                                    {validationErrors.playerOrder && (
+                                        <span style={styles.validationError}>
+                                            {validationErrors.playerOrder}
+                                        </span>
+                                    )}
+                                </label> 
+                                <label style={styles.inputLabel}>
+                                    Win Condition
+                                    <input
+                                        type="text"
+                                        value={winCondition}
+                                        onChange={handleWinConditionChange}
+                                        placeholder="How the game was won"
+                                        style={{
+                                            ...styles.textInput,
+                                            ...(validationErrors.winCondition ? styles.inputError : {})
+                                        }}
+                                        disabled={reportLoading}
+                                        maxLength={200}
+                                        aria-invalid={!!validationErrors.winCondition}
+                                    />
+                                    {validationErrors.winCondition && (
+                                        <span style={styles.validationError}>
+                                            {validationErrors.winCondition}
+                                        </span>
+                                    )}
+                                </label>
+                                <button
+                                    onClick={handleUpdateStatistics}
+                                    disabled={reportLoading || Object.keys(validationErrors).filter(k => k !== 'commander' && k !== 'partner').length > 0}
+                                    style={{
+                                        ...styles.reportButton,
+                                        ...styles.updateButton,
+                                        ...(Object.keys(validationErrors).filter(k => k !== 'commander' && k !== 'partner').length > 0 ? { opacity: 0.6 } : {})
+                                    }}
+                                >
+                                    {reportLoading ? <span style={styles.spinner}></span> : ''} Update Statistics
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Drop Button - Always at bottom when started */}
+                    <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                        <button
+                            onClick={() => handleReportResult('drop')}
+                            disabled={reportLoading}
+                            style={{ ...styles.reportButton, ...styles.dropButton }}
+                        >
+                            {reportLoading ? <span style={styles.spinner}></span> : ''} Drop from Game
+                        </button>
                     </div>
                 </div>
             )}
