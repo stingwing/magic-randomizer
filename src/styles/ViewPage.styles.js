@@ -355,7 +355,8 @@ export const styles = {
     membersList: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.5rem'
+        gap: '0.5rem',
+        alignItems: 'center'
     },
     memberItem: {
         display: 'flex',
@@ -363,7 +364,8 @@ export const styles = {
         gap: '0.5rem',
         fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
         color: 'var(--text-primary)',
-        wordBreak: 'break-word'
+        wordBreak: 'break-word',
+        textAlign: 'center'
     },
     memberDot: {
         color: 'var(--success-color)',
