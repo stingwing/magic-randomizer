@@ -93,6 +93,20 @@ export default function JoinPage() {
         }
     }
 
+    const handleHostIdChange = (e) => {
+        const validated = validateHostId(e.target.value)
+        setHostId(validated.sanitized)
+
+        if (validated.error) {
+            setValidationErrors(prev => ({ ...prev, hostId: validated.error }))
+        } else {
+            setValidationErrors(prev => {
+                const { hostId, ...rest } = prev
+                return rest
+            })
+        }
+    }
+
     const handleCommanderChange = (e) => {
         const value = e.target.value
         const validated = validateCommander(value)
