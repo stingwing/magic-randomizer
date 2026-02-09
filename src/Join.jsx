@@ -241,12 +241,12 @@ export default function JoinPage() {
             if (!res.ok) {
                 const text = await res.text().catch(() => '')
                 // Don't expose detailed server errors to users
-                const safeMessage = res.status === 404
-                    ? 'Room not found'
-                    : res.status === 400
-                        ? 'Invalid request'
-                        : 'Failed to join room'
-                setError(safeMessage)
+                //const safeMessage = res.status === 404
+                //    ? 'Room not found'
+                //    : res.status === 400
+                //        ? 'Invalid request'
+                //        : 'Failed to join room'
+                setError(text)
                 return
             }
 

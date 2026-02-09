@@ -1,3 +1,86 @@
+:root[data-theme="dark"] {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* CSS Variables - Dark Mode */
+  --card-bg: rgba(255, 255, 255, 0.02);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-tertiary: rgba(255, 255, 255, 0.4);
+  --bg-secondary: rgba(255, 255, 255, 0.05);
+  --input-bg: rgba(0, 0, 0, 0.2);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --accent-color: #646cff;
+  --accent-shadow: rgba(100, 108, 255, 0.3);
+  --success-color: #51cf66;
+  --error-bg: rgba(220, 38, 38, 0.1);
+  --error-border: rgba(220, 38, 38, 0.3);
+  --error-text: #fca5a5;
+  --success-bg: rgba(81, 207, 102, 0.1);
+  --success-border: rgba(81, 207, 102, 0.3);
+  --success-text: #51cf66;
+  --nav-bg: rgba(36, 36, 36, 0.9);
+  --search-input-bg: #000000;
+  --search-input-text: #ffffff;
+  --search-dropdown-bg: #000000;
+  --search-dropdown-text: #ffffff;
+  --search-dropdown-hover: #1a1a1a;
+}
+
+:root[data-theme="light"] {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #213547;
+  background-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* CSS Variables - Light Mode */
+  --card-bg: #f9fafb;
+  --border-color: #e5e7eb;
+  --shadow-color: rgba(0, 0, 0, 0.05);
+  --text-primary: #213547;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --bg-secondary: #f3f4f6;
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --accent-color: #646cff;
+  --accent-shadow: rgba(100, 108, 255, 0.3);
+  --success-color: #37b24d;
+  --error-bg: rgba(220, 38, 38, 0.1);
+  --error-border: rgba(220, 38, 38, 0.3);
+  --error-text: #dc2626;
+  --success-bg: rgba(81, 207, 102, 0.1);
+  --success-border: rgba(81, 207, 102, 0.3);
+  --success-text: #37b24d;
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --search-input-bg: #000000;
+  --search-input-text: #ffffff;
+  --search-dropdown-bg: #000000;
+  --search-dropdown-text: #ffffff;
+  --search-dropdown-hover: #1a1a1a;
+}
+
+/* Fallback for :root without data-theme attribute */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -12,7 +95,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* CSS Variables */
+  /* CSS Variables - Default (Dark) */
   --card-bg: rgba(255, 255, 255, 0.02);
   --border-color: rgba(255, 255, 255, 0.1);
   --shadow-color: rgba(0, 0, 0, 0.1);
@@ -23,6 +106,7 @@
   --input-bg: rgba(0, 0, 0, 0.2);
   --input-border: rgba(255, 255, 255, 0.1);
   --accent-color: #646cff;
+  --accent-shadow: rgba(100, 108, 255, 0.3);
   --success-color: #51cf66;
   --error-bg: rgba(220, 38, 38, 0.1);
   --error-border: rgba(220, 38, 38, 0.3);
@@ -30,6 +114,12 @@
   --success-bg: rgba(81, 207, 102, 0.1);
   --success-border: rgba(81, 207, 102, 0.3);
   --success-text: #51cf66;
+  --nav-bg: rgba(36, 36, 36, 0.9);
+  --search-input-bg: #000000;
+  --search-input-text: #ffffff;
+  --search-dropdown-bg: #000000;
+  --search-dropdown-text: #ffffff;
+  --search-dropdown-hover: #1a1a1a;
 }
 
 a {
@@ -92,29 +182,6 @@ button:focus-visible {
   
   body {
     min-width: 280px;
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-    
-    --card-bg: #f9fafb;
-    --border-color: #e5e7eb;
-    --shadow-color: rgba(0, 0, 0, 0.05);
-    --text-primary: #213547;
-    --text-secondary: #6b7280;
-    --text-tertiary: #9ca3af;
-    --bg-secondary: #f3f4f6;
-    --input-bg: #ffffff;
-    --input-border: #d1d5db;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
   }
 }
 

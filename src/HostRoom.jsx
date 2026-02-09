@@ -394,6 +394,12 @@ export default function HostRoomPage() {
     }
 
     const handleNewRound = async () => {
+        // Show confirmation dialog when round has started
+        if (isRoundStarted()) {
+            if (!window.confirm('This will end the current round and start a new round. Are you sure?')) {
+                return
+            }
+        }
         await handleGame('generate')
     }
 
@@ -752,7 +758,7 @@ export default function HostRoomPage() {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1 style={styles.title}>🎮 Host Dashboard</h1>
+                <h1 style={styles.title}>Host Dashboard</h1>
                 <div style={styles.hostInfo}>
                     <span style={styles.hostLabel}>Host ID:</span>
                     <span style={styles.hostId}>{validatedHostId}</span>

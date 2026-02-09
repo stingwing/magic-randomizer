@@ -59,6 +59,8 @@ function RoundCountdownTimer({ startedAtUtc, roundLength, roundStarted }) {
 function DraggablePlayerOrder({ members, participantId, onOrderChange }) {
     const [orderedPlayers, setOrderedPlayers] = useState([])
     const [draggedIndex, setDraggedIndex] = useState(null)
+    const [touchStartY, setTouchStartY] = useState(null)
+    const touchTargetRef = useRef(null)
 
     // Initialize ordered players from members
     useEffect(() => {
@@ -113,15 +115,74 @@ function DraggablePlayerOrder({ members, participantId, onOrderChange }) {
     }
 
     const handleTouchStart = (e, index) => {
-        setDraggedIndex(index)
+        // Prevent default to avoid scrolling while dragging
+        const touch = e.touches[0]
+        setTouchStartY(touch.clientY)
+        touchTargetRef.current = e.currentTarget
+        
+        // Add a small delay to distinguish from scroll
+        setTimeout(() => {
+            if (touchTargetRef.current === e.currentTarget) {
+                setDraggedIndex(index)
+            }
+        }, 50)
     }
 
-    const handleTouchMove = (e) => {
+    const handleTouchMove = (e, index) => {
+        if (draggedIndex === null) return
+        
+        // Prevent scrolling
         e.preventDefault()
+        
+        const touch = e.touches[0]
+        const element = document.elementFromPoint(touch.clientX, touch.clientY)
+        
+        // Find the player item element
+        const playerItem = element?.closest('[data-player-index]')
+        if (playerItem) {
+            const targetIndex = parseInt(playerItem.getAttribute('data-player-index'), 10)
+            
+            if (targetIndex !== draggedIndex && targetIndex >= 0 && targetIndex < orderedPlayers.length) {
+                const newOrder = [...orderedPlayers]
+                const draggedItem = newOrder[draggedIndex]
+                
+                // Remove from old position
+                newOrder.splice(draggedIndex, 1)
+                // Insert at new position
+                newOrder.splice(targetIndex, 0, draggedItem)
+                
+                setOrderedPlayers(newOrder)
+                setDraggedIndex(targetIndex)
+            }
+        }
     }
 
     const handleTouchEnd = () => {
         setDraggedIndex(null)
+        setTouchStartY(null)
+        touchTargetRef.current = null
+    }
+
+    const movePlayerUp = (index) => {
+        if (index === 0) return
+        
+        const newOrder = [...orderedPlayers]
+        const temp = newOrder[index]
+        newOrder[index] = newOrder[index - 1]
+        newOrder[index - 1] = temp
+        
+        setOrderedPlayers(newOrder)
+    }
+
+    const movePlayerDown = (index) => {
+        if (index === orderedPlayers.length - 1) return
+        
+        const newOrder = [...orderedPlayers]
+        const temp = newOrder[index]
+        newOrder[index] = newOrder[index + 1]
+        newOrder[index + 1] = temp
+        
+        setOrderedPlayers(newOrder)
     }
 
     if (!orderedPlayers || orderedPlayers.length === 0) {
@@ -140,35 +201,84 @@ function DraggablePlayerOrder({ members, participantId, onOrderChange }) {
                 return (
                     <div
                         key={player.id}
+                        data-player-index={index}
                         draggable
                         onDragStart={(e) => handleDragStart(e, index)}
                         onDragOver={(e) => handleDragOver(e, index)}
                         onDragEnd={handleDragEnd}
                         onTouchStart={(e) => handleTouchStart(e, index)}
-                        onTouchMove={handleTouchMove}
+                        onTouchMove={(e) => handleTouchMove(e, index)}
                         onTouchEnd={handleTouchEnd}
                         style={{
                             ...styles.playerOrderItem,
                             ...(draggedIndex === index ? styles.playerOrderItemDragging : {}),
-                            ...(isYou ? styles.playerOrderItemYou : {}),
-                            cursor: 'grab',
-                            border: '2px solid #334155',
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '12px 16px'
+                            ...(isYou ? styles.playerOrderItemYou : {})
                         }}
                     >
-                        <div style={styles.playerOrderName}>
-                            {player.name ?? player.id ?? 'Unknown'}
-                        </div>
                         <div style={styles.playerOrderDragHandle}>
                             ⋮⋮
+                        </div>
+                        <div style={styles.playerOrderPosition}>
+                            {index + 1}.
+                        </div>
+                        <div style={styles.playerOrderName}>
+                            {player.name ?? player.id ?? 'Unknown'}
+                            {isYou && <span style={styles.playerOrderYouBadge}>YOU</span>}
+                        </div>
+                        
+                        {/* Mobile-friendly arrow buttons */}
+                        <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    movePlayerUp(index)
+                                }}
+                                disabled={index === 0}
+                                style={{
+                                    padding: '8px 12px',
+                                    background: index === 0 ? 'var(--bg-secondary)' : 'var(--accent-color)',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    color: 'white',
+                                    cursor: index === 0 ? 'not-allowed' : 'pointer',
+                                    fontSize: '16px',
+                                    opacity: index === 0 ? 0.3 : 1,
+                                    touchAction: 'manipulation',
+                                    userSelect: 'none'
+                                }}
+                                aria-label="Move up"
+                            >
+                                ▲
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    movePlayerDown(index)
+                                }}
+                                disabled={index === orderedPlayers.length - 1}
+                                style={{
+                                    padding: '8px 12px',
+                                    background: index === orderedPlayers.length - 1 ? 'var(--bg-secondary)' : 'var(--accent-color)',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    color: 'white',
+                                    cursor: index === orderedPlayers.length - 1 ? 'not-allowed' : 'pointer',
+                                    fontSize: '16px',
+                                    opacity: index === orderedPlayers.length - 1 ? 0.3 : 1,
+                                    touchAction: 'manipulation',
+                                    userSelect: 'none'
+                                }}
+                                aria-label="Move down"
+                            >
+                                ▼
+                            </button>
                         </div>
                     </div>
                 )
             })}
+            <p style={styles.playerOrderHint}>
+                💡 Drag items to reorder, or use ▲▼ buttons
+            </p>
         </div>
     )
 }
@@ -1270,7 +1380,7 @@ export default function RoomPage() {
                                                 top: '100%',
                                                 left: 0,
                                                 right: 0,
-                                                backgroundColor: 'white',
+                                                backgroundColor: '#ffffff',
                                                 border: '1px solid #334155',
                                                 borderRadius: '8px',
                                                 marginTop: '4px',
@@ -1346,7 +1456,7 @@ export default function RoomPage() {
                                                 top: '100%',
                                                 left: 0,
                                                 right: 0,
-                                                backgroundColor: 'white',
+                                                backgroundColor: '#ffffff',
                                                 border: '1px solid #334155',
                                                 borderRadius: '8px',
                                                 marginTop: '4px',
