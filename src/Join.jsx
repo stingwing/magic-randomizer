@@ -404,9 +404,6 @@ export default function JoinPage() {
 
             <div style={styles.cardGrid}>
                 <div style={styles.card}>
-                    <div style={styles.cardIcon}>
-                        {mode === 'player' ? '🎮' : '👑'}
-                    </div>
                     <h2 style={styles.cardTitle}>
                         {mode === 'player' ? 'Join Existing Game' : 'Host a New Game'}
                     </h2>
@@ -504,7 +501,7 @@ export default function JoinPage() {
                                                     top: '100%',
                                                     left: 0,
                                                     right: 0,
-                                                    backgroundColor: '#1e293b',
+                                                    backgroundColor: 'White',
                                                     border: '1px solid #334155',
                                                     borderRadius: '8px',
                                                     marginTop: '4px',
@@ -525,7 +522,7 @@ export default function JoinPage() {
                                                             transition: 'background-color 0.2s'
                                                         }}
                                                         onMouseEnter={(e) => {
-                                                            e.currentTarget.style.backgroundColor = '#334155'
+                                                            e.currentTarget.style.backgroundColor = '#F0F8FF'
                                                         }}
                                                         onMouseLeave={(e) => {
                                                             e.currentTarget.style.backgroundColor = 'transparent'
@@ -582,7 +579,7 @@ export default function JoinPage() {
                                                     top: '100%',
                                                     left: 0,
                                                     right: 0,
-                                                    backgroundColor: '#1e293b',
+                                                    backgroundColor: 'white',
                                                     border: '1px solid #334155',
                                                     borderRadius: '8px',
                                                     marginTop: '4px',
@@ -603,7 +600,7 @@ export default function JoinPage() {
                                                             transition: 'background-color 0.2s'
                                                         }}
                                                         onMouseEnter={(e) => {
-                                                            e.currentTarget.style.backgroundColor = '#334155'
+                                                            e.currentTarget.style.backgroundColor = '#F0F8FF'
                                                         }}
                                                         onMouseLeave={(e) => {
                                                             e.currentTarget.style.backgroundColor = 'transparent'

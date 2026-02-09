@@ -240,9 +240,6 @@ export default function RejoinPage() {
 
             <div style={styles.cardGrid}>
                 <div style={styles.card}>
-                    <div style={styles.cardIcon}>
-                        {mode === 'player' ? '🔄' : '🎮'}
-                    </div>
                     <h2 style={styles.cardTitle}>
                         {mode === 'player' ? 'Rejoin as Player' : 'Rejoin Host Dashboard'}
                     </h2>

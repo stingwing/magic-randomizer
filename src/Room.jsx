@@ -1270,7 +1270,7 @@ export default function RoomPage() {
                                                 top: '100%',
                                                 left: 0,
                                                 right: 0,
-                                                backgroundColor: '#1e293b',
+                                                backgroundColor: 'white',
                                                 border: '1px solid #334155',
                                                 borderRadius: '8px',
                                                 marginTop: '4px',
@@ -1291,7 +1291,7 @@ export default function RoomPage() {
                                                         transition: 'background-color 0.2s'
                                                     }}
                                                     onMouseEnter={(e) => {
-                                                        e.currentTarget.style.backgroundColor = '#334155'
+                                                        e.currentTarget.style.backgroundColor = '#F0F8FF'
                                                     }}
                                                     onMouseLeave={(e) => {
                                                         e.currentTarget.style.backgroundColor = 'transparent'
@@ -1346,7 +1346,7 @@ export default function RoomPage() {
                                                 top: '100%',
                                                 left: 0,
                                                 right: 0,
-                                                backgroundColor: '#1e293b',
+                                                backgroundColor: 'white',
                                                 border: '1px solid #334155',
                                                 borderRadius: '8px',
                                                 marginTop: '4px',
@@ -1367,7 +1367,7 @@ export default function RoomPage() {
                                                         transition: 'background-color 0.2s'
                                                     }}
                                                     onMouseEnter={(e) => {
-                                                        e.currentTarget.style.backgroundColor = '#334155'
+                                                        e.currentTarget.style.backgroundColor = '#F0F8FF'
                                                     }}
                                                     onMouseLeave={(e) => {
                                                         e.currentTarget.style.backgroundColor = 'transparent'
