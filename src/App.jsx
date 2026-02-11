@@ -6,6 +6,8 @@ import JoinPage from './Join'
 import RejoinPage from './Rejoin'
 import RoomPage from './Room'
 import HostRoomPage from './HostRoom'
+import HostSettingsPage from './HostSettings'
+import RoundManagerPage from './RoundManager'
 import ViewPage from './ViewPage'
 import Manual from './Manual'
 import NavBar from './NavBar'
@@ -58,6 +60,8 @@ function App() {
                     <Route path="/new" element={<NewPage />} />
                     <Route path="/room/:code/:participantId" element={<RoomPage />} />
                     <Route path="/host/:code/:hostId" element={<HostRoomPage />} />
+                    <Route path="/host/:code/:hostId/settings" element={<HostSettingsPage />} />
+                    <Route path="/host/:code/:hostId/rounds" element={<RoundManagerPage />} />
                     <Route path="/view" element={<ViewPage />} />
                     <Route path="/view/:code" element={<ViewPage />} />
                 </Routes>

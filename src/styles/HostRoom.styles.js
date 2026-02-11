@@ -86,6 +86,14 @@ export const styles = {
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
         whiteSpace: 'nowrap'
     },
+    settingsButton: {
+        background: 'linear-gradient(135deg, #748ffc 0%, #5c7cfa 100%)',
+        boxShadow: '0 4px 12px rgba(116, 143, 252, 0.3)'
+    },
+    roundManagerButton: {
+        background: 'linear-gradient(135deg, #845ef7 0%, #7048e8 100%)',
+        boxShadow: '0 4px 12px rgba(132, 94, 247, 0.3)'
+    },
     qrToggleButton: {
         padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem)',
         fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',

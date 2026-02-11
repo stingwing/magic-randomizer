@@ -338,7 +338,10 @@ export default function HostRoomPage() {
                 body: JSON.stringify({
                     result: result,
                     hostId: validatedHostId,
-                    players: players
+                    participantId: "",
+                    groupNumber: 0,
+                    roundNumber: 0,
+                    moveGroup: 0
                 })
             })
 
@@ -755,6 +758,14 @@ export default function HostRoomPage() {
     const roundStarted = isRoundStarted()
     const timerData = getCurrentRoundTimerData()
 
+    const handleGoToSettings = () => {
+        navigate(`/host/${encodeURIComponent(validatedCode)}/${encodeURIComponent(validatedHostId)}/settings`)
+    }
+
+    const handleGoToRoundManager = () => {
+        navigate(`/host/${encodeURIComponent(validatedCode)}/${encodeURIComponent(validatedHostId)}/rounds`)
+    }
+
     return (
         <div style={styles.container}>
             <div style={styles.header}>
@@ -879,6 +890,20 @@ export default function HostRoomPage() {
                         ) : (
                             '➕ New Round'
                         )}
+                    </button>
+                    <button
+                        onClick={handleGoToRoundManager}
+                        disabled={loading}
+                        style={{ ...styles.actionButton, ...styles.roundManagerButton }}
+                    >
+                        🎮 Manage Rounds
+                    </button>
+                    <button
+                        onClick={handleGoToSettings}
+                        disabled={loading}
+                        style={{ ...styles.actionButton, ...styles.settingsButton }}
+                    >
+                        ⚙️ Settings
                     </button>
                 </div>
             </div>
