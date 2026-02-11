@@ -64,27 +64,35 @@ export const sanitizeNumber = (input, min = 0, max = Number.MAX_SAFE_INTEGER) =>
 }
 
 /**
- * Validates name input (allows letters, numbers, spaces, common name characters)
+ * Validates name input (allows letters, numbers, hyphens, common name characters - no spaces)
  */
 export const validateName = (name) => {
     const sanitized = sanitizeText(name)
     const trimmed = sanitized.trim()
     const { min, max } = INPUT_CONSTRAINTS.NAME
     
-    // Use trimmed for validation but return sanitized for the input field
-    if (trimmed.length < min && sanitized.length > 0) {
-        return { valid: false, error: `Name must be at least ${min} character`, sanitized }
+    // Check if input contained spaces
+    const hadSpaces = typeof name === 'string' && /\s/.test(name)
+    
+    // Remove spaces from sanitized value
+    const noSpaces = sanitized.replace(/\s/g, '')
+    
+    if (noSpaces.length < min && sanitized.length > 0) {
+        return { valid: false, error: `Name must be at least ${min} character`, sanitized: noSpaces }
     }
-    if (sanitized.length > max) {
-        return { valid: false, error: `Name must be less than ${max} characters`, sanitized: sanitized.slice(0, max) }
+    if (noSpaces.length > max) {
+        return { valid: false, error: `Name must be less than ${max} characters`, sanitized: noSpaces.slice(0, max) }
+    }
+    if (hadSpaces) {
+        return { valid: false, error: 'Name cannot contain spaces', sanitized: noSpaces }
     }
     
-    // Check for valid name characters (letters, numbers, spaces, hyphens, apostrophes, periods)
-    if (trimmed.length > 0 && !/^[a-zA-Z0-9\s\-'.]+$/.test(sanitized)) {
-        return { valid: false, error: 'Name contains invalid characters', sanitized: sanitized.replace(/[^a-zA-Z0-9\s\-'.]/g, '') }
+    // Check for valid name characters (letters, numbers, hyphens, apostrophes, periods - no spaces)
+    if (noSpaces.length > 0 && !/^[a-zA-Z0-9\-'.]+$/.test(noSpaces)) {
+        return { valid: false, error: 'Name contains invalid characters', sanitized: noSpaces.replace(/[^a-zA-Z0-9\-'.]/g, '') }
     }
     
-    return { valid: true, error: null, sanitized }
+    return { valid: true, error: null, sanitized: noSpaces }
 }
 
 /**
@@ -128,14 +136,37 @@ export const validateRoomCode = (code) => {
 }
 
 /**
+ * Sanitizes commander name input - more permissive than general text
+ * Allows special characters common in Magic card names (commas, apostrophes, etc.)
+ */
+export const sanitizeCommanderName = (input) => {
+    if (typeof input !== 'string') return ''
+    
+    return input
+        // Remove HTML tags
+        .replace(/<[^>]*>/g, '')
+        // Remove null bytes and control characters (but preserve normal punctuation and spaces)
+        .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
+        // Don't escape quotes/apostrophes for commander names - keep them as-is
+        .trim()
+}
+
+/**
  * Validates commander name input
  */
 export const validateCommander = (commander) => {
-    const sanitized = sanitizeText(commander)
+    // Use specialized sanitization for commander names
+    const sanitized = sanitizeCommanderName(commander)
     const { max } = INPUT_CONSTRAINTS.COMMANDER
     
     if (sanitized.length > max) {
         return { valid: false, error: `Commander name must be less than ${max} characters`, sanitized: sanitized.slice(0, max) }
+    }
+    
+    // Allow letters, numbers, spaces, and common MTG card punctuation
+    // This includes: comma, apostrophe, hyphen, period, colon, parentheses, quotes
+    if (sanitized.length > 0 && !/^[a-zA-Z0-9\s,'\-.:/()"&]+$/.test(sanitized)) {
+        return { valid: false, error: 'Commander name contains invalid characters', sanitized: sanitized.replace(/[^a-zA-Z0-9\s,'\-.:/()"&]/g, '') }
     }
     
     return { valid: true, error: null, sanitized }
