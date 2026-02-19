@@ -237,8 +237,11 @@ export const styles = {
         boxShadow: '0 4px 12px rgba(255, 212, 59, 0.3)'
     },
     buttonDisabled: {
-        opacity: 0.6,
-        cursor: 'not-allowed'
+        opacity: 0.5,
+        cursor: 'not-allowed',
+        backgroundColor: '#64748b',
+        color: '#cbd5e1',
+        pointerEvents: 'none'
     },
     addPlayerSection: {
         background: 'var(--card-bg)',
@@ -489,5 +492,9 @@ export const styles = {
         animation: 'spin 0.8s linear infinite',
         display: 'inline-block',
         flexShrink: 0
+    },
+    endGameButton: {
+        background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+        color: 'white',
     }
 }

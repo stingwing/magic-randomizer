@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './App.css'
 import NewPage from './About'
 import JoinPage from './Join'
+import QuickJoinPage from './QuickJoin'
 import RejoinPage from './Rejoin'
 import RoomPage from './Room'
 import HostRoomPage from './HostRoom'
@@ -64,6 +65,7 @@ function App() {
                     <Route path="/host/:code/:hostId/rounds" element={<RoundManagerPage />} />
                     <Route path="/view" element={<ViewPage />} />
                     <Route path="/view/:code" element={<ViewPage />} />
+                    <Route path="/quick-join" element={<QuickJoinPage />} />
                 </Routes>
             </div>
         </Router>

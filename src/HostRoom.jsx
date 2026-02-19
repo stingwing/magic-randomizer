@@ -169,6 +169,7 @@ export default function HostRoomPage() {
     const [startingNewRound, setStartingNewRound] = useState(false)
     const [startingRound, setStartingRound] = useState(false)
     const [resettingRound, setResettingRound] = useState(false)
+    const [endingGame, setEndingGame] = useState(false)
     const [gameStarted, setGameStarted] = useState(false)
     const [newPlayerName, setNewPlayerName] = useState('')
     const [addingPlayer, setAddingPlayer] = useState(false)
@@ -183,6 +184,45 @@ export default function HostRoomPage() {
     const [validatedCode, setValidatedCode] = useState('')
     const [validatedHostId, setValidatedHostId] = useState('')
     const [connectionStatus, setConnectionStatus] = useState('disconnected')
+
+    // Helper function to get disabled button tooltip
+    const getDisabledTooltip = (buttonType) => {
+        switch (buttonType) {
+            case 'startGame':
+                if (starting) return 'Game is starting...'
+                if (loading) return 'Loading game data...'
+                if (roundStarted) return 'Cannot reset game while round is in progress'
+                return ''
+            case 'startRound':
+                if (startingRound) return 'Round is starting...'
+                if (resettingRound) return 'Round is resetting...'
+                if (loading) return 'Loading game data...'
+                if (!currentRound) return 'No round available to start'
+                return ''
+            case 'newRound':
+                if (startingNewRound) return 'Creating new round...'
+                if (loading) return 'Loading game data...'
+                return ''
+            case 'endGame':
+                if (endingGame) return 'Ending game...'
+                if (loading) return 'Loading game data...'
+                if (!gameStarted) return 'No active game to end'
+                return ''
+            case 'manageRounds':
+                if (loading) return 'Loading game data...'
+                return ''
+            case 'settings':
+                if (loading) return 'Loading game data...'
+                return ''
+            case 'addPlayer':
+                if (addingPlayer) return 'Adding player...'
+                if (!newPlayerName.trim()) return 'Please enter a player name'
+                if (validationErrors.playerName) return validationErrors.playerName
+                return ''
+            default:
+                return ''
+        }
+    }
 
     // Validate URL parameters on mount
     useEffect(() => {
@@ -212,7 +252,7 @@ export default function HostRoomPage() {
 
     const getJoinUrl = () => {
         const baseUrl = window.location.origin
-        return `${baseUrl}/?code=${encodeURIComponent(validatedCode)}`
+        return `${baseUrl}/quick-join?code=${encodeURIComponent(validatedCode)}`
     }
 
     const handlePlayerNameChange = (e) => {
@@ -320,6 +360,8 @@ export default function HostRoomPage() {
             setStartingRound(true)
         } else if (result === 'resetround') {
             setResettingRound(true)
+        } else if (result === 'endgame') {
+            setEndingGame(true)
         }
 
         setError(null)
@@ -346,10 +388,32 @@ export default function HostRoomPage() {
             })
 
             if (!res.ok) {
-                const safeMessage = res.status === 400
-                    ? 'Invalid game state'
-                    : `Unable to ${result === 'generate' ? 'start new round' : result === 'start' ? 'start round' : result === 'resetround' ? 'reset round' : 'start game'}`
-                throw new Error(safeMessage)
+                // Try to get the actual error message from the API response
+                let errorMessage = null
+                
+                try {
+                    const errorData = await res.json()
+                    errorMessage = errorData.message || errorData.error || errorData.Message
+                } catch {
+                    // If JSON parsing fails, try to get text
+                    try {
+                        const errorText = await res.text()
+                        if (errorText) {
+                            errorMessage = errorText
+                        }
+                    } catch {
+                        // Ignore text parsing errors
+                    }
+                }
+
+                // Fallback to generic message if we couldn't get one from the API
+                if (!errorMessage) {
+                    errorMessage = res.status === 400
+                        ? 'Invalid game state'
+                        : `Unable to ${result === 'generate' ? 'start new round' : result === 'start' ? 'start round' : result === 'resetround' ? 'reset round' : result === 'endgame' ? 'end game' : 'start game'}`
+                }
+                
+                throw new Error(errorMessage)
             }
 
             const data = await res.json().catch(() => null)
@@ -366,6 +430,9 @@ export default function HostRoomPage() {
                 successMessage = 'Round timer started successfully'
             } else if (result === 'resetround') {
                 successMessage = 'Round reset successfully'
+            } else if (result === 'endgame') {
+                successMessage = 'Game ended successfully'
+                setGameStarted(false)
             }
 
             if (data && data.message) {
@@ -388,6 +455,7 @@ export default function HostRoomPage() {
             setStartingNewRound(false)
             setStartingRound(false)
             setResettingRound(false)
+            setEndingGame(false)
         }
     }
 
@@ -412,6 +480,14 @@ export default function HostRoomPage() {
 
     const handleResetRound = async () => {
         await handleGame('resetround')
+    }
+
+    const handleEndGame = async () => {
+        // Show confirmation dialog
+        if (!window.confirm('This will end the current game. Are you sure?')) {
+            return
+        }
+        await handleGame('endgame')
     }
 
     const handleAddPlayer = async () => {
@@ -455,13 +531,43 @@ export default function HostRoomPage() {
             })
 
             if (!res.ok) {
-                const safeMessage = res.status === 400
-                    ? 'Invalid player name or duplicate player'
-                    : 'Unable to add player'
-                throw new Error(safeMessage)
+                // Try to get the actual error message from the API response
+                let errorMessage = null
+                
+                try {
+                    const errorData = await res.json()
+                    errorMessage = errorData.message || errorData.error || errorData.Message
+                } catch {
+                    // If JSON parsing fails, try to get text
+                    try {
+                        const errorText = await res.text()
+                        if (errorText) {
+                            errorMessage = errorText
+                        }
+                    } catch {
+                        // Ignore text parsing errors
+                    }
+                }
+
+                // Fallback to generic message if we couldn't get one from the API
+                if (!errorMessage) {
+                    errorMessage = res.status === 400
+                        ? 'Invalid player name or duplicate player'
+                        : 'Unable to add player'
+                }
+                
+                throw new Error(errorMessage)
             }
 
-            setMessage(`Player "${sanitizedName}" added successfully`)
+            const data = await res.json().catch(() => null)
+
+            // Use message from API if available, otherwise use default
+            let successMessage = `Player "${sanitizedName}" added successfully`
+            if (data && data.message) {
+                successMessage = data.message
+            }
+
+            setMessage(successMessage)
             setNewPlayerName('')
             // SignalR will trigger fetchParticipants automatically
         } catch (err) {
@@ -474,6 +580,12 @@ export default function HostRoomPage() {
 
     const handleDropPlayer = async (playerId) => {
         if (!validatedCode) return
+
+        // Check if round has started
+        if (isRoundStarted()) {
+            setError('Cannot drop players while a round is in progress')
+            return
+        }
 
         // Get player name for confirmation
         const player = participants.find(p => p.id === playerId)
@@ -517,13 +629,43 @@ export default function HostRoomPage() {
             })
 
             if (!res.ok) {
-                const safeMessage = res.status === 400
-                    ? 'Invalid drop request'
-                    : 'Unable to drop player'
-                throw new Error(safeMessage)
+                // Try to get the actual error message from the API response
+                let errorMessage = null
+                
+                try {
+                    const errorData = await res.json()
+                    errorMessage = errorData.message || errorData.error || errorData.Message
+                } catch {
+                    // If JSON parsing fails, try to get text
+                    try {
+                        const errorText = await res.text()
+                        if (errorText) {
+                            errorMessage = errorText
+                        }
+                    } catch {
+                        // Ignore text parsing errors
+                    }
+                }
+
+                // Fallback to generic message if we couldn't get one from the API
+                if (!errorMessage) {
+                    errorMessage = res.status === 400
+                        ? 'Invalid drop request'
+                        : 'Unable to drop player'
+                }
+                
+                throw new Error(errorMessage)
             }
 
-            setMessage('Player dropped successfully')
+            const data = await res.json().catch(() => null)
+
+            // Use message from API if available, otherwise use default
+            let successMessage = 'Player dropped successfully'
+            if (data && data.message) {
+                successMessage = data.message
+            }
+
+            setMessage(successMessage)
             // SignalR will trigger updates automatically
         } catch (err) {
             console.error('Drop player error', err)
@@ -766,6 +908,15 @@ export default function HostRoomPage() {
         navigate(`/host/${encodeURIComponent(validatedCode)}/${encodeURIComponent(validatedHostId)}/rounds`)
     }
 
+    // Check if buttons are disabled
+    const isStartGameDisabled = starting || loading || roundStarted
+    const isStartRoundDisabled = (roundStarted ? resettingRound : startingRound) || loading || !currentRound
+    const isNewRoundDisabled = startingNewRound || loading
+    const isEndGameDisabled = endingGame || loading || !gameStarted
+    const isManageRoundsDisabled = loading
+    const isSettingsDisabled = loading
+    const isAddPlayerDisabled = addingPlayer || !newPlayerName.trim() || !!validationErrors.playerName
+
     return (
         <div style={styles.container}>
             <div style={styles.header}>
@@ -847,8 +998,13 @@ export default function HostRoomPage() {
                 <div style={styles.buttonGrid}>
                     <button
                         onClick={handleStart}
-                        disabled={starting || loading || roundStarted}
-                        style={{ ...styles.actionButton, ...styles.startButton }}
+                        disabled={isStartGameDisabled}
+                        style={{
+                            ...styles.actionButton,
+                            ...styles.startButton,
+                            ...(isStartGameDisabled ? styles.buttonDisabled : {})
+                        }}
+                        title={isStartGameDisabled ? getDisabledTooltip('startGame') : (gameStarted ? 'Reset the game and start over' : 'Start the game with current players')}
                     >
                         {starting ? (
                             <>
@@ -863,8 +1019,13 @@ export default function HostRoomPage() {
                     </button>
                     <button
                         onClick={roundStarted ? handleResetRound : handleStartRound}
-                        disabled={(roundStarted ? resettingRound : startingRound) || loading || !currentRound}
-                        style={{ ...styles.actionButton, ...styles.startButton }}
+                        disabled={isStartRoundDisabled}
+                        style={{
+                            ...styles.actionButton,
+                            ...styles.startButton,
+                            ...(isStartRoundDisabled ? styles.buttonDisabled : {})
+                        }}
+                        title={isStartRoundDisabled ? getDisabledTooltip('startRound') : (roundStarted ? 'Reset the current round timer' : 'Start the round timer')}
                     >
                         {(roundStarted ? resettingRound : startingRound) ? (
                             <>
@@ -879,8 +1040,13 @@ export default function HostRoomPage() {
                     </button>
                     <button
                         onClick={handleNewRound}
-                        disabled={startingNewRound || loading }
-                        style={{ ...styles.actionButton, ...styles.newRoundButton }}
+                        disabled={isNewRoundDisabled}
+                        style={{
+                            ...styles.actionButton,
+                            ...styles.newRoundButton,
+                            ...(isNewRoundDisabled ? styles.buttonDisabled : {})
+                        }}
+                        title={isNewRoundDisabled ? getDisabledTooltip('newRound') : 'Generate a new round with current players'}
                     >
                         {startingNewRound ? (
                             <>
@@ -892,16 +1058,45 @@ export default function HostRoomPage() {
                         )}
                     </button>
                     <button
+                        onClick={handleEndGame}
+                        disabled={isEndGameDisabled}
+                        style={{
+                            ...styles.actionButton,
+                            ...styles.endGameButton,
+                            ...(isEndGameDisabled ? styles.buttonDisabled : {})
+                        }}
+                        title={isEndGameDisabled ? getDisabledTooltip('endGame') : 'End the current game'}
+                    >
+                        {endingGame ? (
+                            <>
+                                <span style={styles.spinner}></span>
+                                Ending...
+                            </>
+                        ) : (
+                            '⏹️ End Game'
+                        )}
+                    </button>
+                    <button
                         onClick={handleGoToRoundManager}
-                        disabled={loading}
-                        style={{ ...styles.actionButton, ...styles.roundManagerButton }}
+                        disabled={isManageRoundsDisabled}
+                        style={{
+                            ...styles.actionButton,
+                            ...styles.roundManagerButton,
+                            ...(isManageRoundsDisabled ? styles.buttonDisabled : {})
+                        }}
+                        title={isManageRoundsDisabled ? getDisabledTooltip('manageRounds') : 'View and manage all rounds'}
                     >
                         🎮 Manage Rounds
                     </button>
                     <button
                         onClick={handleGoToSettings}
-                        disabled={loading}
-                        style={{ ...styles.actionButton, ...styles.settingsButton }}
+                        disabled={isSettingsDisabled}
+                        style={{
+                            ...styles.actionButton,
+                            ...styles.settingsButton,
+                            ...(isSettingsDisabled ? styles.buttonDisabled : {})
+                        }}
+                        title={isSettingsDisabled ? getDisabledTooltip('settings') : 'Configure game settings'}
                     >
                         ⚙️ Settings
                     </button>
@@ -940,11 +1135,12 @@ export default function HostRoomPage() {
                     </label>
                     <button
                         onClick={handleAddPlayer}
-                        disabled={addingPlayer || !newPlayerName.trim() || !!validationErrors.playerName}
+                        disabled={isAddPlayerDisabled}
                         style={{
                             ...styles.addButton,
-                            ...((addingPlayer || !newPlayerName.trim() || !!validationErrors.playerName) ? styles.buttonDisabled : {})
+                            ...(isAddPlayerDisabled ? styles.buttonDisabled : {})
                         }}
+                        title={isAddPlayerDisabled ? getDisabledTooltip('addPlayer') : 'Add player to the game'}
                     >
                         {addingPlayer ? (
                             <>
@@ -965,23 +1161,35 @@ export default function HostRoomPage() {
                 </h3>
                 {participants.length > 0 ? (
                     <div style={styles.participantsGrid}>
-                        {participants.map((p, i) => (
-                            <div key={p.id ?? i} style={styles.participantCard}>
-                                <span style={styles.participantName}>
-                                    <span style={styles.participantDot}>●</span>
-                                    {p.name ?? p.id ?? 'Unknown'}
-                                </span>
-                                <button
-                                    onClick={() => handleDropPlayer(p.id)}
-                                    disabled={droppingPlayer[p.id]}
-                                    style={styles.dropButton}
-                                    title="Drop player"
-                                    aria-label={`Drop ${p.name ?? p.id}`}
-                                >
-                                    {droppingPlayer[p.id] ? '...' : '🚪'}
-                                </button>
-                            </div>
-                        ))}
+                        {participants.map((p, i) => {
+                            const isDropDisabled = droppingPlayer[p.id] || roundStarted
+                            return (
+                                <div key={p.id ?? i} style={styles.participantCard}>
+                                    <span style={styles.participantName}>
+                                        <span style={styles.participantDot}>●</span>
+                                        {p.name ?? p.id ?? 'Unknown'}
+                                    </span>
+                                    <button
+                                        onClick={() => handleDropPlayer(p.id)}
+                                        disabled={isDropDisabled}
+                                        style={{
+                                            ...styles.dropButton,
+                                            ...(isDropDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {})
+                                        }}
+                                        title={
+                                            roundStarted 
+                                                ? 'Cannot drop players while round is in progress'
+                                                : droppingPlayer[p.id] 
+                                                    ? 'Dropping player...' 
+                                                    : `Drop ${p.name ?? p.id} from the game`
+                                        }
+                                        aria-label={`Drop ${p.name ?? p.id}`}
+                                    >
+                                        {droppingPlayer[p.id] ? '...' : '🚪'}
+                                    </button>
+                                </div>
+                            )
+                        })}
                     </div>
                 ) : (
                     <div style={styles.emptyState}>
