@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import './App.css'
 import NewPage from './About'
 import JoinPage from './Join'
@@ -13,6 +13,41 @@ import ViewPage from './ViewPage'
 import Manual from './Manual'
 import NavBar from './NavBar'
 import { apiBase } from './api'
+import CustomGroups from './CustomGroups'
+import PlayerCustomGroups from './PlayerCustomGroups'
+import RoomStatistics from './RoomStatistics'
+import MobileViewPage from './MobileViewPage'
+
+function AppContent() {
+    const location = useLocation()
+    
+    // Check if current route should hide the main NavBar
+    const shouldHideNavBar = location.pathname.match(/^\/room\/[^/]+\/[^/]+(\/.*)?$/) ||
+                            location.pathname.match(/^\/view\/[^/]+\/mobile\/[^/]+$/)
+    
+    return (
+        <>
+            {!shouldHideNavBar && <NavBar />}
+            <Routes>
+                <Route path="/" element={<JoinPage />} />
+                <Route path="/rejoin" element={<RejoinPage />} />
+                <Route path="/manual" element={<Manual />} />
+                <Route path="/new" element={<NewPage />} />
+                <Route path="/room/:code/:participantId" element={<RoomPage />} />
+                <Route path="/room/:code/:participantId/statistics" element={<RoomStatistics />} />
+                <Route path="/room/:code/:participantId/custom-groups" element={<PlayerCustomGroups />} />
+                <Route path="/host/:code/:hostId" element={<HostRoomPage />} />
+                <Route path="/host/:code/:hostId/settings" element={<HostSettingsPage />} />
+                <Route path="/host/:code/:hostId/rounds" element={<RoundManagerPage />} />
+                <Route path="/host/:code/:hostId/custom-groups" element={<CustomGroups />} />
+                <Route path="/view" element={<ViewPage />} />
+                <Route path="/view/:code" element={<ViewPage />} />
+                <Route path="/view/:code/mobile/:participantId" element={<MobileViewPage />} />
+                <Route path="/quick-join" element={<QuickJoinPage />} />
+            </Routes>
+        </>
+    )
+}
 
 function App() {
     const [serviceStatus, setServiceStatus] = useState(null)
@@ -52,21 +87,13 @@ function App() {
 
     return (
         <Router>
-            <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "sans-serif", paddingTop: 56, padding: "56px 0.5rem 1rem" }}>
-                <NavBar />
-                <Routes>
-                    <Route path="/" element={<JoinPage />} />
-                    <Route path="/rejoin" element={<RejoinPage />} />
-                    <Route path="/manual" element={<Manual />} />
-                    <Route path="/new" element={<NewPage />} />
-                    <Route path="/room/:code/:participantId" element={<RoomPage />} />
-                    <Route path="/host/:code/:hostId" element={<HostRoomPage />} />
-                    <Route path="/host/:code/:hostId/settings" element={<HostSettingsPage />} />
-                    <Route path="/host/:code/:hostId/rounds" element={<RoundManagerPage />} />
-                    <Route path="/view" element={<ViewPage />} />
-                    <Route path="/view/:code" element={<ViewPage />} />
-                    <Route path="/quick-join" element={<QuickJoinPage />} />
-                </Routes>
+            <div style={{ 
+                maxWidth: 1200, 
+                margin: "0 auto", 
+                fontFamily: "sans-serif", 
+                padding: "56px 0.5rem 1rem" 
+            }}>
+                <AppContent />
             </div>
         </Router>
     )

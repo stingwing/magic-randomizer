@@ -5,6 +5,7 @@ import * as signalR from '@microsoft/signalr'
 import { apiBase, signalRBase } from './api'
 import { validateName, validateUrlParam, RateLimiter } from './utils/validation'
 import { calculateTimeRemaining } from './utils/timerUtils'
+import { isInCustomGroup, getCustomGroupColor } from './utils/customGroupColors'
 import { styles } from './styles/HostRoom.styles'
 
 // Rate limiters for different actions
@@ -138,12 +139,64 @@ function RoundDisplay({ round, index, label }) {
 
                             {members.length > 0 && (
                                 <div style={styles.membersList}>
-                                    {members.map((member, memberIdx) => (
-                                        <div key={memberIdx} style={styles.memberItem}>
-                                            <span style={styles.memberDot}>●</span>
-                                            {member.name ?? member.id ?? 'Unknown'}
-                                        </div>
-                                    ))}
+                                    {members
+                                        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                                        .map((member, memberIdx) => {
+                                            const isDropped = member.dropped === true
+                                            const inCustom = isInCustomGroup(member.inCustomGroup)
+                                            const customGroupColor = inCustom ? getCustomGroupColor(member.inCustomGroup) : null
+
+                                            return (
+                                                <div
+                                                    key={memberIdx}
+                                                    style={{
+                                                        ...styles.memberItem,
+                                                        ...(isDropped ? { opacity: 0.5, textDecoration: 'line-through' } : {})
+                                                    }}
+                                                >
+                                                    <span style={styles.memberDot}>●</span>
+                                                    <span>
+                                                        {member.name ?? member.id ?? 'Unknown'}
+                                                        {member.commander && (
+                                                            <span style={{
+                                                                fontSize: '0.85em',
+                                                                color: 'var(--text-secondary)',
+                                                                fontStyle: 'italic',
+                                                                marginLeft: '8px'
+                                                            }}>
+                                                                ({member.commander})
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    {isDropped && (
+                                                        <span style={{
+                                                            fontSize: '0.75em',
+                                                            backgroundColor: '#ff4444',
+                                                            color: 'white',
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            marginLeft: '8px',
+                                                            fontWeight: '600'
+                                                        }}>
+                                                            DROPPED
+                                                        </span>
+                                                    )}
+                                                    {inCustom && (
+                                                        <span style={{
+                                                            fontSize: '0.75em',
+                                                            backgroundColor: customGroupColor,
+                                                            color: 'white',
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            marginLeft: '8px',
+                                                            fontWeight: '600'
+                                                        }}>
+                                                            CUSTOM
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
                                 </div>
                             )}
                         </div>
@@ -160,6 +213,7 @@ export default function HostRoomPage() {
     const { code, hostId } = useParams()
     const navigate = useNavigate()
     const [participants, setParticipants] = useState([])
+    const [roomData, setRoomData] = useState(null) // Add this line
     const [currentRound, setCurrentRound] = useState(null)
     const [archivedRounds, setArchivedRounds] = useState([])
     const [loading, setLoading] = useState(false)
@@ -278,6 +332,7 @@ export default function HostRoomPage() {
                 throw new Error(safeMessage)
             }
             const data = await res.json().catch(() => null)
+            setRoomData(data) // Add this line
             if (data && Array.isArray(data.participants)) {
                 setParticipants(data.participants)
             }
@@ -383,7 +438,9 @@ export default function HostRoomPage() {
                     participantId: "",
                     groupNumber: 0,
                     roundNumber: 0,
-                    moveGroup: 0
+                    moveGroup: 0,
+                    participantIds: [], // Default to empty array as specified
+                    autoFill: true // Default to true as specified
                 })
             })
 
@@ -581,18 +638,24 @@ export default function HostRoomPage() {
     const handleDropPlayer = async (playerId) => {
         if (!validatedCode) return
 
-        // Check if round has started
-        if (isRoundStarted()) {
+        // Get player to check if already dropped
+        const player = participants.find(p => p.id === playerId)
+        const isDropped = player?.dropped === true
+        const playerName = player?.name ?? player?.id ?? 'this player'
+
+        // Check if round has started (only for dropping, not rejoining)
+        if (!isDropped && isRoundStarted()) {
             setError('Cannot drop players while a round is in progress')
             return
         }
 
-        // Get player name for confirmation
-        const player = participants.find(p => p.id === playerId)
-        const playerName = player?.name ?? player?.id ?? 'this player'
-
-        // Show confirmation dialog
-        if (!window.confirm(`Are you sure you want to drop ${playerName}?`)) {
+        // Show appropriate confirmation dialog
+        const action = isDropped ? 'rejoin' : 'drop'
+        const confirmMessage = isDropped 
+            ? `Are you sure you want to rejoin ${playerName}?`
+            : `Are you sure you want to drop ${playerName}?`
+        
+        if (!window.confirm(confirmMessage)) {
             return
         }
 
@@ -605,7 +668,7 @@ export default function HostRoomPage() {
 
         // Check rate limiting
         if (!dropPlayerRateLimiter.canAttempt('drop')) {
-            setError('Too many drop actions. Please wait a moment.')
+            setError('Too many drop/rejoin actions. Please wait a moment.')
             return
         }
 
@@ -650,8 +713,8 @@ export default function HostRoomPage() {
                 // Fallback to generic message if we couldn't get one from the API
                 if (!errorMessage) {
                     errorMessage = res.status === 400
-                        ? 'Invalid drop request'
-                        : 'Unable to drop player'
+                        ? `Invalid ${action} request`
+                        : `Unable to ${action} player`
                 }
                 
                 throw new Error(errorMessage)
@@ -660,7 +723,7 @@ export default function HostRoomPage() {
             const data = await res.json().catch(() => null)
 
             // Use message from API if available, otherwise use default
-            let successMessage = 'Player dropped successfully'
+            let successMessage = isDropped ? 'Player rejoined successfully' : 'Player dropped successfully'
             if (data && data.message) {
                 successMessage = data.message
             }
@@ -668,8 +731,8 @@ export default function HostRoomPage() {
             setMessage(successMessage)
             // SignalR will trigger updates automatically
         } catch (err) {
-            console.error('Drop player error', err)
-            setError(err.message || 'Unable to drop player')
+            console.error(`${action} player error`, err)
+            setError(err.message || `Unable to ${action} player`)
         } finally {
             setDroppingPlayer(prev => ({ ...prev, [playerId]: false }))
         }
@@ -856,7 +919,7 @@ export default function HostRoomPage() {
 
         connection.on('RoomExpired', (data) => {
             console.log('RoomExpired event received:', data)
-            setError('This room has expired.')
+            setError('This room has been Archived.')
             if (hubConnectionRef.current) {
                 hubConnectionRef.current.stop()
             }
@@ -908,6 +971,10 @@ export default function HostRoomPage() {
         navigate(`/host/${encodeURIComponent(validatedCode)}/${encodeURIComponent(validatedHostId)}/rounds`)
     }
 
+    const handleGoToCustomGroups = () => {
+        navigate(`/host/${encodeURIComponent(validatedCode)}/${encodeURIComponent(validatedHostId)}/custom-groups`)
+    }
+
     // Check if buttons are disabled
     const isStartGameDisabled = starting || loading || roundStarted
     const isStartRoundDisabled = (roundStarted ? resettingRound : startingRound) || loading || !currentRound
@@ -915,6 +982,7 @@ export default function HostRoomPage() {
     const isEndGameDisabled = endingGame || loading || !gameStarted
     const isManageRoundsDisabled = loading
     const isSettingsDisabled = loading
+    const isCustomGroupsDisabled = loading || roomData?.allowCustomGroups === false
     const isAddPlayerDisabled = addingPlayer || !newPlayerName.trim() || !!validationErrors.playerName
 
     return (
@@ -1018,6 +1086,18 @@ export default function HostRoomPage() {
                         )}
                     </button>
                     <button
+                        onClick={handleGoToCustomGroups}
+                        disabled={isCustomGroupsDisabled}
+                        style={{
+                            ...styles.actionButton,
+                            ...styles.customGroupsButton,
+                            ...(isCustomGroupsDisabled ? styles.buttonDisabled : {})
+                        }}
+                        title={isCustomGroupsDisabled ? (roomData?.allowCustomGroups === false ? 'Custom groups are disabled in settings' : getDisabledTooltip('settings')) : 'Manage custom player groups'}
+                    >
+                        👥 Custom Groups
+                    </button>
+                    <button
                         onClick={roundStarted ? handleResetRound : handleStartRound}
                         disabled={isStartRoundDisabled}
                         style={{
@@ -1029,7 +1109,7 @@ export default function HostRoomPage() {
                     >
                         {(roundStarted ? resettingRound : startingRound) ? (
                             <>
-                                <span style={styles.spinner}></span>
+
                                 {roundStarted ? 'Resetting...' : 'Starting...'}
                             </>
                         ) : (
@@ -1050,7 +1130,7 @@ export default function HostRoomPage() {
                     >
                         {startingNewRound ? (
                             <>
-                                <span style={styles.spinner}></span>
+
                                 Starting...
                             </>
                         ) : (
@@ -1069,7 +1149,7 @@ export default function HostRoomPage() {
                     >
                         {endingGame ? (
                             <>
-                                <span style={styles.spinner}></span>
+
                                 Ending...
                             </>
                         ) : (
@@ -1144,7 +1224,7 @@ export default function HostRoomPage() {
                     >
                         {addingPlayer ? (
                             <>
-                                <span style={styles.spinner}></span>
+
                                 Adding...
                             </>
                         ) : (
@@ -1161,35 +1241,80 @@ export default function HostRoomPage() {
                 </h3>
                 {participants.length > 0 ? (
                     <div style={styles.participantsGrid}>
-                        {participants.map((p, i) => {
-                            const isDropDisabled = droppingPlayer[p.id] || roundStarted
-                            return (
-                                <div key={p.id ?? i} style={styles.participantCard}>
-                                    <span style={styles.participantName}>
-                                        <span style={styles.participantDot}>●</span>
-                                        {p.name ?? p.id ?? 'Unknown'}
-                                    </span>
-                                    <button
-                                        onClick={() => handleDropPlayer(p.id)}
-                                        disabled={isDropDisabled}
+                        {participants
+                            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                            .map((p, i) => {
+                                const isDropped = p.dropped === true
+                                const isActionDisabled = droppingPlayer[p.id] || (!isDropped && roundStarted)
+                                const inCustom = isInCustomGroup(p.inCustomGroup)
+                                const customGroupColor = inCustom ? getCustomGroupColor(p.inCustomGroup) : null
+                                
+                                return (
+                                    <div 
+                                        key={p.id ?? i} 
                                         style={{
-                                            ...styles.dropButton,
-                                            ...(isDropDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {})
+                                            ...styles.participantCard,
+                                            ...(isDropped ? { opacity: 0.7 } : {})
                                         }}
-                                        title={
-                                            roundStarted 
-                                                ? 'Cannot drop players while round is in progress'
-                                                : droppingPlayer[p.id] 
-                                                    ? 'Dropping player...' 
-                                                    : `Drop ${p.name ?? p.id} from the game`
-                                        }
-                                        aria-label={`Drop ${p.name ?? p.id}`}
                                     >
-                                        {droppingPlayer[p.id] ? '...' : '🚪'}
-                                    </button>
-                                </div>
-                            )
-                        })}
+                                        <span style={styles.participantName}>
+                                            <span style={styles.participantDot}>●</span>
+                                            <span style={{
+                                                ...(isDropped ? { textDecoration: 'line-through', opacity: 0.6 } : {})
+                                            }}>
+                                                {p.name ?? p.id ?? 'Unknown'}
+                                            </span>
+                                            {isDropped && (
+                                                <span style={{ 
+                                                    fontSize: '0.75em',
+                                                    backgroundColor: '#ff4444',
+                                                    color: 'white',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    marginLeft: '8px',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    DROPPED
+                                                </span>
+                                            )}
+                                            {inCustom && (
+                                                <span style={{ 
+                                                    fontSize: '0.75em',
+                                                    backgroundColor: customGroupColor,
+                                                    color: 'white',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    marginLeft: '8px',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    CUSTOM
+                                                </span>
+                                            )}
+                                        </span>
+                                        <button
+                                            onClick={() => handleDropPlayer(p.id)}
+                                            disabled={isActionDisabled}
+                                            style={{
+                                                ...styles.dropButton,
+                                                ...(isDropped ? { backgroundColor: 'var(--success-color)' } : {}),
+                                                ...(isActionDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {})
+                                            }}
+                                            title={
+                                                droppingPlayer[p.id]
+                                                    ? (isDropped ? 'Rejoining player...' : 'Dropping player...')
+                                                    : !isDropped && roundStarted 
+                                                        ? 'Cannot drop players while round is in progress'
+                                                        : isDropped
+                                                            ? `Rejoin ${p.name ?? p.id}`
+                                                            : `Drop ${p.name ?? p.id} from the game`
+                                            }
+                                            aria-label={isDropped ? `Rejoin ${p.name ?? p.id}` : `Drop ${p.name ?? p.id}`}
+                                        >
+                                            {droppingPlayer[p.id] ? '...' : isDropped ? '↩️' : '🚪'}
+                                        </button>
+                                    </div>
+                                )
+                            })}
                     </div>
                 ) : (
                     <div style={styles.emptyState}>

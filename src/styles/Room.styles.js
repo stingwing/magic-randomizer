@@ -1,18 +1,29 @@
 export const styles = {
     container: {
-        maxWidth: '800px',
+        minHeight: '100vh',
+        backgroundColor: 'var(--bg-primary)',
+        color: 'var(--text-primary)',
+        paddingTop: '70px', // Space for fixed nav
+        paddingBottom: '2rem',
+        width: '100%',
+        boxSizing: 'border-box'
+    },
+    content: {
+        padding: 'clamp(1rem, 3vw, 2rem)',
+        maxWidth: '1200px',
         margin: '0 auto',
-        padding: 'clamp(1rem, 3vw, 2rem) 1rem'
+        width: '100%',
+        boxSizing: 'border-box'
     },
     header: {
         textAlign: 'center',
-        marginBottom: '2rem'
+        marginBottom: 'clamp(1.5rem, 4vw, 2rem)'
     },
     title: {
         fontSize: 'clamp(1.5rem, 5vw, 2rem)',
         fontWeight: '700',
         marginBottom: '1rem',
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
+        background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text'
@@ -39,7 +50,8 @@ export const styles = {
         fontWeight: '700',
         color: 'var(--accent-color)',
         letterSpacing: '0.1em',
-        wordBreak: 'break-all'
+        wordBreak: 'break-all',
+        fontFamily: 'monospace'
     },
     errorBanner: {
         padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)',
@@ -52,8 +64,9 @@ export const styles = {
         alignItems: 'center',
         gap: '0.75rem',
         marginBottom: '1.5rem',
-        animation: 'slideIn 0.3s ease',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        width: '100%',
+        boxSizing: 'border-box'
     },
     errorIcon: {
         fontSize: 'clamp(1rem, 3vw, 1.25rem)',
@@ -65,12 +78,13 @@ export const styles = {
         borderRadius: '16px',
         padding: 'clamp(2rem, 5vw, 3rem) clamp(1rem, 3vw, 2rem)',
         textAlign: 'center',
-        boxShadow: '0 4px 12px var(--shadow-color)'
+        boxShadow: '0 4px 12px var(--shadow-color)',
+        width: '100%',
+        boxSizing: 'border-box'
     },
     waitingIcon: {
         fontSize: 'clamp(3rem, 8vw, 4rem)',
-        marginBottom: '1rem',
-        animation: 'pulse 2s ease-in-out infinite'
+        marginBottom: '1rem'
     },
     waitingTitle: {
         fontSize: 'clamp(1.2rem, 4vw, 1.5rem)',
@@ -100,7 +114,9 @@ export const styles = {
         marginTop: '2rem',
         padding: 'clamp(1rem, 3vw, 1.5rem)',
         background: 'var(--bg-secondary)',
-        borderRadius: '12px'
+        borderRadius: '12px',
+        width: '100%',
+        boxSizing: 'border-box'
     },
     participantsTitle: {
         fontSize: 'clamp(1rem, 3vw, 1.1rem)',
@@ -161,7 +177,9 @@ export const styles = {
         border: '1px solid var(--border-color)',
         borderRadius: '16px',
         padding: 'clamp(1rem, 3vw, 2rem)',
-        boxShadow: '0 4px 12px var(--shadow-color)'
+        boxShadow: '0 4px 12px var(--shadow-color)',
+        width: '100%',
+        boxSizing: 'border-box'
     },
     resultsHeader: {
         marginBottom: '1.5rem',
@@ -183,11 +201,11 @@ export const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
-        padding: '0.5rem 1rem',
+        padding: 'clamp(0.5rem, 2vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
         background: 'linear-gradient(135deg, rgba(100, 108, 255, 0.1) 0%, rgba(83, 91, 242, 0.1) 100%)',
         border: '1px solid var(--accent-color)',
         borderRadius: '8px',
-        maxWidth: '100%'
+        flexWrap: 'wrap'
     },
     timerIcon: {
         fontSize: 'clamp(1rem, 3vw, 1.2rem)',
@@ -268,22 +286,26 @@ export const styles = {
         justifyContent: 'flex-start',
         alignItems: 'flex-start',
         gap: '0.5rem',
-        wordBreak: 'break-word'
+        wordBreak: 'break-word',
+        border: '1px solid var(--border-color)',
+        transition: 'all 0.2s ease'
     },
     memberItemYou: {
         background: 'linear-gradient(135deg, rgba(100, 108, 255, 0.1) 0%, rgba(83, 91, 242, 0.1) 100%)',
-        border: '1px solid var(--accent-color)',
+        borderColor: 'var(--accent-color)',
         fontWeight: '600'
     },
     youBadge: {
-        padding: '0.25rem 0.5rem',
+        padding: 'clamp(0.2rem, 1vw, 0.25rem) clamp(0.4rem, 2vw, 0.5rem)',
         background: 'var(--accent-color)',
         color: 'white',
         borderRadius: '4px',
-        fontSize: 'clamp(0.7rem, 2vw, 0.75rem)',
+        fontSize: 'clamp(0.65rem, 2vw, 0.75rem)',
         fontWeight: '700',
         marginLeft: '0.5rem',
-        flexShrink: 0
+        flexShrink: 0,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em'
     },
     statisticsCard: {
         background: 'var(--card-bg)',
@@ -485,6 +507,10 @@ export const styles = {
         alignItems: 'center',
         gap: '0.5rem',
         flexWrap: 'wrap'
+    },
+    customGroupsButton: {
+        background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+        color: 'white'
     },
     spinner: {
         width: '16px',

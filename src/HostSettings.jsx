@@ -32,6 +32,7 @@ export default function HostSettingsPage() {
     const [allowCustomGroups, setAllowCustomGroups] = useState(false)
     const [tournamentMode, setTournamentMode] = useState(false)
     const [maxRounds, setMaxRounds] = useState(0)
+    const [allowPlayersToCreateCustomGroups, setAllowPlayersToCreateCustomGroups] = useState(false)
 
     // UI state
     const [loading, setLoading] = useState(false)
@@ -60,34 +61,38 @@ export default function HostSettingsPage() {
         const fetchSettings = async () => {
             setFetchingSettings(true)
             try {
+                maxGroupSize
                 const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}`)
                 if (res.ok) {
                     const data = await res.json()
                     
                     // Update state with fetched settings
                     if (data.eventName !== undefined) setEventName(data.eventName || '')
-                    if (data.maxGroupSize !== undefined) setMaxGroupSize(data.maxGroupSize)
-                    if (data.allowJoinAfterStart !== undefined) setAllowJoinAfterStart(data.allowJoinAfterStart)
+                    
+                    // Settings are nested under data.settings
+                    if (data.settings.maxGroupSize !== undefined) setMaxGroupSize(data.settings.maxGroupSize)
+                    if (data.settings.allowJoinAfterStart !== undefined) setAllowJoinAfterStart(data.settings.allowJoinAfterStart)
                     
                     // Handle both "prioitizeWinners" (typo) and "prioritizeWinners"
-                    if (data.prioritizeWinners !== undefined) {
-                        setPrioritizeWinners(data.prioritizeWinners)
-                    } else if (data.prioitizeWinners !== undefined) {
-                        setPrioritizeWinners(data.prioitizeWinners)
+                    if (data.settings.prioritizeWinners !== undefined) {
+                        setPrioritizeWinners(data.settings.prioritizeWinners)
+                    } else if (data.settings.prioitizeWinners !== undefined) {
+                        setPrioritizeWinners(data.settings.prioitizeWinners)
                     }
                     
-                    if (data.allowGroupOfThree !== undefined) setAllowGroupOfThree(data.allowGroupOfThree)
-                    if (data.allowGroupOfFive !== undefined) setAllowGroupOfFive(data.allowGroupOfFive)
-                    if (data.furtherReduceOddsOfGroupOfThree !== undefined) setFurtherReduceOddsOfGroupOfThree(data.furtherReduceOddsOfGroupOfThree)
-                    if (data.roundLength !== undefined) setRoundLength(data.roundLength)
-                    if (data.usePoints !== undefined) setUsePoints(data.usePoints)
-                    if (data.pointsForWin !== undefined) setPointsForWin(data.pointsForWin)
-                    if (data.pointsForDraw !== undefined) setPointsForDraw(data.pointsForDraw)
-                    if (data.pointsForLoss !== undefined) setPointsForLoss(data.pointsForLoss)
-                    if (data.pointsForABye !== undefined) setPointsForABye(data.pointsForABye)
-                    if (data.allowCustomGroups !== undefined) setAllowCustomGroups(data.allowCustomGroups)
-                    if (data.tournamentMode !== undefined) setTournamentMode(data.tournamentMode)
-                    if (data.maxRounds !== undefined) setMaxRounds(data.maxRounds)
+                    if (data.settings.allowGroupOfThree !== undefined) setAllowGroupOfThree(data.settings.allowGroupOfThree)
+                    if (data.settings.allowGroupOfFive !== undefined) setAllowGroupOfFive(data.settings.allowGroupOfFive)
+                    if (data.settings.furtherReduceOddsOfGroupOfThree !== undefined) setFurtherReduceOddsOfGroupOfThree(data.settings.furtherReduceOddsOfGroupOfThree)
+                    if (data.settings.roundLength !== undefined) setRoundLength(data.settings.roundLength)
+                    if (data.settings.usePoints !== undefined) setUsePoints(data.settings.usePoints)
+                    if (data.settings.pointsForWin !== undefined) setPointsForWin(data.settings.pointsForWin)
+                    if (data.settings.pointsForDraw !== undefined) setPointsForDraw(data.settings.pointsForDraw)
+                    if (data.settings.pointsForLoss !== undefined) setPointsForLoss(data.settings.pointsForLoss)
+                    if (data.settings.pointsForABye !== undefined) setPointsForABye(data.settings.pointsForABye)
+                    if (data.settings.allowCustomGroups !== undefined) setAllowCustomGroups(data.settings.allowCustomGroups)
+                    if (data.settings.tournamentMode !== undefined) setTournamentMode(data.settings.tournamentMode)
+                    if (data.settings.maxRounds !== undefined) setMaxRounds(data.settings.maxRounds)
+                    if (data.settings.allowPlayersToCreateCustomGroups !== undefined) setAllowPlayersToCreateCustomGroups(data.settings.allowPlayersToCreateCustomGroups)
                 } else {
                     const errorMessage = res.status === 404 ? 'Room not found' : 'Unable to load settings'
                     setError(errorMessage)
@@ -134,7 +139,8 @@ export default function HostSettingsPage() {
                 pointsForABye: parseInt(pointsForABye),
                 allowCustomGroups: allowCustomGroups,
                 tournamentMode: tournamentMode,
-                maxRounds: parseInt(maxRounds)
+                maxRounds: parseInt(maxRounds),
+                allowPlayersToCreateCustomGroups: allowPlayersToCreateCustomGroups
             }
 
             const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}/settings`, {
@@ -338,7 +344,18 @@ export default function HostSettingsPage() {
                                 style={styles.checkbox}
                                 disabled={loading}
                             />
-                            <span>Allow Custom Groups</span>
+                            <span>Allow Host Custom Groups</span>
+                        </label>
+
+                        <label style={styles.checkboxLabel}>
+                            <input
+                                type="checkbox"
+                                checked={allowPlayersToCreateCustomGroups}
+                                onChange={(e) => setAllowPlayersToCreateCustomGroups(e.target.checked)}
+                                style={styles.checkbox}
+                                disabled={loading}
+                            />
+                            <span>Allow Players To Create Custom Groups</span>
                         </label>
 
                         <label style={styles.checkboxLabel}>

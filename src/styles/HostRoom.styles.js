@@ -493,6 +493,10 @@ export const styles = {
         display: 'inline-block',
         flexShrink: 0
     },
+    customGroupsButton: {
+        background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+        color: 'white'
+    },
     endGameButton: {
         background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
         color: 'white',

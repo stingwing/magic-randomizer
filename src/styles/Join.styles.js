@@ -2,8 +2,11 @@ export const styles = {
     container: {
         maxWidth: '1000px',
         margin: '0 auto',
-        padding: 'clamp(1rem, 3vw, 2rem) 1rem',
-        fontFamily: 'system-ui, Avenir, Helvetica, Arial, sans-serif'
+        padding: 'clamp(1rem, 3vw, 2rem)',
+        fontFamily: 'system-ui, Avenir, Helvetica, Arial, sans-serif',
+        minHeight: '100vh',
+        width: '100%',
+        boxSizing: 'border-box'
     },
     header: {
         textAlign: 'center',
@@ -13,14 +16,14 @@ export const styles = {
         fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
         fontWeight: '700',
         marginBottom: '0.5rem',
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
+        background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text'
     },
     subtitle: {
         fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)',
-        color: '#888',
+        color: 'var(--text-secondary)',
         margin: 0
     },
     cardGrid: {
@@ -30,15 +33,14 @@ export const styles = {
         marginBottom: '2rem'
     },
     card: {
-        background: 'rgba(255, 255, 255, 0.02)',
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border-color)',
         borderRadius: '16px',
         padding: 'clamp(1.5rem, 3vw, 2rem)',
         transition: 'all 0.3s ease',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        backdropFilter: 'blur(10px)'
+        boxShadow: '0 4px 12px var(--shadow-color)',
+        width: '100%',
+        boxSizing: 'border-box'
     },
     cardIcon: {
         fontSize: 'clamp(2.5rem, 6vw, 3rem)',
@@ -48,11 +50,12 @@ export const styles = {
         fontSize: 'clamp(1.2rem, 4vw, 1.5rem)',
         fontWeight: '600',
         marginTop: 0,
-        marginBottom: '0.75rem'
+        marginBottom: '0.75rem',
+        color: 'var(--text-primary)'
     },
     cardDescription: {
         fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
-        color: '#888',
+        color: 'var(--text-secondary)',
         lineHeight: '1.6',
         marginBottom: '1.5rem'
     },
@@ -67,43 +70,39 @@ export const styles = {
         fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
         fontWeight: '500',
         gap: '0.5rem',
-        textAlign: 'left'
+        textAlign: 'left',
+        color: 'var(--text-primary)'
     },
     input: {
         width: '100%',
         padding: 'clamp(0.6rem, 2vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
         fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         borderRadius: '8px',
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        background: 'rgba(0, 0, 0, 0.2)',
-        color: 'inherit',
+        border: '1px solid var(--border-color)',
+        background: 'var(--bg-secondary)',
+        color: 'var(--text-primary)',
         transition: 'all 0.2s ease',
         outline: 'none',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        minHeight: '44px'
     },
     inputError: {
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: '#ff6b6b',
-        background: 'rgba(255, 107, 107, 0.1)'
+        borderColor: 'var(--error-border)',
+        background: 'var(--error-bg)'
     },
     validationError: {
-        color: '#ff6b6b',
+        color: 'var(--error-text)',
         fontSize: 'clamp(0.75rem, 2vw, 0.85rem)',
         marginTop: '0.25rem'
     },
     primaryButton: {
         width: '100%',
-        padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.5rem)',
+        padding: 'clamp(0.875rem, 2vw, 1rem)',
         fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '600',
         borderRadius: '8px',
-        borderWidth: '0',
-        borderStyle: 'none',
-        borderColor: 'transparent',
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
+        border: 'none',
+        background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%)',
         color: 'white',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
@@ -111,25 +110,27 @@ export const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         gap: '0.5rem',
-        boxShadow: '0 4px 12px rgba(100, 108, 255, 0.3)'
+        boxShadow: '0 4px 12px var(--button-shadow)',
+        minHeight: '48px',
+        outline: 'none'
     },
     secondaryButton: {
         width: '100%',
-        padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.5rem)',
+        padding: 'clamp(0.875rem, 2vw, 1rem)',
         fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '600',
         borderRadius: '8px',
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: '#646cff',
+        border: '1px solid var(--primary-color)',
         background: 'transparent',
-        color: '#646cff',
+        color: 'var(--primary-color)',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '0.5rem'
+        gap: '0.5rem',
+        minHeight: '48px',
+        outline: 'none'
     },
     buttonDisabled: {
         opacity: 0.6,
@@ -138,17 +139,16 @@ export const styles = {
     errorBanner: {
         padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)',
         borderRadius: '8px',
-        background: 'rgba(220, 38, 38, 0.1)',
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: 'rgba(220, 38, 38, 0.3)',
-        color: '#fca5a5',
+        background: 'var(--error-bg)',
+        border: '1px solid var(--error-border)',
+        color: 'var(--error-text)',
         fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
-        animation: 'slideIn 0.3s ease',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        width: '100%',
+        boxSizing: 'border-box'
     },
     errorIcon: {
         fontSize: 'clamp(1rem, 3vw, 1.25rem)',
@@ -157,9 +157,7 @@ export const styles = {
     spinner: {
         width: '16px',
         height: '16px',
-        borderWidth: '2px',
-        borderStyle: 'solid',
-        borderColor: 'rgba(255, 255, 255, 0.3)',
+        border: '2px solid rgba(255, 255, 255, 0.3)',
         borderTopColor: 'white',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite',
@@ -181,9 +179,7 @@ export const modeStyles = {
         fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '600',
         borderRadius: '12px',
-        borderWidth: '2px',
-        borderStyle: 'solid',
-        borderColor: 'var(--border-color)',
+        border: '2px solid var(--border-color)',
         background: 'var(--card-bg)',
         color: 'var(--text-primary)',
         cursor: 'pointer',
@@ -192,15 +188,15 @@ export const modeStyles = {
         alignItems: 'center',
         gap: '0.5rem',
         boxShadow: '0 2px 8px var(--shadow-color)',
-        whiteSpace: 'nowrap'
+        whiteSpace: 'nowrap',
+        minHeight: '48px',
+        outline: 'none'
     },
     modeButtonActive: {
-        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
+        background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%)',
         color: 'white',
-        borderWidth: '2px',
-        borderStyle: 'solid',
-        borderColor: '#646cff',
-        boxShadow: '0 4px 12px rgba(100, 108, 255, 0.4)',
+        borderColor: 'var(--primary-color)',
+        boxShadow: '0 4px 12px var(--button-shadow)',
         transform: 'translateY(-2px)'
     }
 }

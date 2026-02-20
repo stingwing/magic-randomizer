@@ -4,6 +4,7 @@ import * as signalR from '@microsoft/signalr'
 import { apiBase, signalRBase } from './api'
 import { validateRoomCode, validateUrlParam, RateLimiter } from './utils/validation'
 import { calculateTimeRemaining } from './utils/timerUtils'
+import { isInCustomGroup, getCustomGroupColor } from './utils/customGroupColors'
 import { styles } from './styles/ViewPage.styles'
 
 // Rate limiters for different actions
@@ -128,12 +129,64 @@ function RoundDisplay({ round, index, label }) {
 
                             {members.length > 0 && (
                                 <div style={styles.membersList}>
-                                    {members.map((member, memberIdx) => (
-                                        <div key={memberIdx} style={styles.memberItem}>
-                                            <span style={styles.memberDot}>●</span>
-                                            {member.name ?? member.id ?? 'Unknown'}
-                                        </div>
-                                    ))}
+                                    {members
+                                        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                                        .map((member, memberIdx) => {
+                                            const isDropped = member.dropped === true
+                                            const inCustom = isInCustomGroup(member.inCustomGroup)
+                                            const customGroupColor = inCustom ? getCustomGroupColor(member.inCustomGroup) : null
+                                            
+                                            return (
+                                                <div 
+                                                    key={memberIdx} 
+                                                    style={{
+                                                        ...styles.memberItem,
+                                                        ...(isDropped ? { opacity: 0.5, textDecoration: 'line-through' } : {})
+                                                    }}
+                                                >
+                                                    <span style={styles.memberDot}>●</span>
+                                                    <span>
+                                                        {member.name ?? member.id ?? 'Unknown'}
+                                                        {member.commander && (
+                                                            <span style={{ 
+                                                                fontSize: '0.85em', 
+                                                                color: 'var(--text-secondary)', 
+                                                                fontStyle: 'italic',
+                                                                marginLeft: '8px'
+                                                            }}>
+                                                                ({member.commander})
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    {isDropped && (
+                                                        <span style={{ 
+                                                            fontSize: '0.75em',
+                                                            backgroundColor: '#ff4444',
+                                                            color: 'white',
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            marginLeft: '8px',
+                                                            fontWeight: '600'
+                                                        }}>
+                                                            DROPPED
+                                                        </span>
+                                                    )}
+                                                    {inCustom && (
+                                                        <span style={{ 
+                                                            fontSize: '0.75em',
+                                                            backgroundColor: customGroupColor,
+                                                            color: 'white',
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            marginLeft: '8px',
+                                                            fontWeight: '600'
+                                                        }}>
+                                                            CUSTOM
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
                                 </div>
                             )}
 
@@ -308,13 +361,26 @@ export default function ViewPage() {
         setLoading(true)
         setError(null)
         try {
-            await Promise.all([
-                fetchParticipants(roomCode),
-                fetchCurrentRound(roomCode),
-                fetchArchivedRounds(roomCode)
-            ])
+            const res = await fetch(`${apiBase}/${encodeURIComponent(roomCode)}/summary`)
+            if (!res.ok) {
+                const safeMessage = res.status === 404 ? 'Room not found' : 'Unable to load room data'
+                throw new Error(safeMessage)
+            }
+            
+            const data = await res.json().catch(() => null)
+            if (!data) {
+                throw new Error('Invalid response from server')
+            }
+            
+            // Update all state from the summary response
+            setParticipants(data.participants ?? [])
+            setCurrentRound(data.currentGroups?.length > 0 ? data.currentGroups : null)
+            setArchivedRounds(data.archivedRounds ?? [])
+            setGameStarted(data.isGameStarted ?? false)
+            
             setIsViewing(true)
             setValidatedCode(roomCode)
+            
             // Navigate to the parameterized route
             if (!paramCode) {
                 navigate(`/view/${roomCode}`, { replace: true })
@@ -490,13 +556,13 @@ export default function ViewPage() {
             fetchAllData(validatedCode)
         })
 
-        connection.on('RoomExpired', (data) => {
-            console.log('RoomExpired event received:', data)
-            setError('This room has expired.')
-            if (hubConnectionRef.current) {
-                hubConnectionRef.current.stop()
-            }
-        })
+        //connection.on('RoomExpired', (data) => {
+        //    console.log('RoomExpired event received:', data)
+        //    setError('This room has expired.')
+        //    if (hubConnectionRef.current) {
+        //        hubConnectionRef.current.stop()
+        //    }
+        //})
 
         // Start the connection
         setConnectionStatus('connecting')

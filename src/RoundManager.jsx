@@ -138,7 +138,9 @@ export default function RoundManagerPage() {
                 participantId: participantName ? getParticipantId(groupNumber, participantName) : '',
                 groupNumber: groupNumber,
                 roundNumber: roundNumber ?? getCurrentRoundNumber(),
-                moveGroup: moveGroup
+                moveGroup: moveGroup,
+                participantIds: [], // Default to empty array as specified
+                autoFill: true // Default to true as specified
             }
 
             const res = await fetch(url, {
