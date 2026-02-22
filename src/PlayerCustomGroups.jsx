@@ -47,8 +47,12 @@ export default function PlayerCustomGroupsPage() {
             }
             const data = await res.json()
             
-            // Update the allowCustomGroups setting from API response
-            setAllowCustomGroups(data.settings?.allowPlayersToCreateCustomGroups !== false)
+            // Disable custom groups if either setting is false
+            const shouldAllowCustomGroups = 
+                (data.settings?.allowPlayersToCreateCustomGroups !== false) &&
+                (data.settings?.allowCustomGroups !== false)
+            
+            setAllowCustomGroups(shouldAllowCustomGroups)
             
             // Update maxGroupSize from settings
             if (data.settings?.maxGroupSize !== undefined) {
@@ -136,9 +140,19 @@ export default function PlayerCustomGroupsPage() {
         connection.on('SettingsUpdated', (data) => {
             console.log('SettingsUpdated event received:', data)
             // Update setting from SignalR event
-            if (data && typeof data.allowPlayersToCreateCustomGroups === 'boolean') {
-                setAllowCustomGroups(data.allowPlayersToCreateCustomGroups)
-                if (!data.allowPlayersToCreateCustomGroups) {
+            if (data) {
+                // Disable custom groups if either setting is false
+                const shouldAllowCustomGroups = 
+                    (typeof data.allowPlayersToCreateCustomGroups === 'boolean' 
+                        ? data.allowPlayersToCreateCustomGroups 
+                        : true) &&
+                    (typeof data.allowCustomGroups === 'boolean'
+                        ? data.allowCustomGroups
+                        : true)
+                
+                setAllowCustomGroups(shouldAllowCustomGroups)
+                
+                if (!shouldAllowCustomGroups) {
                     setError('Custom groups have been disabled by the host')
                 } else {
                     // Clear error if custom groups are re-enabled
@@ -153,9 +167,17 @@ export default function PlayerCustomGroupsPage() {
             console.log('RoomUpdated event received:', data)
             // Update participants and settings from room data
             if (data) {
-                if (typeof data.allowPlayersToCreateCustomGroups === 'boolean') {
-                    setAllowCustomGroups(data.allowPlayersToCreateCustomGroups)
-                }
+                // Disable custom groups if either setting is false
+                const shouldAllowCustomGroups = 
+                    (typeof data.allowPlayersToCreateCustomGroups === 'boolean' 
+                        ? data.allowPlayersToCreateCustomGroups 
+                        : true) &&
+                    (typeof data.allowCustomGroups === 'boolean'
+                        ? data.allowCustomGroups
+                        : true)
+                
+                setAllowCustomGroups(shouldAllowCustomGroups)
+                
                 if (data.participants && Array.isArray(data.participants)) {
                     setParticipants(data.participants)
                 }

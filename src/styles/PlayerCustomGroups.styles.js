@@ -318,7 +318,7 @@ export const styles = {
         padding: 'clamp(0.875rem, 2vw, 1rem)',
         backgroundColor: 'var(--primary-color)',
         color: 'white',
-        border: 'none',
+        border: '1px solid var(--primary-color)',
         borderRadius: '8px',
         fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
         fontWeight: '600',

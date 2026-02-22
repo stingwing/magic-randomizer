@@ -15,10 +15,8 @@ export default function RoomNav({ roomCode, participantId, currentPage = 'room',
                 navigate(`${basePath}/statistics`)
                 break
             case 'custom-groups':
-                // Only allow navigation if custom groups are enabled
-                if (allowCustomGroups) {
-                    navigate(`${basePath}/custom-groups`)
-                }
+                // Allow navigation regardless of custom groups setting
+                navigate(`${basePath}/custom-groups`)
                 break
             case 'view':
                 navigate(`/view/${encodeURIComponent(roomCode)}/mobile/${encodeURIComponent(participantId)}`)
@@ -45,20 +43,7 @@ export default function RoomNav({ roomCode, participantId, currentPage = 'room',
                 }}
                 title="Game Room"
             >
-                🎮
                 <span style={styles.navLabel}>Room</span>
-            </button>
-            
-            <button
-                onClick={() => navigateTo('view')}
-                style={{
-                    ...styles.navButton,
-                    ...(currentPage === 'view' ? styles.navButtonActive : {})
-                }}
-                title="View All Groups"
-            >
-                👁️
-                <span style={styles.navLabel}>View</span>
             </button>
             
             <button
@@ -69,22 +54,29 @@ export default function RoomNav({ roomCode, participantId, currentPage = 'room',
                 }}
                 title="Update Statistics"
             >
-                📊
-                <span style={styles.navLabel}>Stats</span>
+                <span style={styles.navLabel}>Report</span>
+            </button>
+
+            <button
+                onClick={() => navigateTo('view')}
+                style={{
+                    ...styles.navButton,
+                    ...(currentPage === 'view' ? styles.navButtonActive : {})
+                }}
+                title="View All Groups"
+            >
+                <span style={styles.navLabel}>History</span>
             </button>
             
             <button
                 onClick={() => navigateTo('custom-groups')}
-                disabled={!allowCustomGroups}
                 style={{
                     ...styles.navButton,
-                    ...(currentPage === 'custom-groups' ? styles.navButtonActive : {}),
-                    ...(!allowCustomGroups ? styles.navButtonDisabled : {})
+                    ...(currentPage === 'custom-groups' ? styles.navButtonActive : {})
                 }}
-                title={allowCustomGroups ? "Manage Custom Groups" : "Custom Groups Disabled by Host"}
+                title="Manage Custom Groups"
             >
-                👥
-                <span style={styles.navLabel}>Groups</span>
+                <span style={styles.navLabel}>Custom</span>
             </button>
             
             <button
@@ -92,8 +84,7 @@ export default function RoomNav({ roomCode, participantId, currentPage = 'room',
                 style={styles.navButton}
                 title="Leave Room"
             >
-                🏠
-                <span style={styles.navLabel}>Home</span>
+                <span style={styles.navLabel}>Exit</span>
             </button>
         </nav>
     )
