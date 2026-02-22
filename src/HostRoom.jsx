@@ -1081,22 +1081,10 @@ export default function HostRoomPage() {
                             </>
                         ) : (
                             <>
-                                {gameStarted ? '🔄 Reset Game' : '🚀 Start Game'}
+                                {gameStarted ? 'Reset Game' : 'Start Game'}
                             </>
                         )}
-                    </button>
-                    <button
-                        onClick={handleGoToCustomGroups}
-                        disabled={isCustomGroupsDisabled}
-                        style={{
-                            ...styles.actionButton,
-                            ...styles.customGroupsButton,
-                            ...(isCustomGroupsDisabled ? styles.buttonDisabled : {})
-                        }}
-                        title={isCustomGroupsDisabled ? (roomData?.allowCustomGroups === false ? 'Custom groups are disabled in settings' : getDisabledTooltip('settings')) : 'Manage custom player groups'}
-                    >
-                        👥 Custom Groups
-                    </button>
+                    </button>               
                     <button
                         onClick={roundStarted ? handleResetRound : handleStartRound}
                         disabled={isStartRoundDisabled}
@@ -1114,7 +1102,7 @@ export default function HostRoomPage() {
                             </>
                         ) : (
                             <>
-                                {roundStarted ? '🔄 Reset Round' : '▶️ Start Round'}
+                                {roundStarted ? 'Reset Round' : 'Start Round'}
                             </>
                         )}
                     </button>
@@ -1134,7 +1122,7 @@ export default function HostRoomPage() {
                                 Starting...
                             </>
                         ) : (
-                            '➕ New Round'
+                            'New Round'
                         )}
                     </button>
                     <button
@@ -1153,7 +1141,7 @@ export default function HostRoomPage() {
                                 Ending...
                             </>
                         ) : (
-                            '⏹️ End Game'
+                            'End Game'
                         )}
                     </button>
                     <button
@@ -1166,7 +1154,19 @@ export default function HostRoomPage() {
                         }}
                         title={isManageRoundsDisabled ? getDisabledTooltip('manageRounds') : 'View and manage all rounds'}
                     >
-                        🎮 Manage Rounds
+                        Manage Rounds
+                    </button>
+                    <button
+                        onClick={handleGoToCustomGroups}
+                        disabled={isCustomGroupsDisabled}
+                        style={{
+                            ...styles.actionButton,
+                            ...styles.customGroupsButton,
+                            ...(isCustomGroupsDisabled ? styles.buttonDisabled : {})
+                        }}
+                        title={isCustomGroupsDisabled ? (roomData?.allowCustomGroups === false ? 'Custom groups are disabled in settings' : getDisabledTooltip('settings')) : 'Manage custom player groups'}
+                    >
+                        Custom Groups
                     </button>
                     <button
                         onClick={handleGoToSettings}
@@ -1178,7 +1178,7 @@ export default function HostRoomPage() {
                         }}
                         title={isSettingsDisabled ? getDisabledTooltip('settings') : 'Configure game settings'}
                     >
-                        ⚙️ Settings
+                        Settings
                     </button>
                 </div>
             </div>

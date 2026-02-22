@@ -43,7 +43,7 @@ export default function RoomNav({ roomCode, participantId, currentPage = 'room',
                 }}
                 title="Game Room"
             >
-                <span style={styles.navLabel}>Room</span>
+                <span style={styles.navLabel}>Game</span>
             </button>
             
             <button

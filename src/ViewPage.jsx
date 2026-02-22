@@ -78,7 +78,7 @@ function RoundDisplay({ round, index, label }) {
         roundStarted = round.roundStarted ?? false
         roundLength = round.roundLength
     }
-    
+
     return (
         <div style={styles.roundCard}>
             <div style={styles.roundHeader}>
@@ -135,10 +135,10 @@ function RoundDisplay({ round, index, label }) {
                                             const isDropped = member.dropped === true
                                             const inCustom = isInCustomGroup(member.inCustomGroup)
                                             const customGroupColor = inCustom ? getCustomGroupColor(member.inCustomGroup) : null
-                                            
+
                                             return (
-                                                <div 
-                                                    key={memberIdx} 
+                                                <div
+                                                    key={memberIdx}
                                                     style={{
                                                         ...styles.memberItem,
                                                         ...(isDropped ? { opacity: 0.5, textDecoration: 'line-through' } : {})
@@ -148,9 +148,9 @@ function RoundDisplay({ round, index, label }) {
                                                     <span>
                                                         {member.name ?? member.id ?? 'Unknown'}
                                                         {member.commander && (
-                                                            <span style={{ 
-                                                                fontSize: '0.85em', 
-                                                                color: 'var(--text-secondary)', 
+                                                            <span style={{
+                                                                fontSize: '0.85em',
+                                                                color: 'var(--text-secondary)',
                                                                 fontStyle: 'italic',
                                                                 marginLeft: '8px'
                                                             }}>
@@ -159,7 +159,7 @@ function RoundDisplay({ round, index, label }) {
                                                         )}
                                                     </span>
                                                     {isDropped && (
-                                                        <span style={{ 
+                                                        <span style={{
                                                             fontSize: '0.75em',
                                                             backgroundColor: '#ff4444',
                                                             color: 'white',
@@ -172,7 +172,7 @@ function RoundDisplay({ round, index, label }) {
                                                         </span>
                                                     )}
                                                     {inCustom && (
-                                                        <span style={{ 
+                                                        <span style={{
                                                             fontSize: '0.75em',
                                                             backgroundColor: customGroupColor,
                                                             color: 'white',
@@ -248,24 +248,30 @@ export default function ViewPage() {
     const pollRef = useRef(null)
     const hubConnectionRef = useRef(null)
     const [connectionStatus, setConnectionStatus] = useState('disconnected')
-    
+
     // Validation state
     const [validationErrors, setValidationErrors] = useState({})
+
+    // Room list state
+    const [roomList, setRoomList] = useState([])
+    const [loadingRoomList, setLoadingRoomList] = useState(false)
+    const [roomListError, setRoomListError] = useState(null)
+    const [sortOrder, setSortOrder] = useState('newest')
 
     // Validate URL parameter on mount
     useEffect(() => {
         if (paramCode) {
             const codeValidation = validateUrlParam(paramCode)
-            
+
             if (!codeValidation.valid) {
                 navigate('/view', { replace: true })
                 setError('Invalid room code in URL')
                 return
             }
-            
+
             setCode(codeValidation.sanitized)
             setValidatedCode(codeValidation.sanitized)
-            
+
             // Auto-view if URL parameter is present
             if (!isViewing) {
                 fetchAllData(codeValidation.sanitized)
@@ -273,10 +279,53 @@ export default function ViewPage() {
         }
     }, [paramCode, navigate])
 
+    // Fetch room list when not viewing a specific room
+    useEffect(() => {
+        if (!isViewing) {
+            fetchRoomList()
+        }
+    }, [isViewing])
+
+    const fetchRoomList = async () => {
+        setLoadingRoomList(true)
+        setRoomListError(null)
+        try {
+            const res = await fetch(`${apiBase}/list`)
+            if (!res.ok) {
+                throw new Error('Unable to load room list')
+            }
+            const data = await res.json()
+            if (Array.isArray(data)) {
+                setRoomList(data)
+            } else {
+                setRoomList([])
+            }
+        } catch (err) {
+            console.error('Error fetching room list:', err)
+            setRoomListError(err.message || 'Failed to load room list')
+            setRoomList([])
+        } finally {
+            setLoadingRoomList(false)
+        }
+    }
+
+    const getSortedRoomList = () => {
+        const sorted = [...roomList]
+
+        switch (sortOrder) {
+            case 'newest':
+                return sorted.sort((a, b) => new Date(b.createdAtUtc) - new Date(a.createdAtUtc))
+            case 'oldest':
+                return sorted.sort((a, b) => new Date(a.createdAtUtc) - new Date(b.createdAtUtc))
+            default:
+                return sorted
+        }
+    }
+
     const handleCodeChange = (e) => {
         const validated = validateRoomCode(e.target.value)
         setCode(validated.sanitized)
-        
+
         if (validated.error) {
             setValidationErrors(prev => ({ ...prev, code: validated.error }))
         } else {
@@ -357,7 +406,7 @@ export default function ViewPage() {
             setError('Too many refresh attempts. Please wait a moment.')
             return
         }
-        
+
         setLoading(true)
         setError(null)
         try {
@@ -366,21 +415,21 @@ export default function ViewPage() {
                 const safeMessage = res.status === 404 ? 'Room not found' : 'Unable to load room data'
                 throw new Error(safeMessage)
             }
-            
+
             const data = await res.json().catch(() => null)
             if (!data) {
                 throw new Error('Invalid response from server')
             }
-            
+
             // Update all state from the summary response
             setParticipants(data.participants ?? [])
             setCurrentRound(data.currentGroups?.length > 0 ? data.currentGroups : null)
             setArchivedRounds(data.archivedRounds ?? [])
             setGameStarted(data.isGameStarted ?? false)
-            
+
             setIsViewing(true)
             setValidatedCode(roomCode)
-            
+
             // Navigate to the parameterized route
             if (!paramCode) {
                 navigate(`/view/${roomCode}`, { replace: true })
@@ -397,21 +446,28 @@ export default function ViewPage() {
     const handleView = () => {
         // Validate room code
         const codeValidation = validateRoomCode(code)
-        
+
         if (!codeValidation.valid) {
             setError(codeValidation.error || 'Please enter a valid room code')
             setValidationErrors({ code: codeValidation.error })
             return
         }
-        
+
         // Check rate limiting
         if (!viewRoomRateLimiter.canAttempt('view')) {
             setError('Too many view attempts. Please wait a moment.')
             return
         }
-        
+
         setValidationErrors({})
         fetchAllData(codeValidation.sanitized)
+    }
+
+    const handleRoomCodeClick = (roomCode) => {
+        setCode(roomCode)
+        setValidatedCode(roomCode)
+        setValidationErrors({})
+        fetchAllData(roomCode)
     }
 
     const handleKeyPress = (e) => {
@@ -431,7 +487,7 @@ export default function ViewPage() {
         setError(null)
         setValidationErrors({})
         navigate('/view', { replace: true })
-        
+
         // Disconnect SignalR
         if (hubConnectionRef.current) {
             hubConnectionRef.current.invoke('LeaveRoomGroup', validatedCode)
@@ -449,6 +505,15 @@ export default function ViewPage() {
     const handleRefresh = () => {
         if (validatedCode) {
             fetchAllData(validatedCode)
+        }
+    }
+
+    const formatDate = (utcString) => {
+        try {
+            const date = new Date(utcString)
+            return date.toLocaleString()
+        } catch {
+            return utcString
         }
     }
 
@@ -511,7 +576,7 @@ export default function ViewPage() {
         connection.onreconnected(() => {
             console.log('SignalR reconnected')
             setConnectionStatus('connected')
-            connection.invoke('JoinRoomGroup', validatedCode).catch(err => 
+            connection.invoke('JoinRoomGroup', validatedCode).catch(err =>
                 console.error('Error rejoining room:', err)
             )
             fetchAllData(validatedCode)
@@ -555,14 +620,6 @@ export default function ViewPage() {
             console.log('SettingsChanged event received:', data)
             fetchAllData(validatedCode)
         })
-
-        //connection.on('RoomExpired', (data) => {
-        //    console.log('RoomExpired event received:', data)
-        //    setError('This room has expired.')
-        //    if (hubConnectionRef.current) {
-        //        hubConnectionRef.current.stop()
-        //    }
-        //})
 
         // Start the connection
         setConnectionStatus('connecting')
@@ -667,6 +724,128 @@ export default function ViewPage() {
                     )}
                 </div>
 
+                {/* Room List */}
+                <div style={styles.infoCard}>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '12px'
+                    }}>
+                        <h3 style={styles.infoTitle}>📋 Available Rooms</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <label style={{
+                                fontSize: '0.9em',
+                                color: 'var(--text-secondary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                Sort by:
+                                <select
+                                    value={sortOrder}
+                                    onChange={(e) => setSortOrder(e.target.value)}
+                                    style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--border-color)',
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        color: 'var(--text-primary)',
+                                        fontSize: '0.9em',
+                                        cursor: 'pointer',
+                                        outline: 'none'
+                                    }}
+                                >
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                    {loadingRoomList ? (
+                        <div style={styles.loadingState}>
+                            <span style={styles.spinner}></span>
+                            <span>Loading rooms...</span>
+                        </div>
+                    ) : roomListError ? (
+                        <div style={styles.errorMessage}>
+                            <span>⚠️</span> {roomListError}
+                        </div>
+                    ) : roomList.length > 0 ? (
+                        <div style={{
+                            display: 'grid',
+                            gap: '12px',
+                            marginTop: '16px'
+                        }}>
+                            {getSortedRoomList().map((room, idx) => (
+                                <div
+                                    key={idx}
+                                    onClick={() => handleRoomCodeClick(room.code)}
+                                    style={{
+                                        padding: '12px 16px',
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--border-color)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        display: 'grid',
+                                        gridTemplateColumns: 'auto 1fr auto auto',
+                                        gap: '12px',
+                                        alignItems: 'center'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = 'var(--primary-color)'
+                                        e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = 'var(--border-color)'
+                                        e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                                    }}
+                                >
+                                    <div style={{
+                                        fontWeight: '700',
+                                        fontSize: '1.1em',
+                                        color: 'var(--primary-color)',
+                                        fontFamily: 'monospace'
+                                    }}>
+                                        {room.code}
+                                    </div>
+                                    <div style={{
+                                        fontSize: '0.85em',
+                                        color: 'var(--text-secondary)'
+                                    }}>
+                                        {formatDate(room.createdAtUtc)}
+                                    </div>
+                                    <div style={{
+                                        fontSize: '0.9em',
+                                        color: 'var(--text-primary)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}>
+                                        <span>👥</span>
+                                        <span>{room.participantCount}</span>
+                                    </div>
+                                    {room.archived && (
+                                        <div style={{
+                                            fontSize: '0.75em',
+                                            backgroundColor: '#666',
+                                            color: 'white',
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            fontWeight: '600'
+                                        }}>
+                                            ARCHIVED
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p style={styles.infoText}>No rooms available at the moment.</p>
+                    )}
+                </div>
+
                 <div style={styles.infoCard}>
                     <h3 style={styles.infoTitle}>ℹ️ About View Mode</h3>
                     <p style={styles.infoText}>
@@ -755,7 +934,7 @@ export default function ViewPage() {
                 <div style={styles.roundsHeader}>
                     <h3 style={styles.sectionTitle}>Game Rounds</h3>
                     <div style={styles.headerActions}>
-                        <RoundCountdownTimer 
+                        <RoundCountdownTimer
                             startedAtUtc={timerData.startedAtUtc}
                             roundLength={timerData.roundLength}
                             roundStarted={timerData.roundStarted}
