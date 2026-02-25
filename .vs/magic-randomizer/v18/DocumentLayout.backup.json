@@ -1,0 +1,675 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\public\\manifest.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:public\\manifest.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\room.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\room.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\public\\service-worker.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:public\\service-worker.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\hooks\\usepushnotifications.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\hooks\\usepushnotifications.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\viewpage.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\viewpage.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\roomnav.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\roomnav.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\roomstatistics.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\roomstatistics.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\roomstatistics.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\roomstatistics.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\mobileviewpage.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\mobileviewpage.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\mobileviewpage.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\mobileviewpage.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\join.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\join.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\rejoin.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\rejoin.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\quickjoin.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\quickjoin.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\playercustomgroups.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\playercustomgroups.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\join.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\join.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\hostsettings.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\hostsettings.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\hostroom.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\hostroom.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\customgroups.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\customgroups.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\components\\roomnav.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\components\\roomnav.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\app.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\app.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\playercustomgroups.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\playercustomgroups.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\customgroups.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\customgroups.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\utils\\customgroupcolors.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\utils\\customgroupcolors.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\tmollenhauer\\source\\repos\\SessionApp\\Services\\GameActionService.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\room.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\room.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\app.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\app.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\utils\\validation.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\utils\\validation.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\hostroom.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\hostroom.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\roundmanager.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\roundmanager.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\roundmanager.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\roundmanager.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\hostsettings.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\styles\\hostsettings.styles.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 39,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "Join.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Join.jsx",
+              "RelativeDocumentMoniker": "src\\Join.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Join.jsx",
+              "RelativeToolTip": "src\\Join.jsx",
+              "ViewState": "AgIAAIsCAAAAAAAAAAD4v5MCAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-01-31T09:35:08.708Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "HostRoom.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\HostRoom.jsx",
+              "RelativeDocumentMoniker": "src\\HostRoom.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\HostRoom.jsx",
+              "RelativeToolTip": "src\\HostRoom.jsx",
+              "ViewState": "AgIAAB8EAAAAAAAAAAD4vzYEAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-01-30T04:36:30.935Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ViewPage.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\ViewPage.jsx",
+              "RelativeDocumentMoniker": "src\\ViewPage.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\ViewPage.jsx",
+              "RelativeToolTip": "src\\ViewPage.jsx",
+              "ViewState": "AgIAAJEDAAAAAAAAAAAuwJkDAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-01-31T09:57:58.896Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Room.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Room.jsx",
+              "RelativeDocumentMoniker": "src\\Room.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Room.jsx",
+              "RelativeToolTip": "src\\Room.jsx",
+              "ViewState": "AgIAABgCAAAAAAAAAAAkwCYCAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-01-28T08:04:49.927Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "MobileViewPage.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\MobileViewPage.jsx",
+              "RelativeDocumentMoniker": "src\\MobileViewPage.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\MobileViewPage.jsx",
+              "RelativeToolTip": "src\\MobileViewPage.jsx",
+              "ViewState": "AgIAAIEAAAAAAAAAAAAuwJYAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-20T07:04:23.953Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:131:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:142:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:138:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:134:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:137:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:139:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:145:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:136:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:137:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:142:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:144:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:147:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:146:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:139:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:140:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:135:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:254354193:0:{71f361cc-493f-47c0-923f-f2570b6f8618}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:131:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:131:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:133:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:134:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:135:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:136:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:133:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:135:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:132:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:132:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{40ea2e6b-2121-4bb8-a43e-c83c04b51041}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "manifest.json",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\public\\manifest.json",
+              "RelativeDocumentMoniker": "public\\manifest.json",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\public\\manifest.json",
+              "RelativeToolTip": "public\\manifest.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-02-22T11:28:08.993Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "usePushNotifications.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\hooks\\usePushNotifications.js",
+              "RelativeDocumentMoniker": "src\\hooks\\usePushNotifications.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\hooks\\usePushNotifications.js",
+              "RelativeToolTip": "src\\hooks\\usePushNotifications.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAFYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-22T11:24:01.177Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "service-worker.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\public\\service-worker.js",
+              "RelativeDocumentMoniker": "public\\service-worker.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\public\\service-worker.js",
+              "RelativeToolTip": "public\\service-worker.js",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAIwDAAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-22T11:23:50.887Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Join.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\Join.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\Join.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\Join.styles.js",
+              "RelativeToolTip": "src\\styles\\Join.styles.js",
+              "ViewState": "AgIAAFcAAAAAAAAAAAAkwG4AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-07T09:56:43.085Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Rejoin.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Rejoin.jsx",
+              "RelativeDocumentMoniker": "src\\Rejoin.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Rejoin.jsx",
+              "RelativeToolTip": "src\\Rejoin.jsx",
+              "ViewState": "AgIAAEQBAAAAAAAAAAD4v08BAAA/AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-22T05:45:06.091Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "RoomNav.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\components\\RoomNav.jsx",
+              "RelativeDocumentMoniker": "src\\components\\RoomNav.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\components\\RoomNav.jsx",
+              "RelativeToolTip": "src\\components\\RoomNav.jsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-20T08:23:38.085Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "App.css",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.css",
+              "RelativeDocumentMoniker": "src\\App.css",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.css",
+              "RelativeToolTip": "src\\App.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-02-20T07:55:16.615Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "MobileViewPage.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\MobileViewPage.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\MobileViewPage.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\MobileViewPage.styles.js",
+              "RelativeToolTip": "src\\styles\\MobileViewPage.styles.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-20T07:04:33.032Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "RoomStatistics.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\RoomStatistics.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\RoomStatistics.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\RoomStatistics.styles.js",
+              "RelativeToolTip": "src\\styles\\RoomStatistics.styles.js",
+              "ViewState": "AgIAAOgAAAAAAAAAAAAnwPYAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-20T07:04:04.894Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "RoomStatistics.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\RoomStatistics.jsx",
+              "RelativeDocumentMoniker": "src\\RoomStatistics.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\RoomStatistics.jsx",
+              "RelativeToolTip": "src\\RoomStatistics.jsx",
+              "ViewState": "AgIAAC8AAAAAAAAAAAAQwAUAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-20T07:03:54.497Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "RoomNav.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\RoomNav.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\RoomNav.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\RoomNav.styles.js",
+              "RelativeToolTip": "src\\styles\\RoomNav.styles.js",
+              "ViewState": "AgIAABUAAAAAAAAAAAAkwC4AAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-20T07:03:51.018Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "PlayerCustomGroups.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\PlayerCustomGroups.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\PlayerCustomGroups.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\PlayerCustomGroups.styles.js",
+              "RelativeToolTip": "src\\styles\\PlayerCustomGroups.styles.js",
+              "ViewState": "AgIAAD4BAAAAAAAAAAAIwAIAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-19T11:37:13.426Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "PlayerCustomGroups.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\PlayerCustomGroups.jsx",
+              "RelativeDocumentMoniker": "src\\PlayerCustomGroups.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\PlayerCustomGroups.jsx",
+              "RelativeToolTip": "src\\PlayerCustomGroups.jsx",
+              "ViewState": "AgIAAFUCAAAAAAAAAAD4v2wCAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-19T11:37:05.113Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "CustomGroups.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\CustomGroups.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\CustomGroups.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\CustomGroups.styles.js",
+              "RelativeToolTip": "src\\styles\\CustomGroups.styles.js",
+              "ViewState": "AgIAAEcBAAAAAAAAAAAIwHQBAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-19T11:18:27.486Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "CustomGroups.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\CustomGroups.jsx",
+              "RelativeDocumentMoniker": "src\\CustomGroups.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\CustomGroups.jsx",
+              "RelativeToolTip": "src\\CustomGroups.jsx",
+              "ViewState": "AgIAAMoBAAAAAAAAAAD4v+EBAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-19T11:18:18.628Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "customGroupColors.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\utils\\customGroupColors.js",
+              "RelativeDocumentMoniker": "src\\utils\\customGroupColors.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\utils\\customGroupColors.js",
+              "RelativeToolTip": "src\\utils\\customGroupColors.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-19T10:51:34.475Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "GameActionService.cs",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\SessionApp\\Services\\GameActionService.cs",
+              "RelativeDocumentMoniker": "..\\SessionApp\\Services\\GameActionService.cs",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\SessionApp\\Services\\GameActionService.cs",
+              "RelativeToolTip": "..\\SessionApp\\Services\\GameActionService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-18T23:11:01.254Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "QuickJoin.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\QuickJoin.jsx",
+              "RelativeDocumentMoniker": "src\\QuickJoin.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\QuickJoin.jsx",
+              "RelativeToolTip": "src\\QuickJoin.jsx",
+              "ViewState": "AgIAAJsBAAAAAAAAAAD4v7IBAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-17T03:53:07.077Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "RoundManager.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\RoundManager.jsx",
+              "RelativeDocumentMoniker": "src\\RoundManager.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\RoundManager.jsx",
+              "RelativeToolTip": "src\\RoundManager.jsx",
+              "ViewState": "AgIAAHYAAAAAAAAAAAAuwH0AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-10T05:49:52.293Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "HostRoom.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\HostRoom.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\HostRoom.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\HostRoom.styles.js",
+              "RelativeToolTip": "src\\styles\\HostRoom.styles.js",
+              "ViewState": "AgIAANsBAAAAAAAAAAAjwO8BAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-10T04:54:05.69Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "HostSettings.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\HostSettings.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\HostSettings.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\HostSettings.styles.js",
+              "RelativeToolTip": "src\\styles\\HostSettings.styles.js",
+              "ViewState": "AgIAALwAAAAAAAAAAAAwwEkAAAAyAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-10T04:53:09.069Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "HostSettings.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\HostSettings.jsx",
+              "RelativeDocumentMoniker": "src\\HostSettings.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\HostSettings.jsx",
+              "RelativeToolTip": "src\\HostSettings.jsx",
+              "ViewState": "AgIAALgBAAAAAAAAAAD4v88BAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-10T04:53:01.818Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "App.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.jsx",
+              "RelativeDocumentMoniker": "src\\App.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.jsx",
+              "RelativeToolTip": "src\\App.jsx",
+              "ViewState": "AgIAAA0AAAAAAAAAAAAIwCwAAAApAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-02-07T09:10:04.879Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "RoundManager.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\RoundManager.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\RoundManager.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\RoundManager.styles.js",
+              "RelativeToolTip": "src\\styles\\RoundManager.styles.js",
+              "ViewState": "AgIAAN4AAAAAAAAAAAAwwFYAAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-10T05:49:59.829Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "validation.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\utils\\validation.js",
+              "RelativeDocumentMoniker": "src\\utils\\validation.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\utils\\validation.js",
+              "RelativeToolTip": "src\\utils\\validation.js",
+              "ViewState": "AgIAAIAAAAAAAAAAAAAgwKAAAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-10T04:28:22.976Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "Room.styles.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\Room.styles.js",
+              "RelativeDocumentMoniker": "src\\styles\\Room.styles.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\styles\\Room.styles.js",
+              "RelativeToolTip": "src\\styles\\Room.styles.js",
+              "ViewState": "AgIAABsBAAAAAAAAAAAIwAMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-02-07T10:12:35.385Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

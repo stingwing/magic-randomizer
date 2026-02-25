@@ -3,16 +3,48 @@
   "WorkspaceRootPath": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\app.jsx||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\app.jsx||{8B382828-6202-11D1-8870-0000F87579D2}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\about.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}|",
-      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\about.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}|"
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\app.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\app.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\app.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
       "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\app.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\navbar.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\navbar.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\room.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\room.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\join.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\join.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\api.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\api.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\newgame.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\newgame.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\main.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\main.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|c:\\users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\about.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{C897D7C3-57C6-E0B8-1F22-CA2598B10173}|magic-randomizer.esproj|solutionrelative:src\\about.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,7 +54,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 17,
+          "SelectedChildIndex": 27,
           "Children": [
             {
               "$type": "Bookmark",
@@ -89,42 +121,154 @@
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
             },
             {
+              "$type": "Bookmark",
+              "Name": "ST:254354193:0:{71f361cc-493f-47c0-923f-f2570b6f8618}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "NavBar.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\NavBar.jsx",
+              "RelativeDocumentMoniker": "src\\NavBar.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\NavBar.jsx*",
+              "RelativeToolTip": "src\\NavBar.jsx*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-01-30T03:30:39.74Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "api.js",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\api.js",
+              "RelativeDocumentMoniker": "src\\api.js",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\api.js",
+              "RelativeToolTip": "src\\api.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-01-30T03:18:53.667Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "index.html",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\index.html",
+              "RelativeDocumentMoniker": "index.html",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\index.html",
+              "RelativeToolTip": "index.html",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2026-01-30T03:04:56.862Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Room.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Room.jsx",
+              "RelativeDocumentMoniker": "src\\Room.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Room.jsx",
+              "RelativeToolTip": "src\\Room.jsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-01-30T03:04:54.517Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "NewGame.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\NewGame.jsx",
+              "RelativeDocumentMoniker": "src\\NewGame.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\NewGame.jsx",
+              "RelativeToolTip": "src\\NewGame.jsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-01-30T03:04:53.156Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "main.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\main.jsx",
+              "RelativeDocumentMoniker": "src\\main.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\main.jsx",
+              "RelativeToolTip": "src\\main.jsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-01-30T03:04:52.31Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Join.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Join.jsx",
+              "RelativeDocumentMoniker": "src\\Join.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\Join.jsx",
+              "RelativeToolTip": "src\\Join.jsx",
+              "ViewState": "AgIAACYAAAAAAAAAAAAQwDUAAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-01-30T03:04:51.646Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "index.css",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\index.css",
+              "RelativeDocumentMoniker": "src\\index.css",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\index.css",
+              "RelativeToolTip": "src\\index.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-01-30T03:04:51.044Z",
+              "EditorCaption": ""
+            },
+            {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "About.jsx",
-              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\About.jsx",
-              "RelativeDocumentMoniker": "src\\About.jsx",
-              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\About.jsx",
-              "RelativeToolTip": "src\\About.jsx",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAABAAAAAAAAAA==",
+              "Title": "App.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.jsx",
+              "RelativeDocumentMoniker": "src\\App.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.jsx*",
+              "RelativeToolTip": "src\\App.jsx*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAGYAAAAPAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
-              "WhenOpened": "2025-06-16T04:25:38.719Z",
+              "WhenOpened": "2026-01-30T03:04:49.723Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "App.jsx",
-              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.jsx",
-              "RelativeDocumentMoniker": "src\\App.jsx",
-              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.jsx",
-              "RelativeToolTip": "src\\App.jsx",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAPAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
-              "WhenOpened": "2025-06-16T04:02:37.604Z",
+              "Title": "App.css",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.css",
+              "RelativeDocumentMoniker": "src\\App.css",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.css",
+              "RelativeToolTip": "src\\App.css",
+              "ViewState": "AgIAAAkAAAAAAAAAAADwvyQAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-01-30T03:04:48.7Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "App.jsx",
-              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.jsx",
-              "RelativeDocumentMoniker": "src\\App.jsx",
-              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\App.jsx",
-              "RelativeToolTip": "src\\App.jsx",
-              "ViewState": "AgIAAMEAAAAAAAAAAAAUwNAAAAAQAAAAAAAAAA==",
+              "DocumentIndex": 10,
+              "Title": "About.jsx",
+              "DocumentMoniker": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\About.jsx",
+              "RelativeDocumentMoniker": "src\\About.jsx",
+              "ToolTip": "C:\\Users\\tmollenhauer\\source\\repos\\magic-randomizer\\src\\About.jsx",
+              "RelativeToolTip": "src\\About.jsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
-              "WhenOpened": "2025-06-16T03:40:17.313Z",
+              "WhenOpened": "2026-01-30T03:04:43.111Z",
               "EditorCaption": ""
             }
           ]

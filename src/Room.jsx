@@ -11,6 +11,7 @@ import { calculateTimeRemaining } from './utils/timerUtils'
 import { isInCustomGroup, getCustomGroupColor } from './utils/customGroupColors'
 import RoomNav from './components/RoomNav'
 import { styles } from './styles/Room.styles'
+import { usePushNotifications } from './hooks/usePushNotifications'
 
 const reportRateLimiter = new RateLimiter(10, 60000)
 
@@ -264,6 +265,24 @@ export default function RoomPage() {
     const [validatedCode, setValidatedCode] = useState('')
     const [validatedParticipantId, setValidatedParticipantId] = useState('')
     const [connectionStatus, setConnectionStatus] = useState('disconnected')
+
+    const { 
+        isSupported, 
+        permission, 
+        subscription,
+        subscribe, 
+        unsubscribe,
+        error: pushError 
+    } = usePushNotifications(validatedCode, validatedParticipantId)
+    
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+
+    // Check if already subscribed on mount
+    useEffect(() => {
+        if (subscription) {
+            setNotificationsEnabled(true)
+        }
+    }, [subscription])
 
     useEffect(() => {
         const codeValidation = validateUrlParam(code)
@@ -550,7 +569,20 @@ export default function RoomPage() {
 
         connection.on('ParticipantJoined', () => fetchRoom())
         connection.on('RoundGenerated', () => { fetchRoom(); fetchGroupResult() })
-        connection.on('RoundStarted', () => { fetchRoom(); fetchGroupResult() })
+        connection.on('RoundStarted', async (data) => {
+            fetchRoom()
+            fetchGroupResult()
+            
+            // Also send push notification to those not actively viewing
+            if (document.hidden) {
+                // Trigger backend to send push notification
+                await fetch(`${apiBase}/${validatedCode}/notify-round-start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ participantId: validatedParticipantId })
+                })
+            }
+        })
         connection.on('ParticipantDroppedOut', () => { fetchRoom(); fetchGroupResult() })
         connection.on('GroupEnded', () => fetchGroupResult())
         connection.on('SettingsChanged', () => fetchRoom())
@@ -586,6 +618,28 @@ export default function RoomPage() {
         }
     }, [validatedCode, validatedParticipantId])
 
+    const handleEnableNotifications = async () => {
+        try {
+            await subscribe()
+            setNotificationsEnabled(true)
+            setReportMessage('Notifications enabled! You\'ll be notified of game updates.')
+            setTimeout(() => setReportMessage(null), 3000)
+        } catch (error) {
+            setRoomError('Failed to enable notifications: ' + error.message)
+        }
+    }
+
+    const handleDisableNotifications = async () => {
+        try {
+            await unsubscribe()
+            setNotificationsEnabled(false)
+            setReportMessage('Notifications disabled.')
+            setTimeout(() => setReportMessage(null), 3000)
+        } catch (error) {
+            setRoomError('Failed to disable notifications')
+        }
+    }
+
     return (
         <div style={styles.container}>
             <RoomNav
@@ -607,6 +661,78 @@ export default function RoomPage() {
                         )}
                     </div>
                 </div>
+
+                {/* Notification Prompt */}
+                {isSupported && validatedCode && validatedParticipantId && (
+                    <div style={{
+                        ...styles.waitingCard,
+                        marginBottom: '1.5rem',
+                        padding: '1rem',
+                        background: notificationsEnabled 
+                            ? 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)'
+                            : 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)',
+                        border: notificationsEnabled ? '2px solid #4caf50' : '2px solid #ff9800'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '2rem' }}>
+                                {notificationsEnabled ? '🔔' : '🔕'}
+                            </span>
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem' }}>
+                                    {notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
+                                </h3>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                    {notificationsEnabled 
+                                        ? 'You\'ll receive updates when rounds start or results are posted'
+                                        : 'Get notified on your lock screen when rounds start'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={notificationsEnabled ? handleDisableNotifications : handleEnableNotifications}
+                                disabled={permission === 'denied'}
+                                style={{
+                                    padding: '10px 20px',
+                                    fontSize: '0.95rem',
+                                    fontWeight: '600',
+                                    backgroundColor: notificationsEnabled ? '#ff5252' : 'var(--primary-color)',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: permission === 'denied' ? 'not-allowed' : 'pointer',
+                                    opacity: permission === 'denied' ? 0.5 : 1,
+                                    transition: 'all 0.2s ease',
+                                    whiteSpace: 'nowrap'
+                                }}
+                            >
+                                {notificationsEnabled ? 'Disable' : 'Enable'}
+                            </button>
+                        </div>
+                        {permission === 'denied' && (
+                            <div style={{ 
+                                marginTop: '0.75rem', 
+                                padding: '0.5rem', 
+                                background: '#ffebee', 
+                                borderRadius: '4px',
+                                fontSize: '0.85rem',
+                                color: '#c62828'
+                            }}>
+                                ⚠️ Notifications are blocked. Please enable them in your browser settings.
+                            </div>
+                        )}
+                        {pushError && (
+                            <div style={{ 
+                                marginTop: '0.75rem', 
+                                padding: '0.5rem', 
+                                background: '#ffebee', 
+                                borderRadius: '4px',
+                                fontSize: '0.85rem',
+                                color: '#c62828'
+                            }}>
+                                ⚠️ {pushError}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {roomError && (
                     <div style={styles.errorBanner}>
