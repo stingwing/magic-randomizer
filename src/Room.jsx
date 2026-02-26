@@ -755,7 +755,9 @@ export default function RoomPage() {
                                         )}
 
                                         <div style={styles.reportCard}>
-                                            <h3 style={styles.reportTitle}>Report Your Game Result</h3>
+                                            <h3 style={styles.reportTitle}>
+                                                Report Your Game Result{groupResult.settings?.prioritizeWinners === false && ' (Optional)'}
+                                            </h3>
                                             <div style={styles.reportButtons}>
                                                 <button
                                                     onClick={() => handleReportResult('win')}

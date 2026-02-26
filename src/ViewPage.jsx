@@ -256,7 +256,9 @@ export default function ViewPage() {
     const [roomList, setRoomList] = useState([])
     const [loadingRoomList, setLoadingRoomList] = useState(false)
     const [roomListError, setRoomListError] = useState(null)
-    const [sortOrder, setSortOrder] = useState('newest')
+    const [sortField, setSortField] = useState('created')
+    const [sortDirection, setSortDirection] = useState('desc')
+    const [searchQuery, setSearchQuery] = useState('')
 
     // Validate URL parameter on mount
     useEffect(() => {
@@ -306,20 +308,68 @@ export default function ViewPage() {
             setRoomList([])
         } finally {
             setLoadingRoomList(false)
+        }   
+    }
+
+    const handleColumnSort = (field) => {
+        if (sortField === field) {
+            // Toggle direction if clicking the same column
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+        } else {
+            // New column, default to ascending
+            setSortField(field)
+            setSortDirection('asc')
         }
     }
 
-    const getSortedRoomList = () => {
-        const sorted = [...roomList]
+    const getFilteredAndSortedRoomList = () => {
+        let filtered = [...roomList]
 
-        switch (sortOrder) {
-            case 'newest':
-                return sorted.sort((a, b) => new Date(b.createdAtUtc) - new Date(a.createdAtUtc))
-            case 'oldest':
-                return sorted.sort((a, b) => new Date(a.createdAtUtc) - new Date(b.createdAtUtc))
-            default:
-                return sorted
+        // Apply search filter - only search by event name
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim()
+            filtered = filtered.filter(room => {
+                const eventNameMatch = room.eventName?.toLowerCase().includes(query)
+                return eventNameMatch
+            })
         }
+
+        // Apply sorting based on selected field
+        filtered.sort((a, b) => {
+            let compareA, compareB
+
+            switch (sortField) {
+                case 'code':
+                    compareA = a.code?.toLowerCase() || ''
+                    compareB = b.code?.toLowerCase() || ''
+                    break
+                case 'eventName':
+                    compareA = a.eventName?.toLowerCase() || ''
+                    compareB = b.eventName?.toLowerCase() || ''
+                    break
+                case 'created':
+                    compareA = new Date(a.createdAtUtc)
+                    compareB = new Date(b.createdAtUtc)
+                    break
+                case 'players':
+                    compareA = a.participantCount || 0
+                    compareB = b.participantCount || 0
+                    break
+                default:
+                    return 0
+            }
+
+            if (compareA < compareB) return sortDirection === 'asc' ? -1 : 1
+            if (compareA > compareB) return sortDirection === 'asc' ? 1 : -1
+            return 0
+        })
+
+        return filtered
+    }
+
+    const getSortIcon = (field) => {
+        if (sortField !== field) return '⇅'
+        return sortDirection === 'asc' ? '↑' : '↓'
     }
 
     const handleCodeChange = (e) => {
@@ -511,12 +561,19 @@ export default function ViewPage() {
     const formatDate = (utcString) => {
         try {
             const date = new Date(utcString)
-            return date.toLocaleString()
+            return date.toLocaleString(undefined, {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit'
+            })
         } catch {
             return utcString
         }
     }
-
+    
     // Extract timer data from current round for the section-level timer
     const getCurrentRoundTimerData = () => {
         if (!currentRound) return { startedAtUtc: null, roundStarted: false, roundLength: null }
@@ -732,36 +789,46 @@ export default function ViewPage() {
                         alignItems: 'center',
                         marginBottom: '12px'
                     }}>
-                        <h3 style={styles.infoTitle}>📋 Available Rooms</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <label style={{
-                                fontSize: '0.9em',
-                                color: 'var(--text-secondary)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}>
-                                Sort by:
-                                <select
-                                    value={sortOrder}
-                                    onChange={(e) => setSortOrder(e.target.value)}
-                                    style={{
-                                        padding: '6px 12px',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--border-color)',
-                                        backgroundColor: 'var(--bg-secondary)',
-                                        color: 'var(--text-primary)',
-                                        fontSize: '0.9em',
-                                        cursor: 'pointer',
-                                        outline: 'none'
-                                    }}
-                                >
-                                    <option value="newest">Newest First</option>
-                                    <option value="oldest">Oldest First</option>
-                                </select>
-                            </label>
-                        </div>
+                        <h3 style={styles.infoTitle}>History</h3>
                     </div>
+
+                    {/* Search Bar */}
+                    <div style={{ marginBottom: '16px' }}>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search by event name..."
+                            style={{
+                                width: '100%',
+                                padding: '10px 16px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.95em',
+                                outline: 'none',
+                                transition: 'border-color 0.2s',
+                                boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => {
+                                e.target.style.borderColor = 'var(--primary-color)'
+                            }}
+                            onBlur={(e) => {
+                                e.target.style.borderColor = 'var(--border-color)'
+                            }}
+                        />
+                        {searchQuery && (
+                            <div style={{
+                                marginTop: '8px',
+                                fontSize: '0.85em',
+                                color: 'var(--text-secondary)'
+                            }}>
+                                Found {getFilteredAndSortedRoomList().length} of {roomList.length} rooms
+                            </div>
+                        )}
+                    </div>
+
                     {loadingRoomList ? (
                         <div style={styles.loadingState}>
                             <span style={styles.spinner}></span>
@@ -771,7 +838,7 @@ export default function ViewPage() {
                         <div style={styles.errorMessage}>
                             <span>⚠️</span> {roomListError}
                         </div>
-                    ) : roomList.length > 0 ? (
+                    ) : getFilteredAndSortedRoomList().length > 0 ? (
                         <>
                             {/* Column Headers */}
                             <div style={{
@@ -785,10 +852,82 @@ export default function ViewPage() {
                                 fontSize: '0.9em',
                                 color: 'var(--text-secondary)'
                             }}>
-                                <div>Room Code</div>
-                                <div>Event Name</div>
-                                <div>Created</div>
-                                <div>Players</div>
+                                <div
+                                    onClick={() => handleColumnSort('code')}
+                                    style={{
+                                        cursor: 'pointer',
+                                        userSelect: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        transition: 'color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = 'var(--primary-color)'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = 'var(--text-secondary)'
+                                    }}
+                                >
+                                    Room Code <span style={{ fontSize: '0.8em' }}>{getSortIcon('code')}</span>
+                                </div>
+                                <div
+                                    onClick={() => handleColumnSort('eventName')}
+                                    style={{
+                                        cursor: 'pointer',
+                                        userSelect: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        transition: 'color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = 'var(--primary-color)'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = 'var(--text-secondary)'
+                                    }}
+                                >
+                                    Event Name <span style={{ fontSize: '0.8em' }}>{getSortIcon('eventName')}</span>
+                                </div>
+                                <div
+                                    onClick={() => handleColumnSort('created')}
+                                    style={{
+                                        cursor: 'pointer',
+                                        userSelect: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        transition: 'color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = 'var(--primary-color)'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = 'var(--text-secondary)'
+                                    }}
+                                >
+                                    Created <span style={{ fontSize: '0.8em' }}>{getSortIcon('created')}</span>
+                                </div>
+                                <div
+                                    onClick={() => handleColumnSort('players')}
+                                    style={{
+                                        cursor: 'pointer',
+                                        userSelect: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        transition: 'color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = 'var(--primary-color)'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = 'var(--text-secondary)'
+                                    }}
+                                >
+                                    Players <span style={{ fontSize: '0.8em' }}>{getSortIcon('players')}</span>
+                                </div>
                                 <div>Status</div>
                             </div>
                             {/* Room List Items */}
@@ -796,7 +935,7 @@ export default function ViewPage() {
                                 display: 'grid',
                                 gap: '12px'
                             }}>
-                                {getSortedRoomList().map((room, idx) => (
+                                {getFilteredAndSortedRoomList().map((room, idx) => (
                                     <div
                                         key={idx}
                                         onClick={() => handleRoomCodeClick(room.code)}
@@ -875,6 +1014,8 @@ export default function ViewPage() {
                                 ))}
                             </div>
                         </>
+                    ) : searchQuery ? (
+                        <p style={styles.infoText}>No rooms match your search.</p>
                     ) : (
                         <p style={styles.infoText}>No rooms available at the moment.</p>
                     )}
