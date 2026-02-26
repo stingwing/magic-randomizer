@@ -772,75 +772,109 @@ export default function ViewPage() {
                             <span>⚠️</span> {roomListError}
                         </div>
                     ) : roomList.length > 0 ? (
-                        <div style={{
-                            display: 'grid',
-                            gap: '12px',
-                            marginTop: '16px'
-                        }}>
-                            {getSortedRoomList().map((room, idx) => (
-                                <div
-                                    key={idx}
-                                    onClick={() => handleRoomCodeClick(room.code)}
-                                    style={{
-                                        padding: '12px 16px',
-                                        backgroundColor: 'var(--bg-secondary)',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--border-color)',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        display: 'grid',
-                                        gridTemplateColumns: 'auto 1fr auto auto',
-                                        gap: '12px',
-                                        alignItems: 'center'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.borderColor = 'var(--primary-color)'
-                                        e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.borderColor = 'var(--border-color)'
-                                        e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
-                                    }}
-                                >
-                                    <div style={{
-                                        fontWeight: '700',
-                                        fontSize: '1.1em',
-                                        color: 'var(--primary-color)',
-                                        fontFamily: 'monospace'
-                                    }}>
-                                        {room.code}
-                                    </div>
-                                    <div style={{
-                                        fontSize: '0.85em',
-                                        color: 'var(--text-secondary)'
-                                    }}>
-                                        {formatDate(room.createdAtUtc)}
-                                    </div>
-                                    <div style={{
-                                        fontSize: '0.9em',
-                                        color: 'var(--text-primary)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px'
-                                    }}>
-                                        <span>👥</span>
-                                        <span>{room.participantCount}</span>
-                                    </div>
-                                    {room.archived && (
+                        <>
+                            {/* Column Headers */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                gap: '12px',
+                                padding: '12px 16px',
+                                borderBottom: '2px solid var(--border-color)',
+                                marginTop: '16px',
+                                fontWeight: '600',
+                                fontSize: '0.9em',
+                                color: 'var(--text-secondary)'
+                            }}>
+                                <div>Room Code</div>
+                                <div>Event Name</div>
+                                <div>Created</div>
+                                <div>Players</div>
+                                <div>Status</div>
+                            </div>
+                            {/* Room List Items */}
+                            <div style={{
+                                display: 'grid',
+                                gap: '12px'
+                            }}>
+                                {getSortedRoomList().map((room, idx) => (
+                                    <div
+                                        key={idx}
+                                        onClick={() => handleRoomCodeClick(room.code)}
+                                        style={{
+                                            padding: '12px 16px',
+                                            backgroundColor: 'var(--bg-secondary)',
+                                            borderRadius: '8px',
+                                            border: '1px solid var(--border-color)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            display: 'grid',
+                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                            gap: '12px',
+                                            alignItems: 'center'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--primary-color)'
+                                            e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--border-color)'
+                                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                                        }}
+                                    >
                                         <div style={{
-                                            fontSize: '0.75em',
-                                            backgroundColor: '#666',
-                                            color: 'white',
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            fontWeight: '600'
+                                            fontWeight: '700',
+                                            fontSize: '1.1em',
+                                            color: 'var(--primary-color)',
+                                            fontFamily: 'monospace'
                                         }}>
-                                            ARCHIVED
+                                            {room.code}
                                         </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                                        <div style={{
+                                            fontSize: '0.9em',
+                                            color: 'var(--text-primary)',
+                                            fontWeight: '500',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {room.eventName || '-'}
+                                        </div>
+                                        <div style={{
+                                            fontSize: '0.85em',
+                                            color: 'var(--text-secondary)'
+                                        }}>
+                                            {formatDate(room.createdAtUtc)}
+                                        </div>
+                                        <div style={{
+                                            fontSize: '0.9em',
+                                            color: 'var(--text-primary)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <span>👥</span>
+                                            <span>{room.participantCount}</span>
+                                        </div>
+                                        <div>
+                                            {room.archived && (
+                                                <div style={{
+                                                    fontSize: '0.75em',
+                                                    backgroundColor: '#666',
+                                                    color: 'white',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    fontWeight: '600',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    ARCHIVED
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     ) : (
                         <p style={styles.infoText}>No rooms available at the moment.</p>
                     )}

@@ -5,48 +5,38 @@ import { apiBase, signalRBase } from './api'
 import { validateUrlParam } from './utils/validation'
 import { isInCustomGroup, getCustomGroupColor } from './utils/customGroupColors'
 import { styles } from './styles/CustomGroups.styles'
+import { useHostValidation } from './hooks/useHostValidation'
+import LoadingState from './components/LoadingState'
 
 export default function CustomGroupsPage() {
     const { code, hostId } = useParams()
     const navigate = useNavigate()
+    
+    // Use the custom hook for validation
+    const { validatedCode, validatedHostId, hostValidated, validating } = useHostValidation(code, hostId)
+    
     const [participants, setParticipants] = useState([])
     const [selectedPlayers, setSelectedPlayers] = useState([])
     const [autoFill, setAutoFill] = useState(true)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [message, setMessage] = useState(null)
-    const [validatedCode, setValidatedCode] = useState('')
-    const [validatedHostId, setValidatedHostId] = useState('')
+    const [maxGroupSize, setMaxGroupSize] = useState(4)
     const [connectionStatus, setConnectionStatus] = useState('disconnected')
-    const [maxGroupSize, setMaxGroupSize] = useState(4) // Add state for maxGroupSize
     const hubConnectionRef = useRef(null)
-
-    // Validate URL parameters on mount
-    useEffect(() => {
-        const codeValidation = validateUrlParam(code)
-        const hostIdValidation = validateUrlParam(hostId)
-
-        if (!codeValidation.valid || !hostIdValidation.valid) {
-            navigate('/')
-            return
-        }
-
-        setValidatedCode(codeValidation.sanitized)
-        setValidatedHostId(hostIdValidation.sanitized)
-    }, [code, hostId, navigate])
 
     // Check if custom groups are allowed
     useEffect(() => {
+        if (!validatedCode || !hostValidated) return
+        
         const checkSettings = async () => {
-            if (!validatedCode) return
-            
             try {
                 const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}`)
                 if (res.ok) {
                     const data = await res.json()
                     
                     // Check if allowCustomGroups is false
-                    if (data.allowCustomGroups === false) {
+                    if (data.settings?.allowCustomGroups === false) {
                         setError('Custom groups have been disabled by the host')
                         setTimeout(() => {
                             navigate(`/host/${encodeURIComponent(validatedCode)}/${encodeURIComponent(validatedHostId)}`)
@@ -59,7 +49,7 @@ export default function CustomGroupsPage() {
         }
 
         checkSettings()
-    }, [validatedCode, validatedHostId, navigate])
+    }, [validatedCode, validatedHostId, hostValidated, navigate])
 
     // Fetch participants
     const fetchParticipants = async () => {
@@ -95,14 +85,14 @@ export default function CustomGroupsPage() {
     }
 
     useEffect(() => {
-        if (validatedCode) {
+        if (validatedCode && hostValidated) {
             fetchParticipants()
         }
-    }, [validatedCode])
+    }, [validatedCode, hostValidated])
 
     // SignalR Connection Setup
     useEffect(() => {
-        if (!validatedCode || !validatedHostId) {
+        if (!validatedCode || !validatedHostId || !hostValidated) {
             return
         }
 
@@ -196,7 +186,7 @@ export default function CustomGroupsPage() {
                     })
             }
         }
-    }, [validatedCode, validatedHostId])
+    }, [validatedCode, validatedHostId, hostValidated])
 
     // Group participants by custom group
     const customGroups = participants.reduce((groups, participant) => {
@@ -276,7 +266,7 @@ export default function CustomGroupsPage() {
             const data = await res.json().catch(() => null)
             setMessage(data?.message || 'Custom group created successfully')
             setSelectedPlayers([])
-            
+
             // SignalR will handle the update, but refresh for immediate feedback
             await fetchParticipants()
         } catch (err) {
@@ -348,6 +338,11 @@ export default function CustomGroupsPage() {
     }
 
     const isPlayerSelected = (playerId) => selectedPlayers.includes(playerId)
+
+    // Show loading state while validating
+    if (validating) {
+        return <LoadingState title="Custom Groups" message="Verifying host credentials..." />
+    }
 
     return (
         <div style={styles.container}>

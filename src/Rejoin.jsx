@@ -1,5 +1,5 @@
-﻿import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+﻿import { useState, useEffect } from 'react'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { apiBase } from './api'
 import { validateName, validateRoomCode, validateHostId, RateLimiter } from './utils/validation'
 import { styles, modeStyles } from './styles/Join.styles'
@@ -8,6 +8,8 @@ import { styles, modeStyles } from './styles/Join.styles'
 const rejoinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
 
 export default function RejoinPage() {
+    const { code: urlCode } = useParams()
+    const location = useLocation()
     const [mode, setMode] = useState('player') // 'player' or 'host'
     const [code, setCode] = useState('')
     const [name, setName] = useState('')
@@ -16,6 +18,24 @@ export default function RejoinPage() {
     const [error, setError] = useState(null)
     const [validationErrors, setValidationErrors] = useState({})
     const navigate = useNavigate()
+
+    // Handle navigation state for host validation errors
+    useEffect(() => {
+        if (location.state?.error && location.state?.fromHostValidation) {
+            setMode('host')
+            setError(location.state.error)
+            // Clear the state so it doesn't persist on refresh
+            navigate(location.pathname, { replace: true, state: {} })
+        }
+        
+        // Pre-fill code from URL if available
+        if (urlCode) {
+            const validated = validateRoomCode(urlCode)
+            if (validated.valid) {
+                setCode(validated.sanitized)
+            }
+        }
+    }, [location, urlCode, navigate])
 
     const handleCodeChange = (e) => {
         const validated = validateRoomCode(e.target.value)

@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import * as signalR from '@microsoft/signalr'
@@ -7,6 +7,7 @@ import { validateName, validateUrlParam, RateLimiter } from './utils/validation'
 import { calculateTimeRemaining } from './utils/timerUtils'
 import { isInCustomGroup, getCustomGroupColor } from './utils/customGroupColors'
 import { styles } from './styles/HostRoom.styles'
+import { useHostValidation } from './hooks/useHostValidation'
 
 // Rate limiters for different actions
 const addPlayerRateLimiter = new RateLimiter(60, 60000)
@@ -212,8 +213,12 @@ function RoundDisplay({ round, index, label }) {
 export default function HostRoomPage() {
     const { code, hostId } = useParams()
     const navigate = useNavigate()
+    
+    // Use the custom hook for validation
+    const { validatedCode, validatedHostId, hostValidated, validating } = useHostValidation(code, hostId)
+    
     const [participants, setParticipants] = useState([])
-    const [roomData, setRoomData] = useState(null) // Add this line
+    const [roomData, setRoomData] = useState(null)
     const [currentRound, setCurrentRound] = useState(null)
     const [archivedRounds, setArchivedRounds] = useState([])
     const [loading, setLoading] = useState(false)
@@ -229,15 +234,13 @@ export default function HostRoomPage() {
     const [addingPlayer, setAddingPlayer] = useState(false)
     const [droppingPlayer, setDroppingPlayer] = useState({})
     const [showQR, setShowQR] = useState(false)
+    const [connectionStatus, setConnectionStatus] = useState('disconnected')
     const pollRef = useRef(null)
     const hubConnectionRef = useRef(null)
     const roundsContainerRef = useRef(null)
 
     // Validation state
     const [validationErrors, setValidationErrors] = useState({})
-    const [validatedCode, setValidatedCode] = useState('')
-    const [validatedHostId, setValidatedHostId] = useState('')
-    const [connectionStatus, setConnectionStatus] = useState('disconnected')
 
     // Helper function to get disabled button tooltip
     const getDisabledTooltip = (buttonType) => {
@@ -278,20 +281,6 @@ export default function HostRoomPage() {
         }
     }
 
-    // Validate URL parameters on mount
-    useEffect(() => {
-        const codeValidation = validateUrlParam(code)
-        const hostIdValidation = validateUrlParam(hostId)
-
-        if (!codeValidation.valid || !hostIdValidation.valid) {
-            navigate('/')
-            return
-        }
-
-        setValidatedCode(codeValidation.sanitized)
-        setValidatedHostId(hostIdValidation.sanitized)
-    }, [code, hostId, navigate])
-
     // Scroll rounds container to the right when rounds change
     useEffect(() => {
         if (roundsContainerRef.current && (archivedRounds.length > 0 || currentRound)) {
@@ -323,7 +312,7 @@ export default function HostRoomPage() {
         }
     }
 
-    const fetchParticipants = async () => {
+    const fetchParticipants = useCallback(async () => {
         if (!validatedCode) return
         try {
             const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}`)
@@ -332,16 +321,16 @@ export default function HostRoomPage() {
                 throw new Error(safeMessage)
             }
             const data = await res.json().catch(() => null)
-            setRoomData(data) // Add this line
+            setRoomData(data)
             if (data && Array.isArray(data.participants)) {
                 setParticipants(data.participants)
             }
         } catch (err) {
             console.error('Error fetching participants', err)
         }
-    }
+    }, [validatedCode])
 
-    const fetchCurrentRound = async () => {
+    const fetchCurrentRound = useCallback(async () => {
         if (!validatedCode) return
         try {
             const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}/current`)
@@ -360,9 +349,9 @@ export default function HostRoomPage() {
         } catch (err) {
             console.error('Error fetching current round', err)
         }
-    }
+    }, [validatedCode])
 
-    const fetchArchivedRounds = async () => {
+    const fetchArchivedRounds = useCallback(async () => {
         if (!validatedCode) return
         try {
             const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}/archived`)
@@ -385,9 +374,9 @@ export default function HostRoomPage() {
         } catch (err) {
             console.error('Error fetching archived rounds', err)
         }
-    }
+    }, [validatedCode])
 
-    const fetchAllData = async () => {
+    const fetchAllData = useCallback(async () => {
         setLoading(true)
         await Promise.all([
             fetchParticipants(),
@@ -395,7 +384,7 @@ export default function HostRoomPage() {
             fetchArchivedRounds()
         ])
         setLoading(false)
-    }
+    }, [fetchParticipants, fetchCurrentRound, fetchArchivedRounds])
 
     const handleGame = async (result) => {
         if (!validatedCode || !validatedHostId) return
@@ -468,6 +457,7 @@ export default function HostRoomPage() {
                     errorMessage = res.status === 400
                         ? 'Invalid game state'
                         : `Unable to ${result === 'generate' ? 'start new round' : result === 'start' ? 'start round' : result === 'resetround' ? 'reset round' : result === 'endgame' ? 'end game' : 'start game'}`
+
                 }
                 
                 throw new Error(errorMessage)
@@ -626,6 +616,7 @@ export default function HostRoomPage() {
 
             setMessage(successMessage)
             setNewPlayerName('')
+
             // SignalR will trigger fetchParticipants automatically
         } catch (err) {
             console.error('Add player error', err)
@@ -832,7 +823,7 @@ export default function HostRoomPage() {
 
     // SignalR Connection Setup
     useEffect(() => {
-        if (!validatedCode || !validatedHostId) {
+        if (!validatedCode || !validatedHostId || !hostValidated) {
             return
         }
 
@@ -958,7 +949,7 @@ export default function HostRoomPage() {
                 pollRef.current = null
             }
         }
-    }, [validatedCode, validatedHostId])
+    }, [validatedCode, validatedHostId, hostValidated, fetchAllData, fetchParticipants, fetchCurrentRound, fetchArchivedRounds])
 
     const roundStarted = isRoundStarted()
     const timerData = getCurrentRoundTimerData()
@@ -985,6 +976,29 @@ export default function HostRoomPage() {
     const isCustomGroupsDisabled = loading || roomData?.allowCustomGroups === false
     const isAddPlayerDisabled = addingPlayer || !newPlayerName.trim() || !!validationErrors.playerName
 
+    // Show loading state while validating
+    if (validating) {
+        return (
+            <div style={styles.container}>
+                <div style={styles.header}>
+                    <h1 style={styles.title}>Validating Access...</h1>
+                </div>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '400px',
+                    fontSize: '1.2rem',
+                    color: 'var(--text-secondary)'
+                }}>
+                    <span style={styles.spinner}></span>
+                    <span style={{ marginLeft: '1rem' }}>Verifying host credentials...</span>
+                </div>
+            </div>
+        )
+    }
+
+    // Remove early returns for hostValidationError and loading state
     return (
         <div style={styles.container}>
             <div style={styles.header}>
@@ -1104,6 +1118,7 @@ export default function HostRoomPage() {
                             <>
                                 {roundStarted ? 'Reset Round' : 'Start Round'}
                             </>
+
                         )}
                     </button>
                     <button

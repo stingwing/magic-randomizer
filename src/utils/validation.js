@@ -12,7 +12,8 @@ export const INPUT_CONSTRAINTS = {
     PLAYER_ORDER: { min: 0, max: 50 },
     FIRST_PLAYER: { min: 0, max: 50 },
     TURN_COUNT: { min: 0, max: 999 },
-    BRACKET: { min: 0, max: 10 }
+    BRACKET: { min: 0, max: 10 },
+    EVENT_NAME: { min: 1, max: 100 }
 }
 
 /**
@@ -93,6 +94,29 @@ export const validateName = (name) => {
     }
     
     return { valid: true, error: null, sanitized: noSpaces }
+}
+
+/**
+ * Validates event name input (allows spaces and common characters)
+ */
+export const validateEventName = (eventName) => {
+    const sanitized = sanitizeText(eventName)
+    const trimmed = sanitized.trim()
+    const { min, max } = INPUT_CONSTRAINTS.EVENT_NAME
+    
+    if (trimmed.length < min && sanitized.length > 0) {
+        return { valid: false, error: `Event name must be at least ${min} character`, sanitized: trimmed }
+    }
+    if (trimmed.length > max) {
+        return { valid: false, error: `Event name must be less than ${max} characters`, sanitized: trimmed.slice(0, max) }
+    }
+    
+    // Allow letters, numbers, spaces, and common punctuation
+    if (trimmed.length > 0 && !/^[a-zA-Z0-9\s\-'.,:()]+$/.test(trimmed)) {
+        return { valid: false, error: 'Event name contains invalid characters', sanitized: trimmed.replace(/[^a-zA-Z0-9\s\-'.,:()]/g, '') }
+    }
+    
+    return { valid: true, error: null, sanitized: trimmed }
 }
 
 /**
@@ -277,5 +301,37 @@ export class RateLimiter {
     
     reset(key) {
         this.attempts.delete(key)
+    }
+}
+
+/**
+ * Validates host credentials with the API
+ * @param {string} roomCode - The room code
+ * @param {string} hostId - The host ID to validate
+ * @param {string} apiBase - The API base URL
+ * @returns {Promise<{valid: boolean, error?: string}>}
+ */
+export async function validateHostCredentials(roomCode, hostId, apiBase) {
+    try {
+        const response = await fetch(`${apiBase}/${encodeURIComponent(roomCode)}/validate-host`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ hostId })
+        })
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                return { valid: false, error: 'Room not found' }
+            }
+            return { valid: false, error: 'Unable to validate host' }
+        }
+
+        const data = await response.json()
+        return { valid: data.isValid === true, error: data.isValid ? undefined : 'Invalid host ID' }
+    } catch (err) {
+        console.error('Host validation error:', err)
+        return { valid: false, error: 'Connection error during validation' }
     }
 }

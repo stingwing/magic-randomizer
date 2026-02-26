@@ -1,8 +1,9 @@
 ﻿import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiBase } from './api'
-import { validateUrlParam, RateLimiter } from './utils/validation'
+import { RateLimiter } from './utils/validation'
 import { styles } from './styles/HostSettings.styles'
+import { useHostValidation } from './hooks/useHostValidation'
 
 // Rate limiter for settings updates
 const settingsRateLimiter = new RateLimiter(5, 60000) // 5 updates per minute
@@ -11,9 +12,8 @@ export default function HostSettingsPage() {
     const { code, hostId } = useParams()
     const navigate = useNavigate()
 
-    // Validated URL parameters
-    const [validatedCode, setValidatedCode] = useState('')
-    const [validatedHostId, setValidatedHostId] = useState('')
+    // Use the custom hook for validation
+    const { validatedCode, validatedHostId, hostValidated, validating } = useHostValidation(code, hostId)
 
     // Settings state
     const [eventName, setEventName] = useState('')
@@ -40,28 +40,13 @@ export default function HostSettingsPage() {
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
 
-    // Validate URL parameters on mount
+    // Fetch current settings - now depends on hostValidated
     useEffect(() => {
-        const codeValidation = validateUrlParam(code)
-        const hostIdValidation = validateUrlParam(hostId)
-
-        if (!codeValidation.valid || !hostIdValidation.valid) {
-            navigate('/')
-            return
-        }
-
-        setValidatedCode(codeValidation.sanitized)
-        setValidatedHostId(hostIdValidation.sanitized)
-    }, [code, hostId, navigate])
-
-    // Fetch current settings from room endpoint
-    useEffect(() => {
-        if (!validatedCode) return
+        if (!validatedCode || !hostValidated) return
 
         const fetchSettings = async () => {
             setFetchingSettings(true)
             try {
-                maxGroupSize
                 const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}`)
                 if (res.ok) {
                     const data = await res.json()
@@ -70,43 +55,45 @@ export default function HostSettingsPage() {
                     if (data.eventName !== undefined) setEventName(data.eventName || '')
                     
                     // Settings are nested under data.settings
-                    if (data.settings.maxGroupSize !== undefined) setMaxGroupSize(data.settings.maxGroupSize)
-                    if (data.settings.allowJoinAfterStart !== undefined) setAllowJoinAfterStart(data.settings.allowJoinAfterStart)
-                    
-                    // Handle both "prioitizeWinners" (typo) and "prioritizeWinners"
-                    if (data.settings.prioritizeWinners !== undefined) {
-                        setPrioritizeWinners(data.settings.prioritizeWinners)
-                    } else if (data.settings.prioitizeWinners !== undefined) {
-                        setPrioritizeWinners(data.settings.prioitizeWinners)
+                    if (data.settings) {
+                        if (data.settings.maxGroupSize !== undefined) setMaxGroupSize(data.settings.maxGroupSize)
+                        if (data.settings.allowJoinAfterStart !== undefined) setAllowJoinAfterStart(data.settings.allowJoinAfterStart)
+                        
+                        // Handle both "prioitizeWinners" (typo) and "prioritizeWinners"
+                        if (data.settings.prioritizeWinners !== undefined) {
+                            setPrioritizeWinners(data.settings.prioritizeWinners)
+                        } else if (data.settings.prioitizeWinners !== undefined) {
+                            setPrioritizeWinners(data.settings.prioitizeWinners)
+                        }
+                        
+                        if (data.settings.allowGroupOfThree !== undefined) setAllowGroupOfThree(data.settings.allowGroupOfThree)
+                        if (data.settings.allowGroupOfFive !== undefined) setAllowGroupOfFive(data.settings.allowGroupOfFive)
+                        if (data.settings.furtherReduceOddsOfGroupOfThree !== undefined) setFurtherReduceOddsOfGroupOfThree(data.settings.furtherReduceOddsOfGroupOfThree)
+                        if (data.settings.roundLength !== undefined) setRoundLength(data.settings.roundLength)
+                        if (data.settings.usePoints !== undefined) setUsePoints(data.settings.usePoints)
+                        if (data.settings.pointsForWin !== undefined) setPointsForWin(data.settings.pointsForWin)
+                        if (data.settings.pointsForDraw !== undefined) setPointsForDraw(data.settings.pointsForDraw)
+                        if (data.settings.pointsForLoss !== undefined) setPointsForLoss(data.settings.pointsForLoss)
+                        if (data.settings.pointsForABye !== undefined) setPointsForABye(data.settings.pointsForABye)
+                        if (data.settings.allowCustomGroups !== undefined) setAllowCustomGroups(data.settings.allowCustomGroups)
+                        if (data.settings.tournamentMode !== undefined) setTournamentMode(data.settings.tournamentMode)
+                        if (data.settings.maxRounds !== undefined) setMaxRounds(data.settings.maxRounds)
+                        if (data.settings.allowPlayersToCreateCustomGroups !== undefined) setAllowPlayersToCreateCustomGroups(data.settings.allowPlayersToCreateCustomGroups)
                     }
-                    
-                    if (data.settings.allowGroupOfThree !== undefined) setAllowGroupOfThree(data.settings.allowGroupOfThree)
-                    if (data.settings.allowGroupOfFive !== undefined) setAllowGroupOfFive(data.settings.allowGroupOfFive)
-                    if (data.settings.furtherReduceOddsOfGroupOfThree !== undefined) setFurtherReduceOddsOfGroupOfThree(data.settings.furtherReduceOddsOfGroupOfThree)
-                    if (data.settings.roundLength !== undefined) setRoundLength(data.settings.roundLength)
-                    if (data.settings.usePoints !== undefined) setUsePoints(data.settings.usePoints)
-                    if (data.settings.pointsForWin !== undefined) setPointsForWin(data.settings.pointsForWin)
-                    if (data.settings.pointsForDraw !== undefined) setPointsForDraw(data.settings.pointsForDraw)
-                    if (data.settings.pointsForLoss !== undefined) setPointsForLoss(data.settings.pointsForLoss)
-                    if (data.settings.pointsForABye !== undefined) setPointsForABye(data.settings.pointsForABye)
-                    if (data.settings.allowCustomGroups !== undefined) setAllowCustomGroups(data.settings.allowCustomGroups)
-                    if (data.settings.tournamentMode !== undefined) setTournamentMode(data.settings.tournamentMode)
-                    if (data.settings.maxRounds !== undefined) setMaxRounds(data.settings.maxRounds)
-                    if (data.settings.allowPlayersToCreateCustomGroups !== undefined) setAllowPlayersToCreateCustomGroups(data.settings.allowPlayersToCreateCustomGroups)
                 } else {
                     const errorMessage = res.status === 404 ? 'Room not found' : 'Unable to load settings'
                     setError(errorMessage)
                 }
             } catch (err) {
                 console.error('Error fetching settings:', err)
-                setError('Network error while loading settings')
+                setError('Failed to load settings')
             } finally {
                 setFetchingSettings(false)
             }
         }
 
         fetchSettings()
-    }, [validatedCode])
+    }, [validatedCode, hostValidated])
 
     const handleSaveSettings = async () => {
         if (!validatedCode || !validatedHostId) return
@@ -168,6 +155,25 @@ export default function HostSettingsPage() {
 
     const handleBackToHost = () => {
         navigate(`/host/${encodeURIComponent(validatedCode)}/${encodeURIComponent(validatedHostId)}`)
+    }
+
+    // Show loading state while validating
+    if (validating) {
+        return (
+            <div style={styles.container}>
+                <div style={styles.header}>
+                    <h1 style={styles.title}>Validating Access...</h1>
+                </div>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '400px'
+                }}>
+                    <span style={{ marginLeft: '1rem' }}>Verifying host credentials...</span>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -461,7 +467,7 @@ export default function HostSettingsPage() {
                         >
                             {loading ? (
                                 <>
-                                    <span style={styles.spinner}></span>
+                                    <span style={   styles.spinner}></span>
                                     Saving...
                                 </>
                             ) : (

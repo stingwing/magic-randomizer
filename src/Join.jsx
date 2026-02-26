@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiBase } from './api'
-import { validateName, validateRoomCode, validateCommander, validateHostId, RateLimiter } from './utils/validation'
+import { validateName, validateRoomCode, validateCommander, validateHostId, validateEventName, RateLimiter } from './utils/validation'
 import { useCommanderSearch } from './utils/commanderSearch'
 import { styles, modeStyles } from './styles/Join.styles'
 
@@ -16,6 +16,7 @@ export default function JoinPage() {
     const [commander, setCommander] = useState('')
     const [partner, setPartner] = useState('')
     const [hostId, setHostId] = useState('')
+    const [eventName, setEventName] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [validationErrors, setValidationErrors] = useState({})
@@ -102,6 +103,39 @@ export default function JoinPage() {
         } else {
             setValidationErrors(prev => {
                 const { hostId, ...rest } = prev
+                return rest
+            })
+        }
+    }
+
+    const handleEventNameChange = (e) => {
+        const value = e.target.value
+        
+        // Basic sanitization without trimming to allow spaces while typing
+        const sanitized = value
+            .replace(/<[^>]*>/g, '') // Remove HTML tags
+            .replace(/[<>'"&]/g, (char) => { // Escape special characters
+                const escapeMap = {
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#x27;',
+                    '&': '&amp;'
+                }
+                return escapeMap[char] || char
+            })
+            .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
+        
+        setEventName(sanitized)
+        
+        // Validate length without trimming (for real-time feedback)
+        if (sanitized.length > 100) {
+            setValidationErrors(prev => ({ ...prev, eventName: 'Event name must be less than 100 characters' }))
+        } else if (sanitized.length > 0 && !/^[a-zA-Z0-9\s\-'.,:()]+$/.test(sanitized)) {
+            setValidationErrors(prev => ({ ...prev, eventName: 'Event name contains invalid characters' }))
+        } else {
+            setValidationErrors(prev => {
+                const { eventName, ...rest } = prev
                 return rest
             })
         }
@@ -281,11 +315,13 @@ export default function JoinPage() {
     }
 
     const handleCreateHost = async () => {
-        // Validate host ID
+        // Validate host ID and event name
         const hostIdValidation = validateHostId(hostId)
+        const eventNameValidation = validateEventName(eventName)
 
         const errors = {}
         if (!hostIdValidation.valid) errors.hostId = hostIdValidation.error
+        if (!eventNameValidation.valid) errors.eventName = eventNameValidation.error
 
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors)
@@ -294,9 +330,15 @@ export default function JoinPage() {
         }
 
         const trimmedHostId = hostIdValidation.sanitized
+        const trimmedEventName = eventNameValidation.sanitized
 
         if (!trimmedHostId) {
             setError('Please enter a Host ID')
+            return
+        }
+
+        if (!trimmedEventName) {
+            setError('Please enter an Event Name')
             return
         }
 
@@ -316,7 +358,10 @@ export default function JoinPage() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ hostId: trimmedHostId })
+                body: JSON.stringify({ 
+                    hostId: trimmedHostId,
+                    eventName: trimmedEventName
+                })
             })
 
             if (!res.ok) {
@@ -351,6 +396,7 @@ export default function JoinPage() {
             }
 
             setHostId('')
+            setEventName('')
         } catch (err) {
             console.error('Create room error', err)
             setError('Network error while creating game.')
@@ -622,30 +668,55 @@ export default function JoinPage() {
                                 </label>
                             </>
                         ) : (
-                            <label style={styles.label}>
-                                Host ID
-                                <input
-                                    type="text"
-                                    value={hostId}
-                                    onChange={handleHostIdChange}
-                                    onKeyPress={handleKeyPress}
-                                    placeholder="Enter your host identifier"
-                                    style={{
-                                        ...styles.input,
-                                        ...(validationErrors.hostId ? styles.inputError : {})
-                                    }}
-                                    disabled={loading}
-                                    maxLength={50}
-                                    aria-invalid={!!validationErrors.hostId}
-                                    aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
-                                    autoFocus
-                                />
-                                {validationErrors.hostId && (
-                                    <span id="hostId-error" style={styles.validationError}>
-                                        {validationErrors.hostId}
-                                    </span>
-                                )}
-                            </label>
+                            <>
+                                <label style={styles.label}>
+                                    Host ID
+                                    <input
+                                        type="text"
+                                        value={hostId}
+                                        onChange={handleHostIdChange}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder="Enter your host identifier"
+                                        style={{
+                                            ...styles.input,
+                                            ...(validationErrors.hostId ? styles.inputError : {})
+                                        }}
+                                        disabled={loading}
+                                        maxLength={50}
+                                        aria-invalid={!!validationErrors.hostId}
+                                        aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
+                                        autoFocus
+                                    />
+                                    {validationErrors.hostId && (
+                                        <span id="hostId-error" style={styles.validationError}>
+                                            {validationErrors.hostId}
+                                        </span>
+                                    )}
+                                </label>
+                                <label style={styles.label}>
+                                    Event Name
+                                    <input
+                                        type="text"
+                                        value={eventName}
+                                        onChange={handleEventNameChange}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder="Enter event name"
+                                        style={{
+                                            ...styles.input,
+                                            ...(validationErrors.eventName ? styles.inputError : {})
+                                        }}
+                                        disabled={loading}
+                                        maxLength={100}
+                                        aria-invalid={!!validationErrors.eventName}
+                                        aria-describedby={validationErrors.eventName ? "eventName-error" : undefined}
+                                    />
+                                    {validationErrors.eventName && (
+                                        <span id="eventName-error" style={styles.validationError}>
+                                            {validationErrors.eventName}
+                                        </span>
+                                    )}
+                                </label>
+                            </>
                         )}
                         <button
                             onClick={handleSubmit}

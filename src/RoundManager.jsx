@@ -2,40 +2,30 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import * as signalR from '@microsoft/signalr'
 import { apiBase, signalRBase } from './api'
-import { validateUrlParam, RateLimiter } from './utils/validation'
+import { RateLimiter } from './utils/validation'
 import { styles } from './styles/RoundManager.styles'
+import { useHostValidation } from './hooks/useHostValidation'
+import LoadingState from './components/LoadingState'
 
 const roundActionRateLimiter = new RateLimiter(30, 60000)
 
 export default function RoundManagerPage() {
     const { code, hostId } = useParams()
     const navigate = useNavigate()
+    
+    // Use the custom hook for validation
+    const { validatedCode, validatedHostId, hostValidated, validating } = useHostValidation(code, hostId)
+    
     const [currentRound, setCurrentRound] = useState(null)
     const [archivedRounds, setArchivedRounds] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [message, setMessage] = useState(null)
     const [actionInProgress, setActionInProgress] = useState({})
-    const [validatedCode, setValidatedCode] = useState('')
-    const [validatedHostId, setValidatedHostId] = useState('')
     const [connectionStatus, setConnectionStatus] = useState('disconnected')
     const [selectedMoveGroups, setSelectedMoveGroups] = useState({})
     const [selectedMoveGroupsArchived, setSelectedMoveGroupsArchived] = useState({})
     const hubConnectionRef = useRef(null)
-
-    // Validate URL parameters on mount
-    useEffect(() => {
-        const codeValidation = validateUrlParam(code)
-        const hostIdValidation = validateUrlParam(hostId)
-
-        if (!codeValidation.valid || !hostIdValidation.valid) {
-            navigate('/')
-            return
-        }
-
-        setValidatedCode(codeValidation.sanitized)
-        setValidatedHostId(hostIdValidation.sanitized)
-    }, [code, hostId, navigate])
 
     const fetchCurrentRound = async () => {
         if (!validatedCode) return
@@ -231,12 +221,14 @@ export default function RoundManagerPage() {
 
     // SignalR Connection Setup
     useEffect(() => {
-        if (!validatedCode || !validatedHostId) {
+        if (!validatedCode || !validatedHostId || !hostValidated) {
             return
         }
 
+        // Initial data fetch
         fetchAllData()
 
+        // Setup SignalR connection
         const hubUrl = `${signalRBase}/hubs/rooms`
         const connection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl)
@@ -275,27 +267,17 @@ export default function RoundManagerPage() {
 
         connection.on('RoundGenerated', (data) => {
             console.log('RoundGenerated event received:', data)
-            fetchCurrentRound()
-            fetchArchivedRounds()
+            fetchAllData()
         })
 
         connection.on('RoundStarted', (data) => {
             console.log('RoundStarted event received:', data)
-            fetchCurrentRound()
-            fetchArchivedRounds()
+            fetchAllData()
         })
 
         connection.on('GroupEnded', (data) => {
             console.log('GroupEnded event received:', data)
-            fetchCurrentRound()
-        })
-
-        connection.on('RoomExpired', (data) => {
-            console.log('RoomExpired event received:', data)
-            setError('This room has expired.')
-            if (hubConnectionRef.current) {
-                hubConnectionRef.current.stop()
-            }
+            fetchAllData()
         })
 
         setConnectionStatus('connecting')
@@ -320,7 +302,7 @@ export default function RoundManagerPage() {
                     .catch(err => console.error('Error stopping SignalR:', err))
             }
         }
-    }, [validatedCode, validatedHostId])
+    }, [validatedCode, validatedHostId, hostValidated])
 
     const isRoundStarted = () => {
         if (!currentRound) return false
@@ -344,6 +326,11 @@ export default function RoundManagerPage() {
         return groups
             .map(g => g.groupNumber ?? 0)
             .filter(num => num !== currentGroupNumber)
+    }
+
+    // Show loading state while validating
+    if (validating) {
+        return <LoadingState title="Round Manager" message="Verifying host credentials..." />
     }
 
     const roundStarted = isRoundStarted()
@@ -418,6 +405,7 @@ export default function RoundManagerPage() {
                                                             <button
                                                                 onClick={() => handleRoundAction(groupNumber, 'setwinner', memberName, 0)}
                                                                 disabled={actionInProgress[`current-${groupNumber}-setwinner-${memberName}-0`]}
+
                                                                 style={styles.inlineWinButton}
                                                             >
                                                                 {actionInProgress[`current-${groupNumber}-setwinner-${memberName}-0`] ? '...' : '🏆 Win'}
@@ -447,30 +435,28 @@ export default function RoundManagerPage() {
                                                 </div>
                                             )
                                         })}
-                                    </div>
+                                    </div> {/* closes membersList */}
 
-                                    {roundStarted && (
-                                        <div style={styles.actionButtons}>
-                                            {(winner || draw) && (
-                                                <button
-                                                    onClick={() => handleRoundAction(groupNumber, 'setnoresult', null, 0)}
-                                                    disabled={actionInProgress[`current-${groupNumber}-setnoresult--0`]}
-                                                    style={styles.resetButton}
-                                                >
-                                                    {actionInProgress[`current-${groupNumber}-setnoresult--0`] ? '...' : '🔄 Reset'}
-                                                </button>
-                                            )}
-                                            {!draw && (
-                                                <button
-                                                    onClick={() => handleRoundAction(groupNumber, 'setdraw', null, 0)}
-                                                    disabled={actionInProgress[`current-${groupNumber}-setdraw--0`]}
-                                                    style={styles.drawButton}
-                                                >
-                                                    {actionInProgress[`current-${groupNumber}-setdraw--0`] ? '...' : '🤝 Mark Draw'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
+                                    <div style={styles.actionButtons}>
+                                        {(winner || draw) && (
+                                            <button
+                                                onClick={() => handleRoundAction(groupNumber, 'setnoresult', null, 0)}
+                                                disabled={actionInProgress[`current-${groupNumber}-setnoresult--0`]}
+                                                style={styles.resetButton}
+                                            >
+                                                {actionInProgress[`current-${groupNumber}-setnoresult--0`] ? '...' : '🔄 Reset'}
+                                            </button>
+                                        )}
+                                        {!draw && (
+                                            <button
+                                                onClick={() => handleRoundAction(groupNumber, 'setdraw', null, 0)}
+                                                disabled={actionInProgress[`current-${groupNumber}-setdraw--0`]}
+                                                style={styles.drawButton}
+                                            >
+                                                {actionInProgress[`current-${groupNumber}-setdraw--0`] ? '...' : '🤝 Mark Draw'}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )
                         })}
@@ -564,28 +550,27 @@ export default function RoundManagerPage() {
                                                         })}
                                                     </div>
 
-                                            
-                                                        <div style={styles.actionButtons}>
-                                                            {(winner || draw) && (
-                                                                <button
-                                                                    onClick={() => handleRoundAction(groupNumber, 'setnoresult', null, 0, roundNumber)}
-                                                                    disabled={actionInProgress[`${roundNumber}-${groupNumber}-setnoresult--0`]}
-                                                                    style={styles.resetButton}
-                                                                >
-                                                                    {actionInProgress[`${roundNumber}-${groupNumber}-setnoresult--0`] ? '...' : '🔄 Reset'}
-                                                                </button>
-                                                            )}
-                                                            {!draw && (
-                                                                <button
-                                                                    onClick={() => handleRoundAction(groupNumber, 'setdraw', null, 0, roundNumber)}
-                                                                    disabled={actionInProgress[`${roundNumber}-${groupNumber}-setdraw--0`]}
-                                                                    style={styles.drawButton}
-                                                                >
-                                                                    {actionInProgress[`${roundNumber}-${groupNumber}-setdraw--0`] ? '...' : '🤝 Mark Draw'}
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                  
+
+                                                    <div style={styles.actionButtons}>
+                                                        {(winner || draw) && (
+                                                            <button
+                                                                onClick={() => handleRoundAction(groupNumber, 'setnoresult', null, 0, roundNumber)}
+                                                                disabled={actionInProgress[`${roundNumber}-${groupNumber}-setnoresult--0`]}
+                                                                style={styles.resetButton}
+                                                            >
+                                                                {actionInProgress[`${roundNumber}-${groupNumber}-setnoresult--0`] ? '...' : '🔄 Reset'}
+                                                            </button>
+                                                        )}
+                                                        {!draw && (
+                                                            <button
+                                                                onClick={() => handleRoundAction(groupNumber, 'setdraw', null, 0, roundNumber)}
+                                                                disabled={actionInProgress[`${roundNumber}-${groupNumber}-setdraw--0`]}
+                                                                style={styles.drawButton}
+                                                            >
+                                                                {actionInProgress[`${roundNumber}-${groupNumber}-setdraw--0`] ? '...' : '🤝 Mark Draw'}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             )
                                         })}
