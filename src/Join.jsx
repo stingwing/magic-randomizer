@@ -239,8 +239,8 @@ export default function JoinPage() {
 
         const trimmedCode = codeValidation.sanitized
         const trimmedName = nameValidation.sanitized
-        const trimmedCommander = commanderValidation.sanitized
-        const trimmedPartner = partnerValidation.sanitized
+        const trimmedCommander = commanderValidation.sanitized.trim()
+        const trimmedPartner = partnerValidation.sanitized.trim()
 
         if (!trimmedCode || !trimmedName) {
             setError('Please enter both a code and a name')
@@ -315,7 +315,6 @@ export default function JoinPage() {
     }
 
     const handleCreateHost = async () => {
-        // Validate host ID and event name
         const hostIdValidation = validateHostId(hostId)
         const eventNameValidation = validateEventName(eventName)
 
@@ -720,10 +719,10 @@ export default function JoinPage() {
                         )}
                         <button
                             onClick={handleSubmit}
-                            disabled={loading || Object.keys(validationErrors).length > 0}
+                            disabled={loading}
                             style={{
                                 ...(mode === 'player' ? styles.secondaryButton : styles.primaryButton),
-                                ...((loading || Object.keys(validationErrors).length > 0) ? styles.buttonDisabled : {})
+                                ...(loading ? styles.buttonDisabled : {})
                             }}
                         >
                             {loading ? (

@@ -85,7 +85,7 @@ export const styles = {
         top: '100%',
         left: 0,
         right: 0,
-        backgroundColor: 'var(--card-bg)',
+        backgroundColor: '#777',
         border: '1px solid var(--border-color)',
         borderRadius: '8px',
         marginTop: '4px',

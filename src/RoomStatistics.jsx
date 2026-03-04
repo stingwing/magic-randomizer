@@ -355,9 +355,9 @@ export default function RoomStatistics() {
         const bracketVal = validateBracket(bracket)
         
         if (commanderVal.sanitized && commanderVal.valid) {
-            let commanderValue = commanderVal.sanitized
+            let commanderValue = commanderVal.sanitized.trim()
             if (partnerVal.sanitized && partnerVal.valid) {
-                commanderValue = `${commanderVal.sanitized} : ${partnerVal.sanitized}`
+                commanderValue = `${commanderVal.sanitized.trim()} : ${partnerVal.sanitized.trim()}`
             }
             statistics[`${validatedParticipantId}_Commander`] = commanderValue
         }
@@ -404,9 +404,9 @@ export default function RoomStatistics() {
             let commanderValue = ''
 
             if (commanderVal.sanitized && commanderVal.valid) {
-                commanderValue = commanderVal.sanitized
+                commanderValue = commanderVal.sanitized.trim()
                 if (partnerVal.sanitized && partnerVal.valid) {
-                    commanderValue = `${commanderVal.sanitized} : ${partnerVal.sanitized}`
+                    commanderValue = `${commanderVal.sanitized.trim()} : ${partnerVal.sanitized.trim()}`
                 }
             }
 

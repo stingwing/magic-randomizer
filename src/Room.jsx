@@ -780,13 +780,31 @@ export default function RoomPage() {
                                                 </div>
                                             )}
 
-                                            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                                            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
                                                 <button
                                                     onClick={() => handleReportResult('drop')}
                                                     disabled={reportLoading}
                                                     style={{ ...styles.reportButton, ...styles.dropButton }}
                                                 >
                                                     {reportLoading ? <span style={styles.spinner}></span> : ''} Drop from Game
+                                                </button>
+                                                <button
+                                                    onClick={() => navigate(`/room/${validatedCode}/${validatedParticipantId}/statistics`)}
+                                                    disabled={reportLoading}
+                                                    style={{
+                                                        padding: '10px 20px',
+                                                        fontSize: '0.95rem',
+                                                        fontWeight: '500',
+                                                        backgroundColor: 'var(--bg-secondary)',
+                                                        color: 'var(--text-primary)',
+                                                        border: '1px solid var(--border-color)',
+                                                        borderRadius: '8px',
+                                                        cursor: reportLoading ? 'not-allowed' : 'pointer',
+                                                        opacity: reportLoading ? 0.7 : 1,
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                >
+                                                    📊 (Optional) Report Statistics
                                                 </button>
                                             </div>
                                         </div>

@@ -1,21 +1,8 @@
-﻿import React, { useState, useEffect } from 'react'
+﻿import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 export default function NavBar() {
-    const [darkMode, setDarkMode] = useState(() => {
-        const saved = localStorage.getItem('darkMode')
-        return saved !== null ? JSON.parse(saved) : true // Default to dark mode
-    })
     const location = useLocation()
-
-    useEffect(() => {
-        document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
-        localStorage.setItem('darkMode', JSON.stringify(darkMode))
-    }, [darkMode])
-
-    const toggleTheme = () => {
-        setDarkMode(!darkMode)
-    }
 
     const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/')
 
@@ -42,22 +29,13 @@ export default function NavBar() {
                         🔄 Rejoin
                     </Link>
                     <Link 
-                        to="/manual" 
-                        style={{
-                            ...styles.navLink,
-                            ...(isActive('/manual') ? styles.navLinkActive : {})
-                        }}
-                    >
-                        ✏️ Manual
-                    </Link>
-                    <Link 
                         to="/view" 
                         style={{
                             ...styles.navLink,
                             ...(isActive('/view') ? styles.navLinkActive : {})
                         }}
                     >
-                        👁️ View
+                        👁️ History
                     </Link>
                     <Link 
                         to="/new" 
@@ -69,13 +47,6 @@ export default function NavBar() {
                         ℹ️ About
                     </Link>
                 </div>
-                <button 
-                    onClick={toggleTheme} 
-                    style={styles.themeToggle}
-                    aria-label="Toggle theme"
-                >
-                    {darkMode ? '☀️' : '🌙'}
-                </button>
             </div>
         </nav>
     )
@@ -100,41 +71,30 @@ const styles = {
         height: '100%',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 2rem'
+        justifyContent: 'center',
+        padding: '0 clamp(0.5rem, 3vw, 2rem)',
+        boxSizing: 'border-box',
+        overflowX: 'auto'
     },
     navLinks: {
         display: 'flex',
-        gap: '0.5rem',
+        gap: 'clamp(0.25rem, 2vw, 2rem)',
+        flexWrap: 'nowrap',
+        justifyContent: 'center',
         alignItems: 'center'
     },
     navLink: {
+        textDecoration: 'none',
+        color: 'var(--text-secondary)',
+        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+        fontWeight: '500',
         padding: '0.5rem 1rem',
         borderRadius: '8px',
-        color: 'var(--text-secondary)',
-        textDecoration: 'none',
-        fontSize: '0.95rem',
-        fontWeight: '500',
         transition: 'all 0.2s ease',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem'
+        whiteSpace: 'nowrap'
     },
     navLinkActive: {
-        background: 'var(--accent-color)',
-        color: 'white',
-        boxShadow: '0 2px 8px var(--accent-shadow)'
-    },
-    themeToggle: {
-        padding: '0.5rem 1rem',
-        borderRadius: '8px',
-        border: '1px solid var(--border-color)',
-        background: 'var(--card-bg)',
-        cursor: 'pointer',
-        fontSize: '1.2rem',
-        transition: 'all 0.2s ease',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+        color: 'var(--primary-color)',
+        background: 'var(--bg-secondary)'
     }
 }

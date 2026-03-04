@@ -171,8 +171,7 @@ export const sanitizeCommanderName = (input) => {
         .replace(/<[^>]*>/g, '')
         // Remove null bytes and control characters (but preserve normal punctuation and spaces)
         .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
-        // Don't escape quotes/apostrophes for commander names - keep them as-is
-        .trim()
+        // Don't trim here to allow typing spaces between words
 }
 
 /**

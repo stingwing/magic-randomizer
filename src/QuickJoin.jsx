@@ -159,8 +159,8 @@ export default function QuickJoinPage() {
 
         const trimmedCode = codeValidation.sanitized
         const trimmedName = nameValidation.sanitized
-        const trimmedCommander = commanderValidation.sanitized
-        const trimmedPartner = partnerValidation.sanitized
+        const trimmedCommander = commanderValidation.sanitized.trim()
+        const trimmedPartner = partnerValidation.sanitized.trim()
 
         if (!trimmedCode || !trimmedName) {
             setError('Please enter your name')
@@ -424,10 +424,10 @@ export default function QuickJoinPage() {
                         </label>
                         <button
                             onClick={handleJoin}
-                            disabled={loading || Object.keys(validationErrors).length > 0}
+                            disabled={loading}
                             style={{
                                 ...styles.secondaryButton,
-                                ...((loading || Object.keys(validationErrors).length > 0) ? styles.buttonDisabled : {})
+                                ...(loading ? styles.buttonDisabled : {})
                             }}
                         >
                             {loading ? (
