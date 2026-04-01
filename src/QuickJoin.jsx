@@ -4,6 +4,7 @@ import { apiBase } from './api'
 import { validateName, validateRoomCode, validateCommander, RateLimiter } from './utils/validation'
 import { useCommanderSearch } from './utils/commanderSearch'
 import { styles } from './styles/Join.styles'
+import { useAuth } from './contexts/AuthContext'
 
 // Rate limiter to prevent API abuse
 const joinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -18,10 +19,18 @@ export default function QuickJoinPage() {
     const [validationErrors, setValidationErrors] = useState({})
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
+    const { user } = useAuth()
 
     // Use commander search hooks
     const commanderSearch = useCommanderSearch(300)
     const partnerSearch = useCommanderSearch(300)
+
+    // Prepopulate name field with user's display name if logged in
+    useEffect(() => {
+        if (user && user.displayName && !name) {
+            setName(user.displayName)
+        }
+    }, [user])
 
     useEffect(() => {
         const codeParam = searchParams.get('code')
@@ -187,7 +196,8 @@ export default function QuickJoinPage() {
                 body: JSON.stringify({
                     participantId: trimmedName,
                     participantName: trimmedName,
-                    commander: commanderValue
+                    commander: commanderValue,
+                    userId: user?.userId || null
                 })
             })
 

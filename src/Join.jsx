@@ -4,6 +4,7 @@ import { apiBase } from './api'
 import { validateName, validateRoomCode, validateCommander, validateHostId, validateEventName, RateLimiter } from './utils/validation'
 import { useCommanderSearch } from './utils/commanderSearch'
 import { styles, modeStyles } from './styles/Join.styles'
+import { useAuth } from './contexts/AuthContext'
 
 // Rate limiter to prevent API abuse
 const joinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -22,10 +23,23 @@ export default function JoinPage() {
     const [validationErrors, setValidationErrors] = useState({})
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
+    const { user } = useAuth()
 
     // Use commander search hooks
     const commanderSearch = useCommanderSearch(300)
     const partnerSearch = useCommanderSearch(300)
+
+    // Prepopulate fields with user data if logged in
+    useEffect(() => {
+        if (user) {
+            if (user.displayName && !name) {
+                setName(user.displayName)
+            }
+            if (user.username && !hostId) {
+                setHostId(user.username)
+            }
+        }
+    }, [user])
 
     useEffect(() => {
         const codeParam = searchParams.get('code')
@@ -268,7 +282,8 @@ export default function JoinPage() {
                 body: JSON.stringify({
                     participantId: trimmedName,
                     participantName: trimmedName,
-                    commander: commanderValue
+                    commander: commanderValue,
+                    userId: user?.userId || null
                 })
             })
 
@@ -359,7 +374,8 @@ export default function JoinPage() {
                 },
                 body: JSON.stringify({ 
                     hostId: trimmedHostId,
-                    eventName: trimmedEventName
+                    eventName: trimmedEventName,
+                    userId: user?.userId || null
                 })
             })
 

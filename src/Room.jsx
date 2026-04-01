@@ -276,6 +276,11 @@ export default function RoomPage() {
 
         setValidatedCode(codeValidation.sanitized)
         setValidatedParticipantId(participantValidation.sanitized)
+
+        // Store participantId in sessionStorage for profile navigation
+        if (codeValidation.valid && participantValidation.valid) {
+            sessionStorage.setItem(`participantId_${codeValidation.sanitized}`, participantValidation.sanitized)
+        }
     }, [code, participantId, navigate])
 
     const fetchGroupResult = async () => {

@@ -1,52 +1,82 @@
 ﻿import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from './contexts/AuthContext'
 
 export default function NavBar() {
     const location = useLocation()
+    const navigate = useNavigate()
+    const { user } = useAuth()
 
     const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/')
 
     return (
         <nav style={styles.nav}>
             <div style={styles.navContent}>
-                <div style={styles.navLinks}>
-                    <Link 
-                        to="/" 
+                <Link 
+                    to="/" 
+                    style={{
+                        ...styles.navLink,
+                        ...(isActive('/') && !isActive('/manual') && !isActive('/new') && !isActive('/view') && !isActive('/rejoin') ? styles.navLinkActive : {})
+                    }}
+                    title="Join Game"
+                >
+                    🏠 Join
+                </Link>
+                <Link 
+                    to="/rejoin" 
+                    style={{
+                        ...styles.navLink,
+                        ...(isActive('/rejoin') ? styles.navLinkActive : {})
+                    }}
+                    title="Rejoin Game"
+                >
+                    🔄 Rejoin
+                </Link>
+                <Link 
+                    to="/view" 
+                    style={{
+                        ...styles.navLink,
+                        ...(isActive('/view') ? styles.navLinkActive : {})
+                    }}
+                    title="View History"
+                >
+                    👁️ History
+                </Link>
+                <Link 
+                    to="/new" 
+                    style={{
+                        ...styles.navLink,
+                        ...(isActive('/new') ? styles.navLinkActive : {})
+                    }}
+                    title="About"
+                >
+                    ℹ️ About
+                </Link>
+                {user ? (
+                    <button
+                        onClick={() => navigate('/profile')}
                         style={{
                             ...styles.navLink,
-                            ...(isActive('/') && !isActive('/manual') && !isActive('/new') && !isActive('/view') && !isActive('/rejoin') ? styles.navLinkActive : {})
+                            ...styles.authButton,
+                            ...(isActive('/profile') ? styles.navLinkActive : {})
                         }}
+                        title={user.displayName || user.username}
                     >
-                        🏠 Join
-                    </Link>
-                    <Link 
-                        to="/rejoin" 
+                        👤 Profile
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => navigate('/auth')}
                         style={{
                             ...styles.navLink,
-                            ...(isActive('/rejoin') ? styles.navLinkActive : {})
+                            ...styles.authButton,
+                            ...styles.loginButton
                         }}
+                        title="Login"
                     >
-                        🔄 Rejoin
-                    </Link>
-                    <Link 
-                        to="/view" 
-                        style={{
-                            ...styles.navLink,
-                            ...(isActive('/view') ? styles.navLinkActive : {})
-                        }}
-                    >
-                        👁️ History
-                    </Link>
-                    <Link 
-                        to="/new" 
-                        style={{
-                            ...styles.navLink,
-                            ...(isActive('/new') ? styles.navLinkActive : {})
-                        }}
-                    >
-                        ℹ️ About
-                    </Link>
-                </div>
+                        🔐 Login
+                    </button>
+                )}
             </div>
         </nav>
     )
@@ -71,30 +101,40 @@ const styles = {
         height: '100%',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0 clamp(0.5rem, 3vw, 2rem)',
+        justifyContent: 'space-evenly',
+        padding: '0 0.5rem',
         boxSizing: 'border-box',
-        overflowX: 'auto'
-    },
-    navLinks: {
-        display: 'flex',
-        gap: 'clamp(0.25rem, 2vw, 2rem)',
-        flexWrap: 'nowrap',
-        justifyContent: 'center',
-        alignItems: 'center'
+        gap: '0.25rem'
     },
     navLink: {
+        flex: '1 1 0',
         textDecoration: 'none',
         color: 'var(--text-secondary)',
-        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+        fontSize: 'clamp(0.75rem, 2.5vw, 1rem)',
         fontWeight: '500',
-        padding: '0.5rem 1rem',
+        padding: 'clamp(0.35rem, 1vw, 0.5rem) clamp(0.35rem, 1.5vw, 0.75rem)',
         borderRadius: '8px',
         transition: 'all 0.2s ease',
-        whiteSpace: 'nowrap'
+        whiteSpace: 'nowrap',
+        textAlign: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 0
     },
     navLinkActive: {
         color: 'var(--primary-color)',
         background: 'var(--bg-secondary)'
+    },
+    authButton: {
+        background: 'transparent',
+        border: '1px solid var(--border-color)',
+        cursor: 'pointer'
+    },
+    loginButton: {
+        background: 'var(--primary-color)',
+        color: '#fff',
+        fontWeight: '600',
+        border: 'none'
     }
 }
