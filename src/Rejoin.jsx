@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { apiBase } from './api'
 import { validateName, validateRoomCode, validateHostId, RateLimiter } from './utils/validation'
 import { styles, modeStyles } from './styles/Join.styles'
+import { useAuth } from './contexts/AuthContext'
 
 // Rate limiter to prevent API abuse
 const rejoinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -18,6 +19,19 @@ export default function RejoinPage() {
     const [error, setError] = useState(null)
     const [validationErrors, setValidationErrors] = useState({})
     const navigate = useNavigate()
+    const { user } = useAuth()
+
+    // Prepopulate fields with user data if logged in
+    useEffect(() => {
+        if (user) {
+            if (user.displayName) {
+                setName(user.displayName)
+            }
+            if (user.username) {
+                setHostId(user.username)
+            }
+        }
+    }, [user])
 
     // Handle navigation state for host validation errors
     useEffect(() => {
@@ -295,53 +309,57 @@ export default function RejoinPage() {
                             )}
                         </label>
                         {mode === 'player' ? (
-                            <label style={styles.label}>
-                                Your Name
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={handleNameChange}
-                                    onKeyPress={handleKeyPress}
-                                    placeholder="Enter your name"
-                                    style={{
-                                        ...styles.input,
-                                        ...(validationErrors.name ? styles.inputError : {})
-                                    }}
-                                    disabled={loading}
-                                    maxLength={50}
-                                    aria-invalid={!!validationErrors.name}
-                                    aria-describedby={validationErrors.name ? "name-error" : undefined}
-                                />
-                                {validationErrors.name && (
-                                    <span id="name-error" style={styles.validationError}>
-                                        {validationErrors.name}
-                                    </span>
-                                )}
-                            </label>
+                            !user && (
+                                <label style={styles.label}>
+                                    Your Name
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={handleNameChange}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder="Enter your name"
+                                        style={{
+                                            ...styles.input,
+                                            ...(validationErrors.name ? styles.inputError : {})
+                                        }}
+                                        disabled={loading}
+                                        maxLength={50}
+                                        aria-invalid={!!validationErrors.name}
+                                        aria-describedby={validationErrors.name ? "name-error" : undefined}
+                                    />
+                                    {validationErrors.name && (
+                                        <span id="name-error" style={styles.validationError}>
+                                            {validationErrors.name}
+                                        </span>
+                                    )}
+                                </label>
+                            )
                         ) : (
-                            <label style={styles.label}>
-                                Host ID
-                                <input
-                                    type="text"
-                                    value={hostId}
-                                    onChange={handleHostIdChange}
-                                    onKeyPress={handleKeyPress}
-                                    placeholder="Enter your host identifier"
-                                    style={{
-                                        ...styles.input,
-                                        ...(validationErrors.hostId ? styles.inputError : {})
-                                    }}
-                                    disabled={loading}
-                                    maxLength={50}
-                                    aria-invalid={!!validationErrors.hostId}
-                                    aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
-                                />
-                                {validationErrors.hostId && (
-                                    <span id="hostId-error" style={styles.validationError}>
-                                        {validationErrors.hostId}
-                                    </span>
-                                )}
-                            </label>
+                            !user && (
+                                <label style={styles.label}>
+                                    Host ID
+                                    <input
+                                        type="text"
+                                        value={hostId}
+                                        onChange={handleHostIdChange}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder="Enter your host identifier"
+                                        style={{
+                                            ...styles.input,
+                                            ...(validationErrors.hostId ? styles.inputError : {})
+                                        }}
+                                        disabled={loading}
+                                        maxLength={50}
+                                        aria-invalid={!!validationErrors.hostId}
+                                        aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
+                                    />
+                                    {validationErrors.hostId && (
+                                        <span id="hostId-error" style={styles.validationError}>
+                                            {validationErrors.hostId}
+                                        </span>
+                                    )}
+                                </label>
+                            )
                         )}
                         <button
                             onClick={handleRejoin}

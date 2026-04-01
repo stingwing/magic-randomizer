@@ -19,6 +19,8 @@ import RoomStatistics from './RoomStatistics'
 import MobileViewPage from './MobileViewPage'
 import AuthPage from './Auth'
 import ProfilePage from './Profile'
+import VerifyEmailPage from './VerifyEmail'
+import ResetPasswordPage from './ResetPassword'
 import { AuthProvider } from './contexts/AuthContext'
 
 function AppContent() {
@@ -35,6 +37,8 @@ function AppContent() {
                 <Route path="/" element={<JoinPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/rejoin" element={<RejoinPage />} />
                 <Route path="/manual" element={<Manual />} />
                 <Route path="/new" element={<NewPage />} />

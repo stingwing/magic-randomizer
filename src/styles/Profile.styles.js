@@ -14,7 +14,7 @@ export const styles = {
         gap: '1rem'
     },
     title: {
-        fontSize: '2.5rem',
+        fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
         fontWeight: '700',
         color: 'var(--text-primary)',
         margin: 0
@@ -33,13 +33,13 @@ export const styles = {
     userInfo: {
         backgroundColor: 'var(--bg-secondary)',
         borderRadius: '12px',
-        padding: '2rem',
+        padding: 'clamp(1rem, 3vw, 2rem)',
         marginBottom: '2rem',
         border: '1px solid var(--border-color)'
     },
     userInfoGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
         gap: '1.5rem'
     },
     userInfoItem: {
@@ -60,7 +60,7 @@ export const styles = {
         color: 'var(--text-primary)'
     },
     sectionTitle: {
-        fontSize: '1.75rem',
+        fontSize: 'clamp(1.25rem, 4vw, 1.75rem)',
         fontWeight: '700',
         color: 'var(--text-primary)',
         marginBottom: '1rem',
@@ -173,5 +173,45 @@ export const styles = {
         cursor: 'pointer',
         textDecoration: 'none',
         transition: 'all 0.2s ease'
+    },
+    verificationBanner: {
+        backgroundColor: '#fff3cd',
+        border: '1px solid #ffc107',
+        borderRadius: '8px',
+        padding: '1rem 1.5rem',
+        marginBottom: '2rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem'
+    },
+    verificationText: {
+        color: '#856404',
+        fontWeight: '500',
+        flex: 1
+    },
+    successText: {
+        color: '#155724',
+        fontWeight: '600',
+        backgroundColor: '#d4edda',
+        padding: '0.5rem 1rem',
+        borderRadius: '4px'
+    },
+    resendButton: {
+        padding: '0.5rem 1rem',
+        fontSize: '0.9rem',
+        fontWeight: '600',
+        backgroundColor: '#ffc107',
+        color: '#000',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        transition: 'opacity 0.2s ease',
+        whiteSpace: 'nowrap'
+    },
+    resendButtonDisabled: {
+        opacity: 0.6,
+        cursor: 'not-allowed'
     }
 }

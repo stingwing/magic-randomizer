@@ -32,10 +32,10 @@ export default function JoinPage() {
     // Prepopulate fields with user data if logged in
     useEffect(() => {
         if (user) {
-            if (user.displayName && !name) {
+            if (user.displayName) {
                 setName(user.displayName)
             }
-            if (user.username && !hostId) {
+            if (user.username) {
                 setHostId(user.username)
             }
         }
@@ -500,29 +500,31 @@ export default function JoinPage() {
                                         </span>
                                     )}
                                 </label>
-                                <label style={styles.label}>
-                                    Your Name
-                                    <input
-                                        type="text"
-                                        value={name}
-                                        onChange={handleNameChange}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder="Enter your name"
-                                        style={{
-                                            ...styles.input,
-                                            ...(validationErrors.name ? styles.inputError : {})
-                                        }}
-                                        disabled={loading}
-                                        maxLength={50}
-                                        aria-invalid={!!validationErrors.name}
-                                        aria-describedby={validationErrors.name ? "name-error" : undefined}
-                                    />
-                                    {validationErrors.name && (
-                                        <span id="name-error" style={styles.validationError}>
-                                            {validationErrors.name}
-                                        </span>
-                                    )}
-                                </label>
+                                {!user && (
+                                    <label style={styles.label}>
+                                        Your Name
+                                        <input
+                                            type="text"
+                                            value={name}
+                                            onChange={handleNameChange}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Enter your name"
+                                            style={{
+                                                ...styles.input,
+                                                ...(validationErrors.name ? styles.inputError : {})
+                                            }}
+                                            disabled={loading}
+                                            maxLength={50}
+                                            aria-invalid={!!validationErrors.name}
+                                            aria-describedby={validationErrors.name ? "name-error" : undefined}
+                                        />
+                                        {validationErrors.name && (
+                                            <span id="name-error" style={styles.validationError}>
+                                                {validationErrors.name}
+                                            </span>
+                                        )}
+                                    </label>
+                                )}
                                 <label style={styles.label}>
                                     Commander (Optional)
                                     <div style={{ position: 'relative' }}>
@@ -684,30 +686,32 @@ export default function JoinPage() {
                             </>
                         ) : (
                             <>
-                                <label style={styles.label}>
-                                    Host ID
-                                    <input
-                                        type="text"
-                                        value={hostId}
-                                        onChange={handleHostIdChange}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder="Enter your host identifier"
-                                        style={{
-                                            ...styles.input,
-                                            ...(validationErrors.hostId ? styles.inputError : {})
-                                        }}
-                                        disabled={loading}
-                                        maxLength={50}
-                                        aria-invalid={!!validationErrors.hostId}
-                                        aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
-                                        autoFocus
-                                    />
-                                    {validationErrors.hostId && (
-                                        <span id="hostId-error" style={styles.validationError}>
-                                            {validationErrors.hostId}
-                                        </span>
-                                    )}
-                                </label>
+                                {!user && (
+                                    <label style={styles.label}>
+                                        Host ID
+                                        <input
+                                            type="text"
+                                            value={hostId}
+                                            onChange={handleHostIdChange}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Enter your host identifier"
+                                            style={{
+                                                ...styles.input,
+                                                ...(validationErrors.hostId ? styles.inputError : {})
+                                            }}
+                                            disabled={loading}
+                                            maxLength={50}
+                                                    aria-invalid={!!validationErrors.hostId}
+                                                    aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
+                                                    autoFocus
+                                                />
+                                                {validationErrors.hostId && (
+                                                    <span id="hostId-error" style={styles.validationError}>
+                                                        {validationErrors.hostId}
+                                                    </span>
+                                                )}
+                                            </label>
+                                        )}
                                 <label style={styles.label}>
                                     Event Name
                                     <input

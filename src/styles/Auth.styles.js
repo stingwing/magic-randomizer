@@ -142,5 +142,68 @@ export const styles = {
         borderTopColor: '#fff',
         borderRadius: '50%',
         animation: 'spin 0.6s linear infinite'
+    },
+    modalOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '1rem'
+    },
+    modalContent: {
+        backgroundColor: 'var(--bg-secondary)',
+        borderRadius: '12px',
+        padding: '2rem',
+        maxWidth: '450px',
+        width: '100%',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        border: '1px solid var(--border-color)'
+    },
+    modalHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem'
+    },
+    modalTitle: {
+        fontSize: '1.5rem',
+        fontWeight: '700',
+        color: 'var(--text-primary)',
+        margin: 0
+    },
+    modalSubtitle: {
+        fontSize: '0.9rem',
+        color: 'var(--text-secondary)',
+        marginBottom: '1.5rem'
+    },
+    modalClose: {
+        background: 'none',
+        border: 'none',
+        fontSize: '2rem',
+        color: 'var(--text-secondary)',
+        cursor: 'pointer',
+        lineHeight: 1,
+        padding: 0,
+        width: '30px',
+        height: '30px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '4px',
+        transition: 'background-color 0.2s'
+    },
+    successBanner: {
+        backgroundColor: '#4ade80',
+        color: '#fff',
+        padding: '1rem',
+        borderRadius: '8px',
+        textAlign: 'center',
+        fontWeight: '500'
     }
 }

@@ -27,7 +27,7 @@ export default function QuickJoinPage() {
 
     // Prepopulate name field with user's display name if logged in
     useEffect(() => {
-        if (user && user.displayName && !name) {
+        if (user && user.displayName) {
             setName(user.displayName)
         }
     }, [user])
@@ -250,30 +250,32 @@ export default function QuickJoinPage() {
             <div style={styles.cardGrid}>
                 <div style={styles.card}>
                     <div style={styles.inputGroup}>                     
-                        <label style={styles.label}>
-                            Name
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={handleNameChange}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Enter your name"
-                                style={{
-                                    ...styles.input,
-                                    ...(validationErrors.name ? styles.inputError : {})
-                                }}
-                                disabled={loading}
-                                maxLength={50}
-                                aria-invalid={!!validationErrors.name}
-                                aria-describedby={validationErrors.name ? "name-error" : undefined}
-                                autoFocus
-                            />
-                            {validationErrors.name && (
-                                <span id="name-error" style={styles.validationError}>
-                                    {validationErrors.name}
-                                </span>
-                            )}
-                        </label>
+                        {!user && (
+                            <label style={styles.label}>
+                                Name
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={handleNameChange}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Enter your name"
+                                    style={{
+                                        ...styles.input,
+                                        ...(validationErrors.name ? styles.inputError : {})
+                                    }}
+                                    disabled={loading}
+                                    maxLength={50}
+                                    aria-invalid={!!validationErrors.name}
+                                    aria-describedby={validationErrors.name ? "name-error" : undefined}
+                                    autoFocus
+                                />
+                                {validationErrors.name && (
+                                    <span id="name-error" style={styles.validationError}>
+                                        {validationErrors.name}
+                                    </span>
+                                )}
+                            </label>
+                        )}
                         <label style={styles.label}>
                             Commander (Optional)
                             <div style={{ position: 'relative' }}>

@@ -11,7 +11,8 @@ export default function ProfilePage() {
     const [games, setGames] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-    const [hoveredCard, setHoveredCard] = useState(null)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
     const [showPasswordModal, setShowPasswordModal] = useState(false)
     const [passwordForm, setPasswordForm] = useState({
         currentPassword: '',
@@ -21,6 +22,8 @@ export default function ProfilePage() {
     const [passwordLoading, setPasswordLoading] = useState(false)
     const [passwordError, setPasswordError] = useState(null)
     const [passwordSuccess, setPasswordSuccess] = useState(null)
+    const [resendVerificationLoading, setResendVerificationLoading] = useState(false)
+    const [resendVerificationSuccess, setResendVerificationSuccess] = useState(false)
 
     useEffect(() => {
         if (!user) {
@@ -30,6 +33,15 @@ export default function ProfilePage() {
 
         fetchGames()
     }, [user, navigate])
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768)
+        }
+
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     const fetchGames = async () => {
         if (!user?.userId) return
@@ -65,7 +77,9 @@ export default function ProfilePage() {
             if (!game.archived) {
                 navigate(`/host/${game.code}/${user.username}`)
             } else {
-                navigate(`/view/${game.code}`)
+                // Encode room code for view page and pass state to indicate we came from profile
+                const encodedCode = btoa(game.code)
+                navigate(`/view/${encodedCode}`, { state: { from: 'profile' } })
             }
         } else {
             // Try to navigate to player view if we have stored participantId
@@ -73,8 +87,9 @@ export default function ProfilePage() {
             if (storedParticipantId) {
                 navigate(`/room/${game.code}/${user.username}`)
             } else {
-                // Otherwise go to view page
-                navigate(`/view/${game.code}`)
+                // Otherwise go to view page with encoded code and pass state to indicate we came from profile
+                const encodedCode = btoa(game.code)
+                navigate(`/view/${encodedCode}`, { state: { from: 'profile' } })
             }
         }
     }
@@ -122,6 +137,92 @@ export default function ProfilePage() {
             default:
                 return 'Waiting'
         }
+    }
+
+    const filterGames = (gameList) => {
+        if (!searchQuery.trim()) return gameList
+
+        const query = searchQuery.toLowerCase()
+        return gameList.filter(game => 
+            game.code?.toLowerCase().includes(query) ||
+            game.eventName?.toLowerCase().includes(query) ||
+            game.participantCount?.toString().includes(query)
+        )
+    }
+
+    const renderMobileGameCard = (game, isHost) => {
+        const status = getGameStatus(game)
+        return (
+            <div
+                key={game.code}
+                onClick={() => handleGameClick(game, isHost)}
+                style={{
+                    padding: '16px',
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--primary-color)'
+                    e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-color)'
+                    e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                }}
+            >
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                }}>
+                    <div style={{
+                        fontWeight: '700',
+                        fontSize: '1.2em',
+                        color: 'var(--primary-color)',
+                        fontFamily: 'monospace'
+                    }}>
+                        {game.code}
+                    </div>
+                    <div style={{
+                        fontSize: '0.75em',
+                        backgroundColor: status === 'active' ? '#22c55e' : status === 'ended' ? '#f59e0b' : status === 'archived' ? '#666' : '#94a3b8',
+                        color: 'white',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontWeight: '600',
+                        textTransform: 'uppercase'
+                    }}>
+                        {getStatusText(status)}
+                    </div>
+                </div>
+                <div style={{
+                    fontSize: '1em',
+                    color: 'var(--text-primary)',
+                    fontWeight: '500',
+                    marginBottom: '8px'
+                }}>
+                    {game.eventName || '-'}
+                </div>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.85em',
+                    color: 'var(--text-secondary)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>👥</span>
+                        <span>{game.participantCount} players</span>
+                    </div>
+                    <div>
+                        {formatDate(game.createdAtUtc)}
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     const handlePasswordChange = async (e) => {
@@ -208,6 +309,42 @@ export default function ProfilePage() {
         setPasswordSuccess(null)
     }
 
+    const handleResendVerification = async () => {
+        if (!user?.email) return
+
+        setResendVerificationLoading(true)
+        setError(null)
+
+        try {
+            const response = await fetch(`${API_BASE}/api/Auth/resend-verification`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: user.email
+                })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.message || 'Failed to resend verification email')
+            }
+
+            setResendVerificationSuccess(true)
+
+            // Hide success message after 5 seconds
+            setTimeout(() => {
+                setResendVerificationSuccess(false)
+            }, 5000)
+        } catch (err) {
+            console.error('Resend verification error:', err)
+            setError(err.message || 'Failed to resend verification email')
+        } finally {
+            setResendVerificationLoading(false)
+        }
+    }
+
     if (!user) {
         return null
     }
@@ -216,13 +353,13 @@ export default function ProfilePage() {
         <div style={styles.container}>
             <div style={styles.header}>
                 <h1 style={styles.title}>My Profile</h1>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: isMobile ? '0.5rem' : '1rem', flexWrap: 'wrap' }}>
                     <button
                         onClick={() => setShowPasswordModal(true)}
                         style={{
                             ...styles.changePasswordButton,
-                            padding: '0.75rem 1.5rem',
-                            fontSize: '1rem',
+                            padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
+                            fontSize: isMobile ? '0.9rem' : '1rem',
                             fontWeight: '600',
                             backgroundColor: 'var(--primary-color)',
                             color: '#fff',
@@ -267,7 +404,21 @@ export default function ProfilePage() {
                     </div>
                     <div style={styles.userInfoItem}>
                         <span style={styles.label}>Email</span>
-                        <span style={styles.value}>{user.email}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <span style={styles.value}>{user.email}</span>
+                            {user.emailVerified === false && (
+                                <span style={{
+                                    fontSize: '0.75rem',
+                                    color: '#ff6b6b',
+                                    fontWeight: '600',
+                                    backgroundColor: '#ffe0e0',
+                                    padding: '0.25rem 0.5rem',
+                                    borderRadius: '4px'
+                                }}>
+                                    Unverified
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <div style={styles.userInfoItem}>
                         <span style={styles.label}>Member Since</span>
@@ -282,9 +433,108 @@ export default function ProfilePage() {
                 </div>
             </div>
 
+            {user.emailVerified === false && (
+                <div style={styles.verificationBanner}>
+                    <div style={styles.verificationText}>
+                        ⚠️ Your email address is not verified. Please check your inbox for a verification email.
+                    </div>
+                    {resendVerificationSuccess ? (
+                        <div style={styles.successText}>
+                            ✅ Verification email sent! Check your inbox.
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleResendVerification}
+                            disabled={resendVerificationLoading}
+                            style={{
+                                ...styles.resendButton,
+                                ...(resendVerificationLoading ? styles.resendButtonDisabled : {})
+                            }}
+                            onMouseEnter={(e) => !resendVerificationLoading && (e.currentTarget.style.opacity = '0.9')}
+                            onMouseLeave={(e) => !resendVerificationLoading && (e.currentTarget.style.opacity = '1')}
+                        >
+                            {resendVerificationLoading ? 'Sending...' : 'Resend Verification Email'}
+                        </button>
+                    )}
+                </div>
+            )}
+
             {error && (
                 <div style={styles.errorBanner}>
                     ⚠️ {error}
+                </div>
+            )}
+
+            {/* Search Bar */}
+            {games && ((games.hostedGames && games.hostedGames.length > 0) || (games.playedGames && games.playedGames.length > 0)) && (
+                <div style={{
+                    marginBottom: '2rem',
+                    display: 'flex',
+                    justifyContent: 'center'
+                }}>
+                    <div style={{
+                        position: 'relative',
+                        width: '100%',
+                        maxWidth: '600px'
+                    }}>
+                        <input
+                            type="text"
+                            placeholder="Search games by code, event name, or player count..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '12px 16px 12px 44px',
+                                fontSize: '1rem',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                backgroundColor: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                outline: 'none',
+                                transition: 'border-color 0.2s'
+                            }}
+                            onFocus={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--primary-color)'
+                            }}
+                            onBlur={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--border-color)'
+                            }}
+                        />
+                        <span style={{
+                            position: 'absolute',
+                            left: '16px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            fontSize: '1.2rem'
+                        }}>
+                            🔍
+                        </span>
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                style={{
+                                    position: 'absolute',
+                                    right: '12px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.2rem',
+                                    cursor: 'pointer',
+                                    color: 'var(--text-secondary)',
+                                    padding: '4px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.color = 'var(--primary-color)'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.color = 'var(--text-secondary)'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -297,81 +547,261 @@ export default function ProfilePage() {
                 <>
                     {games.hostedGames && games.hostedGames.length > 0 && (
                         <>
-                            {games.hostedGames.filter(game => !game.archived).length > 0 && (
+                            {filterGames(games.hostedGames.filter(game => !game.archived)).length > 0 && (
                                 <>
                                     <h2 style={styles.sectionTitle}>
-                                        Active Hosted Games ({games.hostedGames.filter(game => !game.archived).length})
+                                        Active Hosted Games ({filterGames(games.hostedGames.filter(game => !game.archived)).length})
                                     </h2>
-                                    <div style={styles.gamesGrid}>
-                                        {games.hostedGames.filter(game => !game.archived).map((game) => {
-                                            const status = getGameStatus(game)
-                                            return (
-                                                <div
-                                                    key={game.code}
-                                                    style={{
-                                                        ...styles.gameCard,
-                                                        ...(hoveredCard === `host-${game.code}` ? styles.gameCardHover : {})
-                                                    }}
-                                                    onClick={() => handleGameClick(game, true)}
-                                                    onMouseEnter={() => setHoveredCard(`host-${game.code}`)}
-                                                    onMouseLeave={() => setHoveredCard(null)}
-                                                >
-                                                    <div style={styles.gameCode}>
-                                                        🎮 {game.code}
+                                    {isMobile ? (
+                                        <div style={{
+                                            display: 'grid',
+                                            gap: '12px'
+                                        }}>
+                                            {filterGames(games.hostedGames.filter(game => !game.archived)).map((game) => 
+                                                renderMobileGameCard(game, true)
+                                            )}
+                                        </div>
+                                    ) : (
+                                    <div style={{
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        borderRadius: '12px',
+                                        padding: '16px',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        {/* Grid Header */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                            gap: '12px',
+                                            padding: '0 16px 12px',
+                                            borderBottom: '1px solid var(--border-color)',
+                                            fontWeight: '600',
+                                            fontSize: '0.85em',
+                                            color: 'var(--text-secondary)',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>
+                                            <div>Code</div>
+                                            <div>Event Name</div>
+                                            <div>Created</div>
+                                            <div>Players</div>
+                                            <div>Status</div>
+                                        </div>
+                                        {/* Game List Items */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gap: '12px',
+                                            marginTop: '12px'
+                                        }}>
+                                            {filterGames(games.hostedGames.filter(game => !game.archived)).map((game) => {
+                                                const status = getGameStatus(game)
+                                                return (
+                                                    <div
+                                                        key={game.code}
+                                                        onClick={() => handleGameClick(game, true)}
+                                                        style={{
+                                                            padding: '12px 16px',
+                                                            backgroundColor: 'var(--bg-secondary)',
+                                                            borderRadius: '8px',
+                                                            border: '1px solid var(--border-color)',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            display: 'grid',
+                                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                                            gap: '12px',
+                                                            alignItems: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.borderColor = 'var(--primary-color)'
+                                                            e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.borderColor = 'var(--border-color)'
+                                                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                                                        }}
+                                                    >
+                                                        <div style={{
+                                                            fontWeight: '700',
+                                                            fontSize: '1.1em',
+                                                            color: 'var(--primary-color)',
+                                                            fontFamily: 'monospace'
+                                                        }}>
+                                                            {game.code}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.9em',
+                                                            color: 'var(--text-primary)',
+                                                            fontWeight: '500',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap'
+                                                        }}>
+                                                            {game.eventName || '-'}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.85em',
+                                                            color: 'var(--text-secondary)'
+                                                        }}>
+                                                            {formatDate(game.createdAtUtc)}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.9em',
+                                                            color: 'var(--text-primary)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            justifyContent: 'center'
+                                                        }}>
+                                                            <span>👥</span>
+                                                            <span>{game.participantCount}</span>
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.75em',
+                                                            backgroundColor: status === 'active' ? '#22c55e' : status === 'ended' ? '#f59e0b' : '#94a3b8',
+                                                            color: 'white',
+                                                            padding: '4px 8px',
+                                                            borderRadius: '4px',
+                                                            fontWeight: '600',
+                                                            textAlign: 'center',
+                                                            textTransform: 'uppercase'
+                                                        }}>
+                                                            {getStatusText(status)}
+                                                        </div>
                                                     </div>
-                                                    <div style={styles.gameEventName}>
-                                                        {game.eventName || 'Unnamed Event'}
-                                                    </div>
-                                                    <div style={styles.gameDetails}>
-                                                        <div>👥 {game.participantCount} participants</div>
-                                                        <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
-                                                    </div>
-                                                    <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
-                                                        {getStatusText(status)}
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
+                                                )
+                                            })}
+                                        </div>
                                     </div>
+                                    )}
                                 </>
                             )}
 
-                            {games.hostedGames.filter(game => game.archived).length > 0 && (
+                            {filterGames(games.hostedGames.filter(game => game.archived)).length > 0 && (
                                 <>
                                     <h2 style={styles.sectionTitle}>
-                                        Archived Hosted Games ({games.hostedGames.filter(game => game.archived).length})
+                                        Archived Hosted Games ({filterGames(games.hostedGames.filter(game => game.archived)).length})
                                     </h2>
-                                    <div style={styles.gamesGrid}>
-                                        {games.hostedGames.filter(game => game.archived).map((game) => {
-                                            const status = getGameStatus(game)
-                                            return (
-                                                <div
-                                                    key={game.code}
-                                                    style={{
-                                                        ...styles.gameCard,
-                                                        ...(hoveredCard === `host-${game.code}` ? styles.gameCardHover : {})
-                                                    }}
-                                                    onClick={() => handleGameClick(game, true)}
-                                                    onMouseEnter={() => setHoveredCard(`host-${game.code}`)}
-                                                    onMouseLeave={() => setHoveredCard(null)}
-                                                >
-                                                    <div style={styles.gameCode}>
-                                                        🎮 {game.code}
+                                    {isMobile ? (
+                                        <div style={{
+                                            display: 'grid',
+                                            gap: '12px'
+                                        }}>
+                                            {filterGames(games.hostedGames.filter(game => game.archived)).map((game) => 
+                                                renderMobileGameCard(game, true)
+                                            )}
+                                        </div>
+                                    ) : (
+                                    <div style={{
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        borderRadius: '12px',
+                                        padding: '16px',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        {/* Grid Header */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                            gap: '12px',
+                                            padding: '0 16px 12px',
+                                            borderBottom: '1px solid var(--border-color)',
+                                            fontWeight: '600',
+                                            fontSize: '0.85em',
+                                            color: 'var(--text-secondary)',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>
+                                            <div>Code</div>
+                                            <div>Event Name</div>
+                                            <div>Created</div>
+                                            <div>Players</div>
+                                            <div>Status</div>
+                                        </div>
+                                        {/* Game List Items */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gap: '12px',
+                                            marginTop: '12px'
+                                        }}>
+                                            {filterGames(games.hostedGames.filter(game => game.archived)).map((game) => {
+                                                const status = getGameStatus(game)
+                                                return (
+                                                    <div
+                                                        key={game.code}
+                                                        onClick={() => handleGameClick(game, true)}
+                                                        style={{
+                                                            padding: '12px 16px',
+                                                            backgroundColor: 'var(--bg-secondary)',
+                                                            borderRadius: '8px',
+                                                            border: '1px solid var(--border-color)',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            display: 'grid',
+                                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                                            gap: '12px',
+                                                            alignItems: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.borderColor = 'var(--primary-color)'
+                                                            e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.borderColor = 'var(--border-color)'
+                                                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                                                        }}
+                                                    >
+                                                        <div style={{
+                                                            fontWeight: '700',
+                                                            fontSize: '1.1em',
+                                                            color: 'var(--primary-color)',
+                                                            fontFamily: 'monospace'
+                                                        }}>
+                                                            {game.code}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.9em',
+                                                            color: 'var(--text-primary)',
+                                                            fontWeight: '500',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap'
+                                                        }}>
+                                                            {game.eventName || '-'}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.85em',
+                                                            color: 'var(--text-secondary)'
+                                                        }}>
+                                                            {formatDate(game.createdAtUtc)}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.9em',
+                                                            color: 'var(--text-primary)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            justifyContent: 'center'
+                                                        }}>
+                                                            <span>👥</span>
+                                                            <span>{game.participantCount}</span>
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.75em',
+                                                            backgroundColor: '#666',
+                                                            color: 'white',
+                                                            padding: '4px 8px',
+                                                            borderRadius: '4px',
+                                                            fontWeight: '600',
+                                                            textAlign: 'center',
+                                                            textTransform: 'uppercase'
+                                                        }}>
+                                                            ARCHIVED
+                                                        </div>
                                                     </div>
-                                                    <div style={styles.gameEventName}>
-                                                        {game.eventName || 'Unnamed Event'}
-                                                    </div>
-                                                    <div style={styles.gameDetails}>
-                                                        <div>👥 {game.participantCount} participants</div>
-                                                        <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
-                                                    </div>
-                                                    <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
-                                                        {getStatusText(status)}
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
+                                                )
+                                            })}
+                                        </div>
                                     </div>
+                                    )}
                                 </>
                             )}
                         </>
@@ -379,81 +809,261 @@ export default function ProfilePage() {
 
                     {games.playedGames && games.playedGames.length > 0 && (
                         <>
-                            {games.playedGames.filter(game => !game.archived).length > 0 && (
+                            {filterGames(games.playedGames.filter(game => !game.archived)).length > 0 && (
                                 <>
                                     <h2 style={styles.sectionTitle}>
-                                        Active Played Games ({games.playedGames.filter(game => !game.archived).length})
+                                        Active Played Games ({filterGames(games.playedGames.filter(game => !game.archived)).length})
                                     </h2>
-                                    <div style={styles.gamesGrid}>
-                                        {games.playedGames.filter(game => !game.archived).map((game) => {
-                                            const status = getGameStatus(game)
-                                            return (
-                                                <div
-                                                    key={game.code}
-                                                    style={{
-                                                        ...styles.gameCard,
-                                                        ...(hoveredCard === `played-${game.code}` ? styles.gameCardHover : {})
-                                                    }}
-                                                    onClick={() => handleGameClick(game, false)}
-                                                    onMouseEnter={() => setHoveredCard(`played-${game.code}`)}
-                                                    onMouseLeave={() => setHoveredCard(null)}
-                                                >
-                                                    <div style={styles.gameCode}>
-                                                        🎯 {game.code}
+                                    {isMobile ? (
+                                        <div style={{
+                                            display: 'grid',
+                                            gap: '12px'
+                                        }}>
+                                            {filterGames(games.playedGames.filter(game => !game.archived)).map((game) => 
+                                                renderMobileGameCard(game, false)
+                                            )}
+                                        </div>
+                                    ) : (
+                                    <div style={{
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        borderRadius: '12px',
+                                        padding: '16px',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        {/* Grid Header */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                            gap: '12px',
+                                            padding: '0 16px 12px',
+                                            borderBottom: '1px solid var(--border-color)',
+                                            fontWeight: '600',
+                                            fontSize: '0.85em',
+                                            color: 'var(--text-secondary)',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>
+                                            <div>Code</div>
+                                            <div>Event Name</div>
+                                            <div>Created</div>
+                                            <div>Players</div>
+                                            <div>Status</div>
+                                        </div>
+                                        {/* Game List Items */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gap: '12px',
+                                            marginTop: '12px'
+                                        }}>
+                                            {filterGames(games.playedGames.filter(game => !game.archived)).map((game) => {
+                                                const status = getGameStatus(game)
+                                                return (
+                                                    <div
+                                                        key={game.code}
+                                                        onClick={() => handleGameClick(game, false)}
+                                                        style={{
+                                                            padding: '12px 16px',
+                                                            backgroundColor: 'var(--bg-secondary)',
+                                                            borderRadius: '8px',
+                                                            border: '1px solid var(--border-color)',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            display: 'grid',
+                                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                                            gap: '12px',
+                                                            alignItems: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.borderColor = 'var(--primary-color)'
+                                                            e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.borderColor = 'var(--border-color)'
+                                                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                                                        }}
+                                                    >
+                                                        <div style={{
+                                                            fontWeight: '700',
+                                                            fontSize: '1.1em',
+                                                            color: 'var(--primary-color)',
+                                                            fontFamily: 'monospace'
+                                                        }}>
+                                                            {game.code}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.9em',
+                                                            color: 'var(--text-primary)',
+                                                            fontWeight: '500',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap'
+                                                        }}>
+                                                            {game.eventName || '-'}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.85em',
+                                                            color: 'var(--text-secondary)'
+                                                        }}>
+                                                            {formatDate(game.createdAtUtc)}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.9em',
+                                                            color: 'var(--text-primary)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            justifyContent: 'center'
+                                                        }}>
+                                                            <span>👥</span>
+                                                            <span>{game.participantCount}</span>
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.75em',
+                                                            backgroundColor: status === 'active' ? '#22c55e' : status === 'ended' ? '#f59e0b' : '#94a3b8',
+                                                            color: 'white',
+                                                            padding: '4px 8px',
+                                                            borderRadius: '4px',
+                                                            fontWeight: '600',
+                                                            textAlign: 'center',
+                                                            textTransform: 'uppercase'
+                                                        }}>
+                                                            {getStatusText(status)}
+                                                        </div>
                                                     </div>
-                                                    <div style={styles.gameEventName}>
-                                                        {game.eventName || 'Unnamed Event'}
-                                                    </div>
-                                                    <div style={styles.gameDetails}>
-                                                        <div>👥 {game.participantCount} participants</div>
-                                                        <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
-                                                    </div>
-                                                    <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
-                                                        {getStatusText(status)}
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
+                                                )
+                                            })}
+                                        </div>
                                     </div>
+                                    )}
                                 </>
                             )}
 
-                            {games.playedGames.filter(game => game.archived).length > 0 && (
+                            {filterGames(games.playedGames.filter(game => game.archived)).length > 0 && (
                                 <>
                                     <h2 style={styles.sectionTitle}>
-                                        Archived Played Games ({games.playedGames.filter(game => game.archived).length})
+                                        Archived Played Games ({filterGames(games.playedGames.filter(game => game.archived)).length})
                                     </h2>
-                                    <div style={styles.gamesGrid}>
-                                        {games.playedGames.filter(game => game.archived).map((game) => {
-                                            const status = getGameStatus(game)
-                                            return (
-                                                <div
-                                                    key={game.code}
-                                                    style={{
-                                                        ...styles.gameCard,
-                                                        ...(hoveredCard === `played-${game.code}` ? styles.gameCardHover : {})
-                                                    }}
-                                                    onClick={() => handleGameClick(game, false)}
-                                                    onMouseEnter={() => setHoveredCard(`played-${game.code}`)}
-                                                    onMouseLeave={() => setHoveredCard(null)}
-                                                >
-                                                    <div style={styles.gameCode}>
-                                                        🎯 {game.code}
+                                    {isMobile ? (
+                                        <div style={{
+                                            display: 'grid',
+                                            gap: '12px'
+                                        }}>
+                                            {filterGames(games.playedGames.filter(game => game.archived)).map((game) => 
+                                                renderMobileGameCard(game, false)
+                                            )}
+                                        </div>
+                                    ) : (
+                                    <div style={{
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        borderRadius: '12px',
+                                        padding: '16px',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        {/* Grid Header */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                            gap: '12px',
+                                            padding: '0 16px 12px',
+                                            borderBottom: '1px solid var(--border-color)',
+                                            fontWeight: '600',
+                                            fontSize: '0.85em',
+                                            color: 'var(--text-secondary)',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>
+                                            <div>Code</div>
+                                            <div>Event Name</div>
+                                            <div>Created</div>
+                                            <div>Players</div>
+                                            <div>Status</div>
+                                        </div>
+                                        {/* Game List Items */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gap: '12px',
+                                            marginTop: '12px'
+                                        }}>
+                                            {filterGames(games.playedGames.filter(game => game.archived)).map((game) => {
+                                                const status = getGameStatus(game)
+                                                return (
+                                                    <div
+                                                        key={game.code}
+                                                        onClick={() => handleGameClick(game, false)}
+                                                        style={{
+                                                            padding: '12px 16px',
+                                                            backgroundColor: 'var(--bg-secondary)',
+                                                            borderRadius: '8px',
+                                                            border: '1px solid var(--border-color)',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            display: 'grid',
+                                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                                            gap: '12px',
+                                                            alignItems: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.borderColor = 'var(--primary-color)'
+                                                            e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.borderColor = 'var(--border-color)'
+                                                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                                                        }}
+                                                    >
+                                                        <div style={{
+                                                            fontWeight: '700',
+                                                            fontSize: '1.1em',
+                                                            color: 'var(--primary-color)',
+                                                            fontFamily: 'monospace'
+                                                        }}>
+                                                            {game.code}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.9em',
+                                                            color: 'var(--text-primary)',
+                                                            fontWeight: '500',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap'
+                                                        }}>
+                                                            {game.eventName || '-'}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.85em',
+                                                            color: 'var(--text-secondary)'
+                                                        }}>
+                                                            {formatDate(game.createdAtUtc)}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.9em',
+                                                            color: 'var(--text-primary)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            justifyContent: 'center'
+                                                        }}>
+                                                            <span>👥</span>
+                                                            <span>{game.participantCount}</span>
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.75em',
+                                                            backgroundColor: '#666',
+                                                            color: 'white',
+                                                            padding: '4px 8px',
+                                                            borderRadius: '4px',
+                                                            fontWeight: '600',
+                                                            textAlign: 'center',
+                                                            textTransform: 'uppercase'
+                                                        }}>
+                                                            ARCHIVED
+                                                        </div>
                                                     </div>
-                                                    <div style={styles.gameEventName}>
-                                                        {game.eventName || 'Unnamed Event'}
-                                                    </div>
-                                                    <div style={styles.gameDetails}>
-                                                        <div>👥 {game.participantCount} participants</div>
-                                                        <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
-                                                    </div>
-                                                    <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
-                                                        {getStatusText(status)}
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
+                                                )
+                                            })}
+                                        </div>
                                     </div>
+                                    )}
                                 </>
                             )}
                         </>
@@ -463,6 +1073,20 @@ export default function ProfilePage() {
                      (!games.playedGames || games.playedGames.length === 0) && (
                         <div style={styles.noGames}>
                             No games found. Start by creating or joining a game!
+                        </div>
+                    )}
+
+                    {/* No search results message */}
+                    {searchQuery && 
+                     games.hostedGames && games.playedGames &&
+                     filterGames([...games.hostedGames, ...games.playedGames]).length === 0 && (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '3rem',
+                            color: 'var(--text-secondary)',
+                            fontSize: '1.1rem'
+                        }}>
+                            No games match your search for "{searchQuery}"
                         </div>
                     )}
 

@@ -18,7 +18,11 @@ export default function AuthPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [validationErrors, setValidationErrors] = useState({})
-    
+    const [showForgotPassword, setShowForgotPassword] = useState(false)
+    const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
+    const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false)
+    const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false)
+
     const navigate = useNavigate()
     const location = useLocation()
     const { login } = useAuth()
@@ -54,27 +58,39 @@ export default function AuthPage() {
 
     const validateRegisterForm = () => {
         const errors = {}
-        
-        if (!formData.username.trim() || formData.username.length < 3) {
-            errors.username = 'Username must be at least 3 characters'
+
+        if (!formData.username.trim()) {
+            errors.username = 'Username is required'
+        } else if (formData.username.length < 3 || formData.username.length > 100) {
+            errors.username = 'Username must be between 3 and 100 characters'
+        } else if (!/^[a-zA-Z0-9_-]+$/.test(formData.username)) {
+            errors.username = 'Username can only contain letters, numbers, underscores, and hyphens'
         }
-        
-        if (!formData.email.trim() || !formData.email.includes('@')) {
-            errors.email = 'Valid email is required'
+
+        if (!formData.email.trim()) {
+            errors.email = 'Email is required'
+        } else if (!formData.email.includes('@')) {
+            errors.email = 'Invalid email address'
         }
-        
-        if (!formData.password || formData.password.length < 6) {
-            errors.password = 'Password must be at least 6 characters'
+
+        if (!formData.password) {
+            errors.password = 'Password is required'
+        } else if (formData.password.length < 8) {
+            errors.password = 'Password must be at least 8 characters'
+        } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{}|;:,.<>])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{}|;:,.<>]{8,}$/.test(formData.password)) {
+            errors.password = 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
         }
-        
-        if (formData.password !== formData.confirmPassword) {
+
+        if (!formData.confirmPassword) {
+            errors.confirmPassword = 'Password confirmation is required'
+        } else if (formData.password !== formData.confirmPassword) {
             errors.confirmPassword = 'Passwords do not match'
         }
-        
-        if (!formData.displayName.trim()) {
-            errors.displayName = 'Display name is required'
+
+        if (formData.displayName && formData.displayName.length > 100) {
+            errors.displayName = 'Display name must not exceed 100 characters'
         }
-        
+
         return errors
     }
 
@@ -104,6 +120,25 @@ export default function AuthPage() {
             
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
+
+                // Handle new validation error format
+                if (errorData.errors && Array.isArray(errorData.errors)) {
+                    const fieldErrors = {}
+                    errorData.errors.forEach(error => {
+                        if (error.field && error.errors && error.errors.length > 0) {
+                            // Map API field names to form field names
+                            const fieldName = error.field.charAt(0).toLowerCase() + error.field.slice(1)
+                            if (fieldName === 'usernameOrEmail') {
+                                fieldErrors.usernameOrEmail = error.errors[0]
+                            } else {
+                                fieldErrors[fieldName] = error.errors[0]
+                            }
+                        }
+                    })
+                    setValidationErrors(fieldErrors)
+                    throw new Error(errorData.message || 'Login failed')
+                }
+
                 throw new Error(errorData.message || 'Login failed')
             }
             
@@ -120,16 +155,16 @@ export default function AuthPage() {
 
     const handleRegister = async (e) => {
         e.preventDefault()
-        
+
         const errors = validateRegisterForm()
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors)
             return
         }
-        
+
         setLoading(true)
         setError(null)
-        
+
         try {
             const response = await fetch(`${API_BASE}/api/Auth/register`, {
                 method: 'POST',
@@ -144,12 +179,27 @@ export default function AuthPage() {
                     displayName: formData.displayName
                 })
             })
-            
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
+
+                // Handle new validation error format
+                if (errorData.errors && Array.isArray(errorData.errors)) {
+                    const fieldErrors = {}
+                    errorData.errors.forEach(error => {
+                        if (error.field && error.errors && error.errors.length > 0) {
+                            // Map API field names to form field names
+                            const fieldName = error.field.charAt(0).toLowerCase() + error.field.slice(1)
+                            fieldErrors[fieldName] = error.errors[0]
+                        }
+                    })
+                    setValidationErrors(fieldErrors)
+                    throw new Error(errorData.message || 'Registration failed')
+                }
+
                 throw new Error(errorData.message || 'Registration failed')
             }
-            
+
             const userData = await response.json()
             login(userData)
             navigate(from, { replace: true })
@@ -159,6 +209,50 @@ export default function AuthPage() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleForgotPassword = async (e) => {
+        e.preventDefault()
+
+        if (!forgotPasswordEmail.trim() || !forgotPasswordEmail.includes('@')) {
+            setError('Please enter a valid email address')
+            return
+        }
+
+        setForgotPasswordLoading(true)
+        setError(null)
+
+        try {
+            const response = await fetch(`${API_BASE}/api/Auth/forgot-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: forgotPasswordEmail
+                })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.message || 'Failed to send reset email')
+            }
+
+            await response.json()
+            setForgotPasswordSuccess(true)
+        } catch (err) {
+            console.error('Forgot password error:', err)
+            setError(err.message || 'Failed to send reset email. Please try again.')
+        } finally {
+            setForgotPasswordLoading(false)
+        }
+    }
+
+    const closeForgotPasswordModal = () => {
+        setShowForgotPassword(false)
+        setForgotPasswordEmail('')
+        setForgotPasswordSuccess(false)
+        setError(null)
     }
 
     return (
@@ -268,6 +362,23 @@ export default function AuthPage() {
                         >
                             {loading && <span style={styles.spinner}></span>}
                             {loading ? 'Signing in...' : 'Sign In'}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowForgotPassword(true)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--primary-color)',
+                                textDecoration: 'underline',
+                                cursor: 'pointer',
+                                fontSize: '0.875rem',
+                                textAlign: 'center',
+                                padding: '0.5rem'
+                            }}
+                        >
+                            Forgot Password?
                         </button>
                     </form>
                 ) : (
@@ -401,6 +512,71 @@ export default function AuthPage() {
                     </form>
                 )}
             </div>
+
+            {/* Forgot Password Modal */}
+            {showForgotPassword && (
+                <div style={styles.modalOverlay} onClick={closeForgotPasswordModal}>
+                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <div style={styles.modalHeader}>
+                            <h2 style={styles.modalTitle}>Reset Password</h2>
+                            <button
+                                onClick={closeForgotPasswordModal}
+                                style={styles.modalClose}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {forgotPasswordSuccess ? (
+                            <div style={styles.successBanner}>
+                                ✅ If the email exists, a password reset link has been sent
+                            </div>
+                        ) : (
+                            <>
+                                {error && (
+                                    <div style={styles.errorBanner}>
+                                        ⚠️ {error}
+                                    </div>
+                                )}
+
+                                <p style={styles.modalSubtitle}>
+                                    Enter your email address and we'll send you a link to reset your password.
+                                </p>
+
+                                <form style={styles.form} onSubmit={handleForgotPassword}>
+                                    <div style={styles.formGroup}>
+                                        <label htmlFor="forgotPasswordEmail" style={styles.label}>
+                                            Email
+                                        </label>
+                                        <input
+                                            id="forgotPasswordEmail"
+                                            name="forgotPasswordEmail"
+                                            type="email"
+                                            value={forgotPasswordEmail}
+                                            onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                                            style={styles.input}
+                                            autoComplete="email"
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={forgotPasswordLoading}
+                                        style={{
+                                            ...styles.button,
+                                            ...(forgotPasswordLoading ? styles.buttonDisabled : {})
+                                        }}
+                                    >
+                                        {forgotPasswordLoading && <span style={styles.spinner}></span>}
+                                        {forgotPasswordLoading ? 'Sending...' : 'Send Reset Link'}
+                                    </button>
+                                </form>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
