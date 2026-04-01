@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiBase } from './api'
-import { validateName, validateRoomCode, validateCommander, RateLimiter } from './utils/validation'
+import { validateName, validateRoomCode, validateCommander, generateTempParticipantId, RateLimiter } from './utils/validation'
 import { useCommanderSearch } from './utils/commanderSearch'
 import { styles } from './styles/Join.styles'
 import { useAuth } from './contexts/AuthContext'
@@ -176,6 +176,9 @@ export default function QuickJoinPage() {
             return
         }
 
+        // Generate random participantId for non-logged-in users
+        const participantId = user?.username || generateTempParticipantId()
+
         let commanderValue = trimmedCommander
         if (trimmedCommander && trimmedPartner) {
             commanderValue = `${trimmedCommander} : ${trimmedPartner}`
@@ -194,7 +197,7 @@ export default function QuickJoinPage() {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    participantId: trimmedName,
+                    participantId: participantId,
                     participantName: trimmedName,
                     commander: commanderValue,
                     userId: user?.userId || null
@@ -209,18 +212,16 @@ export default function QuickJoinPage() {
 
             const data = await res.json().catch(() => null)
 
-            const participantId =
+            const returnedParticipantId =
                 (data && (data.participantId || data.id || data.participant?.participantId)) ||
-                trimmedName
-
-            const sanitizedParticipantId = validateName(participantId).sanitized
+                participantId
 
             if (commanderValue) {
-                sessionStorage.setItem(`commander_${trimmedCode}_${sanitizedParticipantId}`, commanderValue)
+                sessionStorage.setItem(`commander_${trimmedCode}_${returnedParticipantId}`, commanderValue)
             }
 
             navigate(
-                `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(sanitizedParticipantId)}`
+                `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(returnedParticipantId)}`
             )
 
             setName('')

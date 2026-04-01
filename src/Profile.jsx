@@ -6,7 +6,7 @@ import { styles } from './styles/Profile.styles'
 const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api/Rooms', '') || 'https://localhost:7086'
 
 export default function ProfilePage() {
-    const { user, logout } = useAuth()
+    const { user, logout, updateUser } = useAuth()
     const navigate = useNavigate()
     const [games, setGames] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -31,8 +31,45 @@ export default function ProfilePage() {
             return
         }
 
+        fetchUserProfile()
         fetchGames()
     }, [user, navigate])
+
+    const fetchUserProfile = async () => {
+        if (!user?.token) return
+
+        try {
+            const response = await fetch(`${API_BASE}/api/Auth/profile/me`, {
+                headers: {
+                    'Authorization': `Bearer ${user.token}`
+                }
+            })
+
+            if (!response.ok) {
+                // If token is invalid, logout
+                if (response.status === 401) {
+                    logout()
+                    navigate('/auth')
+                }
+                throw new Error('Failed to fetch profile')
+            }
+
+            const profileData = await response.json()
+            // Update user data with fresh profile info
+            const updatedUser = {
+                ...user,
+                emailVerified: profileData.emailConfirmed,
+                createdAtUtc: profileData.createdAtUtc,
+                lastLoginUtc: profileData.lastLoginUtc
+            }
+            // Update context with fresh data
+            if (JSON.stringify(user) !== JSON.stringify(updatedUser)) {
+                updateUser(updatedUser)
+            }
+        } catch (err) {
+            console.error('Error fetching profile:', err)
+        }
+    }
 
     useEffect(() => {
         const handleResize = () => {
@@ -83,8 +120,7 @@ export default function ProfilePage() {
             }
         } else {
             // Try to navigate to player view if we have stored participantId
-            const storedParticipantId = sessionStorage.getItem(`participantId_${game.code}`)
-            if (storedParticipantId) {
+            if ((!game.archived)) {
                 navigate(`/room/${game.code}/${user.username}`)
             } else {
                 // Otherwise go to view page with encoded code and pass state to indicate we came from profile
@@ -255,10 +291,11 @@ export default function ProfilePage() {
         setPasswordLoading(true)
 
         try {
-            const response = await fetch(`${API_BASE}/api/Auth/change-password?userId=${user.userId}`, {
+            const response = await fetch(`${API_BASE}/api/Auth/change-password`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
                 },
                 body: JSON.stringify({
                     currentPassword: passwordForm.currentPassword,

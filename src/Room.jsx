@@ -660,14 +660,63 @@ export default function RoomPage() {
             <div style={styles.content}>
                 <div style={styles.header}>
                     <h1 style={styles.title}>Game Room</h1>
-                    <div style={styles.codeDisplay}>
-                        <span style={styles.codeLabel}>Room Code:</span>
-                        <span style={styles.code}>{validatedCode}</span>
-                        {connectionStatus === 'connected' && (
-                            <span style={{ color: 'var(--success-color)', fontSize: '0.85rem', marginLeft: '1rem' }}>
-                                ● Live
+                    <div style={{ 
+                        ...styles.codeDisplay, 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '0.5rem', 
+                        padding: '1rem',
+                        maxWidth: '500px',
+                        margin: '0 auto'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ ...styles.codeLabel, fontSize: '1rem' }}>Room Code:</span>
+                            <span style={{ ...styles.code, fontSize: '1rem' }}>{validatedCode}</span>
+                            {connectionStatus === 'connected' && (
+                                <span style={{ color: 'var(--success-color)', fontSize: '1rem', marginLeft: '1rem' }}>
+                                    ● Live
+                                </span>
+                            )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ ...styles.codeLabel, fontSize: '1rem' }}>Name:</span>
+                            <span style={{ ...styles.code, fontSize: '1rem' }}>
+                                {roomData?.participants?.find(p => p.id === validatedParticipantId)?.name || 'Not set'}
                             </span>
-                        )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ ...styles.codeLabel, fontSize: '1rem' }}>Id:</span>
+                            <span style={{ ...styles.code, fontSize: '1rem' }}>{validatedParticipantId}</span>
+                        </div>
+                        <button
+                            onClick={() => setShowQR(!showQR)}
+                            style={{
+                                marginTop: '0.5rem',
+                                padding: '10px 20px',
+                                fontSize: '0.95rem',
+                                fontWeight: '600',
+                                backgroundColor: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                                e.currentTarget.style.borderColor = 'var(--primary-color)'
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                                e.currentTarget.style.borderColor = 'var(--border-color)'
+                            }}
+                        >
+                            📱 {showQR ? 'Hide' : 'Show'} QR Code
+                        </button>
                     </div>
                 </div>
 
@@ -678,42 +727,13 @@ export default function RoomPage() {
                     </div>
                 )}
 
-                {/* QR Code Button - Always visible */}
-                <div style={{
-                    display: 'flex',
-                    gap: '12px',
-                    justifyContent: 'center',
-                    flexWrap: 'wrap',
-                    marginBottom: '1.5rem'
-                }}>
-                    <button
-                        onClick={() => setShowQR(!showQR)}
-                        style={{
-                            padding: '10px 20px',
-                            fontSize: '0.95rem',
-                            fontWeight: '600',
-                            backgroundColor: 'var(--bg-secondary)',
-                            color: 'var(--text-primary)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
-                            e.currentTarget.style.borderColor = 'var(--primary-color)'
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
-                            e.currentTarget.style.borderColor = 'var(--border-color)'
-                        }}
-                    >
-                        📱 {showQR ? 'Hide' : 'Show'} QR Code
-                    </button>
-                    {!started && roomData?.settings?.allowPlayersToCreateCustomGroups && (
+                {/* Custom Groups Button */}
+                {!started && roomData?.settings?.allowPlayersToCreateCustomGroups && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        marginBottom: '1.5rem'
+                    }}>
                         <button
                             onClick={() => navigate(`/room/${validatedCode}/${validatedParticipantId}/custom-groups`)}
                             style={{
@@ -739,8 +759,8 @@ export default function RoomPage() {
                         >
                             👥 Create Custom Group
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
 
                 {/* QR Code Display - Always visible when toggled */}
                 {showQR && (

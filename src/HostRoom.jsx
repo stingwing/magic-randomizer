@@ -165,7 +165,7 @@ function RoundDisplay({ round, index, label }) {
                                                                 fontStyle: 'italic',
                                                                 marginLeft: '8px'
                                                             }}>
-                                                                ({member.commander})
+                                                               [{member.commander}]
                                                             </span>
                                                         )}
                                                     </span>
