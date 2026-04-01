@@ -61,13 +61,17 @@ export default function ProfilePage() {
 
     const handleGameClick = (game, isHost) => {
         if (isHost) {
-            // Navigate to host view
-            navigate(`/view/${game.code}`)
+            // Navigate to host page if unarchived, otherwise view page
+            if (!game.archived) {
+                navigate(`/host/${game.code}/${user.username}`)
+            } else {
+                navigate(`/view/${game.code}`)
+            }
         } else {
             // Try to navigate to player view if we have stored participantId
             const storedParticipantId = sessionStorage.getItem(`participantId_${game.code}`)
             if (storedParticipantId) {
-                navigate(`/room/${game.code}/${storedParticipantId}`)
+                navigate(`/room/${game.code}/${user.username}`)
             } else {
                 // Otherwise go to view page
                 navigate(`/view/${game.code}`)
@@ -293,81 +297,165 @@ export default function ProfilePage() {
                 <>
                     {games.hostedGames && games.hostedGames.length > 0 && (
                         <>
-                            <h2 style={styles.sectionTitle}>
-                                Hosted Games ({games.hostedGames.length})
-                            </h2>
-                            <div style={styles.gamesGrid}>
-                                {games.hostedGames.map((game) => {
-                                    const status = getGameStatus(game)
-                                    return (
-                                        <div
-                                            key={game.code}
-                                            style={{
-                                                ...styles.gameCard,
-                                                ...(hoveredCard === `host-${game.code}` ? styles.gameCardHover : {})
-                                            }}
-                                            onClick={() => handleGameClick(game, true)}
-                                            onMouseEnter={() => setHoveredCard(`host-${game.code}`)}
-                                            onMouseLeave={() => setHoveredCard(null)}
-                                        >
-                                            <div style={styles.gameCode}>
-                                                🎮 {game.code}
-                                            </div>
-                                            <div style={styles.gameEventName}>
-                                                {game.eventName || 'Unnamed Event'}
-                                            </div>
-                                            <div style={styles.gameDetails}>
-                                                <div>👥 {game.participantCount} participants</div>
-                                                <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
-                                                <div>⏰ Expires: {formatDate(game.expiresAtUtc)}</div>
-                                            </div>
-                                            <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
-                                                {getStatusText(status)}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                            {games.hostedGames.filter(game => !game.archived).length > 0 && (
+                                <>
+                                    <h2 style={styles.sectionTitle}>
+                                        Active Hosted Games ({games.hostedGames.filter(game => !game.archived).length})
+                                    </h2>
+                                    <div style={styles.gamesGrid}>
+                                        {games.hostedGames.filter(game => !game.archived).map((game) => {
+                                            const status = getGameStatus(game)
+                                            return (
+                                                <div
+                                                    key={game.code}
+                                                    style={{
+                                                        ...styles.gameCard,
+                                                        ...(hoveredCard === `host-${game.code}` ? styles.gameCardHover : {})
+                                                    }}
+                                                    onClick={() => handleGameClick(game, true)}
+                                                    onMouseEnter={() => setHoveredCard(`host-${game.code}`)}
+                                                    onMouseLeave={() => setHoveredCard(null)}
+                                                >
+                                                    <div style={styles.gameCode}>
+                                                        🎮 {game.code}
+                                                    </div>
+                                                    <div style={styles.gameEventName}>
+                                                        {game.eventName || 'Unnamed Event'}
+                                                    </div>
+                                                    <div style={styles.gameDetails}>
+                                                        <div>👥 {game.participantCount} participants</div>
+                                                        <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
+                                                    </div>
+                                                    <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
+                                                        {getStatusText(status)}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </>
+                            )}
+
+                            {games.hostedGames.filter(game => game.archived).length > 0 && (
+                                <>
+                                    <h2 style={styles.sectionTitle}>
+                                        Archived Hosted Games ({games.hostedGames.filter(game => game.archived).length})
+                                    </h2>
+                                    <div style={styles.gamesGrid}>
+                                        {games.hostedGames.filter(game => game.archived).map((game) => {
+                                            const status = getGameStatus(game)
+                                            return (
+                                                <div
+                                                    key={game.code}
+                                                    style={{
+                                                        ...styles.gameCard,
+                                                        ...(hoveredCard === `host-${game.code}` ? styles.gameCardHover : {})
+                                                    }}
+                                                    onClick={() => handleGameClick(game, true)}
+                                                    onMouseEnter={() => setHoveredCard(`host-${game.code}`)}
+                                                    onMouseLeave={() => setHoveredCard(null)}
+                                                >
+                                                    <div style={styles.gameCode}>
+                                                        🎮 {game.code}
+                                                    </div>
+                                                    <div style={styles.gameEventName}>
+                                                        {game.eventName || 'Unnamed Event'}
+                                                    </div>
+                                                    <div style={styles.gameDetails}>
+                                                        <div>👥 {game.participantCount} participants</div>
+                                                        <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
+                                                    </div>
+                                                    <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
+                                                        {getStatusText(status)}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </>
+                            )}
                         </>
                     )}
 
                     {games.playedGames && games.playedGames.length > 0 && (
                         <>
-                            <h2 style={styles.sectionTitle}>
-                                Played Games ({games.playedGames.length})
-                            </h2>
-                            <div style={styles.gamesGrid}>
-                                {games.playedGames.map((game) => {
-                                    const status = getGameStatus(game)
-                                    return (
-                                        <div
-                                            key={game.code}
-                                            style={{
-                                                ...styles.gameCard,
-                                                ...(hoveredCard === `played-${game.code}` ? styles.gameCardHover : {})
-                                            }}
-                                            onClick={() => handleGameClick(game, false)}
-                                            onMouseEnter={() => setHoveredCard(`played-${game.code}`)}
-                                            onMouseLeave={() => setHoveredCard(null)}
-                                        >
-                                            <div style={styles.gameCode}>
-                                                🎯 {game.code}
-                                            </div>
-                                            <div style={styles.gameEventName}>
-                                                {game.eventName || 'Unnamed Event'}
-                                            </div>
-                                            <div style={styles.gameDetails}>
-                                                <div>👥 {game.participantCount} participants</div>
-                                                <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
-                                                <div>⏰ Expires: {formatDate(game.expiresAtUtc)}</div>
-                                            </div>
-                                            <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
-                                                {getStatusText(status)}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                            {games.playedGames.filter(game => !game.archived).length > 0 && (
+                                <>
+                                    <h2 style={styles.sectionTitle}>
+                                        Active Played Games ({games.playedGames.filter(game => !game.archived).length})
+                                    </h2>
+                                    <div style={styles.gamesGrid}>
+                                        {games.playedGames.filter(game => !game.archived).map((game) => {
+                                            const status = getGameStatus(game)
+                                            return (
+                                                <div
+                                                    key={game.code}
+                                                    style={{
+                                                        ...styles.gameCard,
+                                                        ...(hoveredCard === `played-${game.code}` ? styles.gameCardHover : {})
+                                                    }}
+                                                    onClick={() => handleGameClick(game, false)}
+                                                    onMouseEnter={() => setHoveredCard(`played-${game.code}`)}
+                                                    onMouseLeave={() => setHoveredCard(null)}
+                                                >
+                                                    <div style={styles.gameCode}>
+                                                        🎯 {game.code}
+                                                    </div>
+                                                    <div style={styles.gameEventName}>
+                                                        {game.eventName || 'Unnamed Event'}
+                                                    </div>
+                                                    <div style={styles.gameDetails}>
+                                                        <div>👥 {game.participantCount} participants</div>
+                                                        <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
+                                                    </div>
+                                                    <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
+                                                        {getStatusText(status)}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </>
+                            )}
+
+                            {games.playedGames.filter(game => game.archived).length > 0 && (
+                                <>
+                                    <h2 style={styles.sectionTitle}>
+                                        Archived Played Games ({games.playedGames.filter(game => game.archived).length})
+                                    </h2>
+                                    <div style={styles.gamesGrid}>
+                                        {games.playedGames.filter(game => game.archived).map((game) => {
+                                            const status = getGameStatus(game)
+                                            return (
+                                                <div
+                                                    key={game.code}
+                                                    style={{
+                                                        ...styles.gameCard,
+                                                        ...(hoveredCard === `played-${game.code}` ? styles.gameCardHover : {})
+                                                    }}
+                                                    onClick={() => handleGameClick(game, false)}
+                                                    onMouseEnter={() => setHoveredCard(`played-${game.code}`)}
+                                                    onMouseLeave={() => setHoveredCard(null)}
+                                                >
+                                                    <div style={styles.gameCode}>
+                                                        🎯 {game.code}
+                                                    </div>
+                                                    <div style={styles.gameEventName}>
+                                                        {game.eventName || 'Unnamed Event'}
+                                                    </div>
+                                                    <div style={styles.gameDetails}>
+                                                        <div>👥 {game.participantCount} participants</div>
+                                                        <div>📅 Created: {formatDate(game.createdAtUtc)}</div>
+                                                    </div>
+                                                    <div style={{ ...styles.gameStatus, ...getStatusStyle(status) }}>
+                                                        {getStatusText(status)}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </>
+                            )}
                         </>
                     )}
 
