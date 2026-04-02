@@ -65,35 +65,64 @@ export const sanitizeNumber = (input, min = 0, max = Number.MAX_SAFE_INTEGER) =>
 }
 
 /**
- * Validates name input (allows letters, numbers, hyphens, common name characters - no spaces)
+ * Validates participant name input (allows letters, numbers, spaces, hyphens, common name characters)
+ * This is used for display names that can contain spaces
  */
 export const validateName = (name) => {
     const sanitized = sanitizeText(name)
     const trimmed = sanitized.trim()
     const { min, max } = INPUT_CONSTRAINTS.NAME
-    
-    // Check if input contained spaces
-    const hadSpaces = typeof name === 'string' && /\s/.test(name)
-    
-    // Remove spaces from sanitized value
-    const noSpaces = sanitized.replace(/\s/g, '')
-    
-    if (noSpaces.length < min && sanitized.length > 0) {
-        return { valid: false, error: `Name must be at least ${min} character`, sanitized: noSpaces }
+
+    if (trimmed.length < min && sanitized.length > 0) {
+        return { valid: false, error: `Name must be at least ${min} character`, sanitized }
     }
-    if (noSpaces.length > max) {
-        return { valid: false, error: `Name must be less than ${max} characters`, sanitized: noSpaces.slice(0, max) }
+    if (sanitized.length > max) {
+        return { valid: false, error: `Name must be less than ${max} characters`, sanitized: sanitized.slice(0, max) }
+    }
+
+    // Check for valid name characters (letters, numbers, spaces, hyphens, apostrophes, periods)
+    if (trimmed.length > 0 && !/^[a-zA-Z0-9\s\-'.]+$/.test(trimmed)) {
+        return { valid: false, error: 'Name contains invalid characters', sanitized: sanitized.replace(/[^a-zA-Z0-9\s\-'.]/g, '') }
+    }
+
+    return { valid: true, error: null, sanitized }
+}
+
+/**
+ * Generates a random 6-character URL-friendly ID
+ * Used for temporary participant IDs for non-logged-in users
+ */
+export const generateTempParticipantId = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    let result = ''
+    for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return result
+}
+
+/**
+ * Validates participant ID input (no spaces allowed for URL compatibility)
+ * This is used for backend identification
+ */
+export const validateParticipantId = (participantId) => {
+    const sanitized = sanitizeAlphanumeric(participantId, false)
+    const { min, max } = INPUT_CONSTRAINTS.NAME
+
+    // Check if input contained spaces that were removed
+    const hadSpaces = typeof participantId === 'string' && /\s/.test(participantId)
+
+    if (sanitized.length < min) {
+        return { valid: false, error: 'Participant ID is required', sanitized }
+    }
+    if (sanitized.length > max) {
+        return { valid: false, error: `Participant ID must be less than ${max} characters`, sanitized: sanitized.slice(0, max) }
     }
     if (hadSpaces) {
-        return { valid: false, error: 'Name cannot contain spaces', sanitized: noSpaces }
+        return { valid: false, error: 'Participant ID cannot contain spaces', sanitized }
     }
-    
-    // Check for valid name characters (letters, numbers, hyphens, apostrophes, periods - no spaces)
-    if (noSpaces.length > 0 && !/^[a-zA-Z0-9\-'.]+$/.test(noSpaces)) {
-        return { valid: false, error: 'Name contains invalid characters', sanitized: noSpaces.replace(/[^a-zA-Z0-9\-'.]/g, '') }
-    }
-    
-    return { valid: true, error: null, sanitized: noSpaces }
+
+    return { valid: true, error: null, sanitized }
 }
 
 /**

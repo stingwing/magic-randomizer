@@ -17,19 +17,28 @@ import CustomGroups from './CustomGroups'
 import PlayerCustomGroups from './PlayerCustomGroups'
 import RoomStatistics from './RoomStatistics'
 import MobileViewPage from './MobileViewPage'
+import AuthPage from './Auth'
+import ProfilePage from './Profile'
+import VerifyEmailPage from './VerifyEmail'
+import ResetPasswordPage from './ResetPassword'
+import { AuthProvider } from './contexts/AuthContext'
 
 function AppContent() {
     const location = useLocation()
-    
+
     // Check if current route should hide the main NavBar
     const shouldHideNavBar = location.pathname.match(/^\/room\/[^/]+\/[^/]+(\/.*)?$/) ||
                             location.pathname.match(/^\/view\/[^/]+\/mobile\/[^/]+$/)
-    
+
     return (
         <>
             {!shouldHideNavBar && <NavBar />}
             <Routes>
                 <Route path="/" element={<JoinPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/rejoin" element={<RejoinPage />} />
                 <Route path="/manual" element={<Manual />} />
                 <Route path="/new" element={<NewPage />} />
@@ -86,16 +95,18 @@ function App() {
     }, [])
 
     return (
-        <Router>
-            <div style={{ 
-                maxWidth: 1200, 
-                margin: "0 auto", 
-                fontFamily: "sans-serif", 
-                padding: "56px 0.5rem 1rem" 
-            }}>
-                <AppContent />
-            </div>
-        </Router>
+        <AuthProvider>
+            <Router>
+                <div style={{ 
+                    maxWidth: 1200, 
+                    margin: "0 auto", 
+                    fontFamily: "sans-serif", 
+                    padding: "56px 0.5rem 1rem" 
+                }}>
+                    <AppContent />
+                </div>
+            </Router>
+        </AuthProvider>
     )
 }
 

@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import * as signalR from '@microsoft/signalr'
 import { apiBase, signalRBase } from './api'
 import { validateRoomCode, validateUrlParam, RateLimiter } from './utils/validation'
@@ -236,8 +236,10 @@ function RoundDisplay({ round, index, label }) {
 export default function ViewPage() {
     const { code: paramCode } = useParams()
     const navigate = useNavigate()
+    const location = useLocation()
     const [code, setCode] = useState('')
     const [validatedCode, setValidatedCode] = useState('')
+    const [cameFromProfile, setCameFromProfile] = useState(false)
     const [participants, setParticipants] = useState([])
     const [currentRound, setCurrentRound] = useState(null)
     const [archivedRounds, setArchivedRounds] = useState([])
@@ -245,6 +247,7 @@ export default function ViewPage() {
     const [error, setError] = useState(null)
     const [gameStarted, setGameStarted] = useState(false)
     const [isViewing, setIsViewing] = useState(false)
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
     const pollRef = useRef(null)
     const hubConnectionRef = useRef(null)
     const [connectionStatus, setConnectionStatus] = useState('disconnected')
@@ -262,24 +265,47 @@ export default function ViewPage() {
 
     // Validate URL parameter on mount
     useEffect(() => {
+        // Check if user came from profile page
+        if (location.state?.from === 'profile') {
+            setCameFromProfile(true)
+        }
+
         if (paramCode) {
-            const codeValidation = validateUrlParam(paramCode)
+            try {
+                // Decode the base64 encoded room code
+                const decodedCode = atob(paramCode)
+                const codeValidation = validateUrlParam(decodedCode)
 
-            if (!codeValidation.valid) {
+                if (!codeValidation.valid) {
+                    navigate('/view', { replace: true })
+                    setError('Invalid room code in URL')
+                    return
+                }
+
+                setCode(codeValidation.sanitized)
+                setValidatedCode(codeValidation.sanitized)
+
+                // Auto-view if URL parameter is present
+                if (!isViewing) {
+                    fetchAllData(codeValidation.sanitized)
+                }
+            } catch (err) {
+                console.error('Error decoding room code:', err)
                 navigate('/view', { replace: true })
-                setError('Invalid room code in URL')
-                return
-            }
-
-            setCode(codeValidation.sanitized)
-            setValidatedCode(codeValidation.sanitized)
-
-            // Auto-view if URL parameter is present
-            if (!isViewing) {
-                fetchAllData(codeValidation.sanitized)
+                setError('Invalid URL parameter')
             }
         }
-    }, [paramCode, navigate])
+    }, [paramCode, navigate, location.state])
+
+    // Mobile detection
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768)
+        }
+
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     // Fetch room list when not viewing a specific room
     useEffect(() => {
@@ -480,10 +506,9 @@ export default function ViewPage() {
             setIsViewing(true)
             setValidatedCode(roomCode)
 
-            // Navigate to the parameterized route
-            if (!paramCode) {
-                navigate(`/view/${roomCode}`, { replace: true })
-            }
+            // Encode the room code for the URL (base64)
+            const encodedCode = btoa(roomCode)
+            navigate(`/view/${encodedCode}`, { replace: true })
         } catch (err) {
             console.error('Fetch all data error', err)
             setError(err.message || 'Failed to load room data')
@@ -520,6 +545,19 @@ export default function ViewPage() {
         fetchAllData(roomCode)
     }
 
+    const copyShareLink = () => {
+        if (validatedCode) {
+            const encodedCode = btoa(validatedCode)
+            const shareUrl = `${window.location.origin}/view/${encodedCode}`
+            navigator.clipboard.writeText(shareUrl)
+                .then(() => {
+                    // You could add a toast notification here
+                    console.log('Share link copied to clipboard')
+                })
+                .catch(err => console.error('Failed to copy link:', err))
+        }
+    }
+
     const handleKeyPress = (e) => {
         if (e.key === 'Enter' && !loading && !validationErrors.code) {
             handleView()
@@ -536,25 +574,34 @@ export default function ViewPage() {
         setGameStarted(false)
         setError(null)
         setValidationErrors({})
-        navigate('/view', { replace: true })
+
+        // Navigate back to profile if user came from there, otherwise go to view page
+        if (cameFromProfile) {
+            navigate('/profile', { replace: true })
+        } else {
+            navigate('/view', { replace: true })
+        }
 
         // Disconnect SignalR
         if (hubConnectionRef.current) {
-            hubConnectionRef.current.invoke('LeaveRoomGroup', validatedCode)
-                .catch(err => console.error('Error leaving room group:', err))
-                .finally(() => {
-                    hubConnectionRef.current.stop()
-                })
+            const connection = hubConnectionRef.current
+            const currentCode = validatedCode
+
+            // Check if connection is in a state where we can invoke
+            if (connection.state === signalR.HubConnectionState.Connected) {
+                connection.invoke('LeaveRoomGroup', currentCode)
+                    .catch(err => console.error('Error leaving room group:', err))
+                    .finally(() => {
+                        connection.stop().catch(err => console.error('Error stopping connection:', err))
+                    })
+            } else {
+                // Just stop the connection if not connected
+                connection.stop().catch(err => console.error('Error stopping connection:', err))
+            }
         }
         if (pollRef.current) {
             clearInterval(pollRef.current)
             pollRef.current = null
-        }
-    }
-
-    const handleRefresh = () => {
-        if (validatedCode) {
-            fetchAllData(validatedCode)
         }
     }
 
@@ -573,7 +620,74 @@ export default function ViewPage() {
             return utcString
         }
     }
-    
+
+    const renderMobileRoomCard = (room) => {
+        return (
+            <div
+                key={room.code}
+                onClick={() => handleRoomCodeClick(room.code)}
+                style={{
+                    padding: '16px',
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--primary-color)'
+                    e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-color)'
+                    e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                }}
+            >
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                }}>
+                    <div style={{
+                        fontSize: '1em',
+                        color: 'var(--text-primary)',
+                        fontWeight: '500'
+                    }}>
+                        {room.eventName || '-'}
+                    </div>
+                    {room.archived && (
+                        <div style={{
+                            fontSize: '0.75em',
+                            backgroundColor: '#666',
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontWeight: '600',
+                            textTransform: 'uppercase'
+                        }}>
+                            ARCHIVED
+                        </div>
+                    )}
+                </div>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.85em',
+                    color: 'var(--text-secondary)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>👥</span>
+                        <span>{room.participantCount} players</span>
+                    </div>
+                    <div>
+                        {formatDate(room.createdAtUtc)}
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     // Extract timer data from current round for the section-level timer
     const getCurrentRoundTimerData = () => {
         if (!currentRound) return { startedAtUtc: null, roundStarted: false, roundLength: null }
@@ -687,7 +801,7 @@ export default function ViewPage() {
                 return connection.invoke('JoinRoomGroup', validatedCode)
             })
             .then(() => {
-                console.log(`Joined room: ${validatedCode}`)
+                console.log()
             })
             .catch(err => {
                 console.error('SignalR Connection Error:', err)
@@ -703,14 +817,27 @@ export default function ViewPage() {
 
         return () => {
             if (hubConnectionRef.current) {
-                // Leave the room group before stopping
-                hubConnectionRef.current.invoke('LeaveRoomGroup', validatedCode)
-                    .catch(err => console.error('Error leaving room group:', err))
-                    .finally(() => {
-                        hubConnectionRef.current.stop()
-                            .then(() => console.log('SignalR connection stopped'))
-                            .catch(err => console.error('Error stopping SignalR:', err))
-                    })
+                const connection = hubConnectionRef.current
+                const currentCode = validatedCode
+
+                // Check if connection is in a state where we can invoke
+                if (connection.state === signalR.HubConnectionState.Connected) {
+                    connection.invoke('LeaveRoomGroup', currentCode)
+                        .catch(err => {
+                            // Ignore errors from invoke during cleanup
+                            console.log('Could not leave room group during cleanup:', err.message)
+                        })
+                        .finally(() => {
+                            connection.stop()
+                                .then(() => console.log('SignalR connection stopped'))
+                                .catch(err => console.error('Error stopping SignalR:', err))
+                        })
+                } else {
+                    // Just stop the connection if not connected
+                    connection.stop()
+                        .then(() => console.log('SignalR connection stopped'))
+                        .catch(err => console.error('Error stopping SignalR:', err))
+                }
             }
             if (pollRef.current) {
                 clearInterval(pollRef.current)
@@ -840,10 +967,22 @@ export default function ViewPage() {
                         </div>
                     ) : getFilteredAndSortedRoomList().length > 0 ? (
                         <>
+                            {isMobile ? (
+                                // Mobile view - card layout
+                                <div style={{
+                                    display: 'grid',
+                                    gap: '12px',
+                                    marginTop: '16px'
+                                }}>
+                                    {getFilteredAndSortedRoomList().map((room) => renderMobileRoomCard(room))}
+                                </div>
+                            ) : (
+                                // Desktop view - table layout
+                                <>
                             {/* Column Headers */}
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                gridTemplateColumns: '2fr 200px 80px 100px',
                                 gap: '12px',
                                 padding: '12px 16px',
                                 borderBottom: '2px solid var(--border-color)',
@@ -852,25 +991,6 @@ export default function ViewPage() {
                                 fontSize: '0.9em',
                                 color: 'var(--text-secondary)'
                             }}>
-                                <div
-                                    onClick={() => handleColumnSort('code')}
-                                    style={{
-                                        cursor: 'pointer',
-                                        userSelect: 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        transition: 'color 0.2s'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.color = 'var(--primary-color)'
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.color = 'var(--text-secondary)'
-                                    }}
-                                >
-                                    Room Code <span style={{ fontSize: '0.8em' }}>{getSortIcon('code')}</span>
-                                </div>
                                 <div
                                     onClick={() => handleColumnSort('eventName')}
                                     style={{
@@ -947,7 +1067,7 @@ export default function ViewPage() {
                                             cursor: 'pointer',
                                             transition: 'all 0.2s',
                                             display: 'grid',
-                                            gridTemplateColumns: '120px 2fr 200px 80px 100px',
+                                            gridTemplateColumns: '2fr 200px 80px 100px',
                                             gap: '12px',
                                             alignItems: 'center'
                                         }}
@@ -960,14 +1080,6 @@ export default function ViewPage() {
                                             e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
                                         }}
                                     >
-                                        <div style={{
-                                            fontWeight: '700',
-                                            fontSize: '1.1em',
-                                            color: 'var(--primary-color)',
-                                            fontFamily: 'monospace'
-                                        }}>
-                                            {room.code}
-                                        </div>
                                         <div style={{
                                             fontSize: '0.9em',
                                             color: 'var(--text-primary)',
@@ -1013,26 +1125,14 @@ export default function ViewPage() {
                                     </div>
                                 ))}
                             </div>
+                                </>
+                            )}
                         </>
                     ) : searchQuery ? (
                         <p style={styles.infoText}>No rooms match your search.</p>
                     ) : (
                         <p style={styles.infoText}>No rooms available at the moment.</p>
                     )}
-                </div>
-
-                <div style={styles.infoCard}>
-                    <h3 style={styles.infoTitle}>ℹ️ About View Mode</h3>
-                    <p style={styles.infoText}>
-                        View mode allows you to spectate a game in real-time without joining as a player or host.
-                        Perfect for tournament organizers, friends watching, or anyone interested in following along.
-                    </p>
-                    <ul style={styles.infoList}>
-                        <li>See all players in the game</li>
-                        <li>View current and past rounds</li>
-                        <li>Track game progress and results</li>
-                        <li>Real-time updates via SignalR</li>
-                    </ul>
                 </div>
             </div>
         )
@@ -1044,11 +1144,7 @@ export default function ViewPage() {
         <div style={styles.container}>
             <div style={styles.header}>
                 <h1 style={styles.title}>Viewing Game</h1>
-                {connectionStatus === 'connected' && (
-                    <span style={{ color: 'var(--success-color)', fontSize: '0.85rem', marginLeft: '1rem' }}>
-                        ● Live
-                    </span>
-                )}
+                {connectionStatus === 'connected'}
                 {connectionStatus === 'connecting' && (
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginLeft: '1rem' }}>
                         ⟳ Connecting...
@@ -1056,17 +1152,28 @@ export default function ViewPage() {
                 )}
             </div>
 
-            {/* Room Code Banner */}
+            {/* Room Info Banner */}
             <div style={styles.codeBanner}>
                 <div style={styles.codeContent}>
                     <div>
-                        <div style={styles.codeLabel}>Room Code</div>
-                        <div style={styles.code}>{validatedCode}</div>
                         <div style={styles.codeHint}>Read-only view • Real-time updates</div>
                     </div>
-                    <button onClick={handleNewSearch} style={styles.changeButton}>
-                        🔍 View Different Game
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button 
+                            onClick={copyShareLink} 
+                            style={{
+                                ...styles.changeButton,
+                                backgroundColor: 'var(--primary-color)',
+                                color: 'white'
+                            }}
+                            title="Copy shareable link"
+                        >
+                            🔗 Share Link
+                        </button>
+                        <button onClick={handleNewSearch} style={styles.changeButton}>
+                            {cameFromProfile ? '← Back to Profile' : '🔍 View Different Game'}
+                        </button>
+                    </div>
                 </div>
             </div>
 

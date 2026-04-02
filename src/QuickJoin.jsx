@@ -1,9 +1,10 @@
 ﻿import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiBase } from './api'
-import { validateName, validateRoomCode, validateCommander, RateLimiter } from './utils/validation'
+import { validateName, validateRoomCode, validateCommander, generateTempParticipantId, RateLimiter } from './utils/validation'
 import { useCommanderSearch } from './utils/commanderSearch'
 import { styles } from './styles/Join.styles'
+import { useAuth } from './contexts/AuthContext'
 
 // Rate limiter to prevent API abuse
 const joinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -18,10 +19,18 @@ export default function QuickJoinPage() {
     const [validationErrors, setValidationErrors] = useState({})
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
+    const { user } = useAuth()
 
     // Use commander search hooks
     const commanderSearch = useCommanderSearch(300)
     const partnerSearch = useCommanderSearch(300)
+
+    // Prepopulate name field with user's display name if logged in
+    useEffect(() => {
+        if (user && user.displayName) {
+            setName(user.displayName)
+        }
+    }, [user])
 
     useEffect(() => {
         const codeParam = searchParams.get('code')
@@ -167,6 +176,9 @@ export default function QuickJoinPage() {
             return
         }
 
+        // Generate random participantId for non-logged-in users
+        const participantId = user?.username || generateTempParticipantId()
+
         let commanderValue = trimmedCommander
         if (trimmedCommander && trimmedPartner) {
             commanderValue = `${trimmedCommander} : ${trimmedPartner}`
@@ -185,9 +197,10 @@ export default function QuickJoinPage() {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    participantId: trimmedName,
+                    participantId: participantId,
                     participantName: trimmedName,
-                    commander: commanderValue
+                    commander: commanderValue,
+                    userId: user?.userId || null
                 })
             })
 
@@ -199,18 +212,16 @@ export default function QuickJoinPage() {
 
             const data = await res.json().catch(() => null)
 
-            const participantId =
+            const returnedParticipantId =
                 (data && (data.participantId || data.id || data.participant?.participantId)) ||
-                trimmedName
-
-            const sanitizedParticipantId = validateName(participantId).sanitized
+                participantId
 
             if (commanderValue) {
-                sessionStorage.setItem(`commander_${trimmedCode}_${sanitizedParticipantId}`, commanderValue)
+                sessionStorage.setItem(`commander_${trimmedCode}_${returnedParticipantId}`, commanderValue)
             }
 
             navigate(
-                `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(sanitizedParticipantId)}`
+                `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(returnedParticipantId)}`
             )
 
             setName('')
@@ -240,30 +251,32 @@ export default function QuickJoinPage() {
             <div style={styles.cardGrid}>
                 <div style={styles.card}>
                     <div style={styles.inputGroup}>                     
-                        <label style={styles.label}>
-                            Name
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={handleNameChange}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Enter your name"
-                                style={{
-                                    ...styles.input,
-                                    ...(validationErrors.name ? styles.inputError : {})
-                                }}
-                                disabled={loading}
-                                maxLength={50}
-                                aria-invalid={!!validationErrors.name}
-                                aria-describedby={validationErrors.name ? "name-error" : undefined}
-                                autoFocus
-                            />
-                            {validationErrors.name && (
-                                <span id="name-error" style={styles.validationError}>
-                                    {validationErrors.name}
-                                </span>
-                            )}
-                        </label>
+                        {!user && (
+                            <label style={styles.label}>
+                                Name
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={handleNameChange}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Enter your name"
+                                    style={{
+                                        ...styles.input,
+                                        ...(validationErrors.name ? styles.inputError : {})
+                                    }}
+                                    disabled={loading}
+                                    maxLength={50}
+                                    aria-invalid={!!validationErrors.name}
+                                    aria-describedby={validationErrors.name ? "name-error" : undefined}
+                                    autoFocus
+                                />
+                                {validationErrors.name && (
+                                    <span id="name-error" style={styles.validationError}>
+                                        {validationErrors.name}
+                                    </span>
+                                )}
+                            </label>
+                        )}
                         <label style={styles.label}>
                             Commander (Optional)
                             <div style={{ position: 'relative' }}>

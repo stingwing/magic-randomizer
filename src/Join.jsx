@@ -1,9 +1,10 @@
 ﻿import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiBase } from './api'
-import { validateName, validateRoomCode, validateCommander, validateHostId, validateEventName, RateLimiter } from './utils/validation'
+import { validateName, validateRoomCode, validateCommander, validateHostId, validateEventName, generateTempParticipantId, RateLimiter } from './utils/validation'
 import { useCommanderSearch } from './utils/commanderSearch'
 import { styles, modeStyles } from './styles/Join.styles'
+import { useAuth } from './contexts/AuthContext'
 
 // Rate limiter to prevent API abuse
 const joinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -22,10 +23,23 @@ export default function JoinPage() {
     const [validationErrors, setValidationErrors] = useState({})
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
+    const { user } = useAuth()
 
     // Use commander search hooks
     const commanderSearch = useCommanderSearch(300)
     const partnerSearch = useCommanderSearch(300)
+
+    // Prepopulate fields with user data if logged in
+    useEffect(() => {
+        if (user) {
+            if (user.displayName) {
+                setName(user.displayName)
+            }
+            if (user.username) {
+                setHostId(user.username)
+            }
+        }
+    }, [user])
 
     useEffect(() => {
         const codeParam = searchParams.get('code')
@@ -247,6 +261,9 @@ export default function JoinPage() {
             return
         }
 
+        // Generate random participantId for non-logged-in users
+        const participantId = user?.username || generateTempParticipantId()
+
         // Combine commander and partner if both are present
         let commanderValue = trimmedCommander
         if (trimmedCommander && trimmedPartner) {
@@ -266,9 +283,10 @@ export default function JoinPage() {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    participantId: trimmedName,
+                    participantId: participantId,
                     participantName: trimmedName,
-                    commander: commanderValue
+                    commander: commanderValue,
+                    userId: user?.userId || null
                 })
             })
 
@@ -286,20 +304,17 @@ export default function JoinPage() {
 
             const data = await res.json().catch(() => null)
 
-            const participantId =
+            const returnedParticipantId =
                 (data && (data.participantId || data.id || data.participant?.participantId)) ||
-                trimmedName
-
-            // Validate participant ID before navigation
-            const sanitizedParticipantId = validateName(participantId).sanitized
+                participantId
 
             // Store commander in sessionStorage to pass to Room page
             if (commanderValue) {
-                sessionStorage.setItem(`commander_${trimmedCode}_${sanitizedParticipantId}`, commanderValue)
+                sessionStorage.setItem(`commander_${trimmedCode}_${returnedParticipantId}`, commanderValue)
             }
 
             navigate(
-                `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(sanitizedParticipantId)}`
+                `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(returnedParticipantId)}`
             )
 
             setCode('')
@@ -359,7 +374,8 @@ export default function JoinPage() {
                 },
                 body: JSON.stringify({ 
                     hostId: trimmedHostId,
-                    eventName: trimmedEventName
+                    eventName: trimmedEventName,
+                    userId: user?.userId || null
                 })
             })
 
@@ -484,29 +500,31 @@ export default function JoinPage() {
                                         </span>
                                     )}
                                 </label>
-                                <label style={styles.label}>
-                                    Your Name
-                                    <input
-                                        type="text"
-                                        value={name}
-                                        onChange={handleNameChange}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder="Enter your name"
-                                        style={{
-                                            ...styles.input,
-                                            ...(validationErrors.name ? styles.inputError : {})
-                                        }}
-                                        disabled={loading}
-                                        maxLength={50}
-                                        aria-invalid={!!validationErrors.name}
-                                        aria-describedby={validationErrors.name ? "name-error" : undefined}
-                                    />
-                                    {validationErrors.name && (
-                                        <span id="name-error" style={styles.validationError}>
-                                            {validationErrors.name}
-                                        </span>
-                                    )}
-                                </label>
+                                {!user && (
+                                    <label style={styles.label}>
+                                        Your Name
+                                        <input
+                                            type="text"
+                                            value={name}
+                                            onChange={handleNameChange}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Enter your name"
+                                            style={{
+                                                ...styles.input,
+                                                ...(validationErrors.name ? styles.inputError : {})
+                                            }}
+                                            disabled={loading}
+                                            maxLength={50}
+                                            aria-invalid={!!validationErrors.name}
+                                            aria-describedby={validationErrors.name ? "name-error" : undefined}
+                                        />
+                                        {validationErrors.name && (
+                                            <span id="name-error" style={styles.validationError}>
+                                                {validationErrors.name}
+                                            </span>
+                                        )}
+                                    </label>
+                                )}
                                 <label style={styles.label}>
                                     Commander (Optional)
                                     <div style={{ position: 'relative' }}>
@@ -668,30 +686,32 @@ export default function JoinPage() {
                             </>
                         ) : (
                             <>
-                                <label style={styles.label}>
-                                    Host ID
-                                    <input
-                                        type="text"
-                                        value={hostId}
-                                        onChange={handleHostIdChange}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder="Enter your host identifier"
-                                        style={{
-                                            ...styles.input,
-                                            ...(validationErrors.hostId ? styles.inputError : {})
-                                        }}
-                                        disabled={loading}
-                                        maxLength={50}
-                                        aria-invalid={!!validationErrors.hostId}
-                                        aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
-                                        autoFocus
-                                    />
-                                    {validationErrors.hostId && (
-                                        <span id="hostId-error" style={styles.validationError}>
-                                            {validationErrors.hostId}
-                                        </span>
-                                    )}
-                                </label>
+                                {!user && (
+                                    <label style={styles.label}>
+                                        Host ID
+                                        <input
+                                            type="text"
+                                            value={hostId}
+                                            onChange={handleHostIdChange}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Enter your host identifier"
+                                            style={{
+                                                ...styles.input,
+                                                ...(validationErrors.hostId ? styles.inputError : {})
+                                            }}
+                                            disabled={loading}
+                                            maxLength={50}
+                                                    aria-invalid={!!validationErrors.hostId}
+                                                    aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
+                                                    autoFocus
+                                                />
+                                                {validationErrors.hostId && (
+                                                    <span id="hostId-error" style={styles.validationError}>
+                                                        {validationErrors.hostId}
+                                                    </span>
+                                                )}
+                                            </label>
+                                        )}
                                 <label style={styles.label}>
                                     Event Name
                                     <input

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { QRCodeSVG } from 'qrcode.react'
 import * as signalR from '@microsoft/signalr'
 import { apiBase, signalRBase } from './api'
 import {
@@ -264,6 +265,8 @@ export default function RoomPage() {
     const [validatedCode, setValidatedCode] = useState('')
     const [validatedParticipantId, setValidatedParticipantId] = useState('')
     const [connectionStatus, setConnectionStatus] = useState('disconnected')
+    const [showQR, setShowQR] = useState(false)
+    const [copyMessage, setCopyMessage] = useState(null)
 
     useEffect(() => {
         const codeValidation = validateUrlParam(code)
@@ -276,7 +279,67 @@ export default function RoomPage() {
 
         setValidatedCode(codeValidation.sanitized)
         setValidatedParticipantId(participantValidation.sanitized)
+
+        // Store participantId in sessionStorage for profile navigation
+        if (codeValidation.valid && participantValidation.valid) {
+            sessionStorage.setItem(`participantId_${codeValidation.sanitized}`, participantValidation.sanitized)
+        }
     }, [code, participantId, navigate])
+
+    const getJoinUrl = () => {
+        const baseUrl = window.location.origin
+        return `${baseUrl}/quick-join?code=${encodeURIComponent(validatedCode)}`
+    }
+
+    const copyCode = async () => {
+        if (!validatedCode) return
+        try {
+            await navigator.clipboard.writeText(validatedCode)
+            setCopyMessage('Code copied to clipboard!')
+            setTimeout(() => setCopyMessage(null), 3000)
+        } catch {
+            // Fallback for browsers that don't support clipboard API
+            const textArea = document.createElement('textarea')
+            textArea.value = validatedCode
+            textArea.style.position = 'fixed'
+            textArea.style.opacity = '0'
+            document.body.appendChild(textArea)
+            textArea.select()
+            try {
+                document.execCommand('copy')
+                setCopyMessage('Code copied to clipboard!')
+                setTimeout(() => setCopyMessage(null), 3000)
+            } catch {
+                alert(`Copy this code: ${validatedCode}`)
+            }
+            document.body.removeChild(textArea)
+        }
+    }
+
+    const copyJoinUrl = async () => {
+        const url = getJoinUrl()
+        try {
+            await navigator.clipboard.writeText(url)
+            setCopyMessage('Join URL copied to clipboard!')
+            setTimeout(() => setCopyMessage(null), 3000)
+        } catch {
+            // Fallback
+            const textArea = document.createElement('textarea')
+            textArea.value = url
+            textArea.style.position = 'fixed'
+            textArea.style.opacity = '0'
+            document.body.appendChild(textArea)
+            textArea.select()
+            try {
+                document.execCommand('copy')
+                setCopyMessage('Join URL copied to clipboard!')
+                setTimeout(() => setCopyMessage(null), 3000)
+            } catch {
+                alert(`Copy this URL: ${url}`)
+            }
+            document.body.removeChild(textArea)
+        }
+    }
 
     const fetchGroupResult = async () => {
         if (!validatedCode || !validatedParticipantId) return false
@@ -597,14 +660,63 @@ export default function RoomPage() {
             <div style={styles.content}>
                 <div style={styles.header}>
                     <h1 style={styles.title}>Game Room</h1>
-                    <div style={styles.codeDisplay}>
-                        <span style={styles.codeLabel}>Room Code:</span>
-                        <span style={styles.code}>{validatedCode}</span>
-                        {connectionStatus === 'connected' && (
-                            <span style={{ color: 'var(--success-color)', fontSize: '0.85rem', marginLeft: '1rem' }}>
-                                ● Live
+                    <div style={{ 
+                        ...styles.codeDisplay, 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '0.5rem', 
+                        padding: '1rem',
+                        maxWidth: '500px',
+                        margin: '0 auto'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ ...styles.codeLabel, fontSize: '1rem' }}>Room Code:</span>
+                            <span style={{ ...styles.code, fontSize: '1rem' }}>{validatedCode}</span>
+                            {connectionStatus === 'connected' && (
+                                <span style={{ color: 'var(--success-color)', fontSize: '1rem', marginLeft: '1rem' }}>
+                                    ● Live
+                                </span>
+                            )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ ...styles.codeLabel, fontSize: '1rem' }}>Name:</span>
+                            <span style={{ ...styles.code, fontSize: '1rem' }}>
+                                {roomData?.participants?.find(p => p.id === validatedParticipantId)?.name || 'Not set'}
                             </span>
-                        )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ ...styles.codeLabel, fontSize: '1rem' }}>Id:</span>
+                            <span style={{ ...styles.code, fontSize: '1rem' }}>{validatedParticipantId}</span>
+                        </div>
+                        <button
+                            onClick={() => setShowQR(!showQR)}
+                            style={{
+                                marginTop: '0.5rem',
+                                padding: '10px 20px',
+                                fontSize: '0.95rem',
+                                fontWeight: '600',
+                                backgroundColor: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                                e.currentTarget.style.borderColor = 'var(--primary-color)'
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                                e.currentTarget.style.borderColor = 'var(--border-color)'
+                            }}
+                        >
+                            📱 {showQR ? 'Hide' : 'Show'} QR Code
+                        </button>
                     </div>
                 </div>
 
@@ -612,6 +724,150 @@ export default function RoomPage() {
                     <div style={styles.errorBanner}>
                         <span style={styles.errorIcon}>⚠️</span>
                         {roomError}
+                    </div>
+                )}
+
+                {/* Custom Groups Button */}
+                {!started && roomData?.settings?.allowPlayersToCreateCustomGroups && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        marginBottom: '1.5rem'
+                    }}>
+                        <button
+                            onClick={() => navigate(`/room/${validatedCode}/${validatedParticipantId}/custom-groups`)}
+                            style={{
+                                padding: '10px 20px',
+                                fontSize: '0.95rem',
+                                fontWeight: '600',
+                                backgroundColor: 'var(--primary-color)',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.opacity = '0.9'
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.opacity = '1'
+                            }}
+                        >
+                            👥 Create Custom Group
+                        </button>
+                    </div>
+                )}
+
+                {/* QR Code Display - Always visible when toggled */}
+                {showQR && (
+                    <div style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        marginBottom: '1.5rem',
+                        border: '1px solid var(--border-color)'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '16px'
+                        }}>
+                            <div style={{
+                                backgroundColor: '#ffffff',
+                                padding: '16px',
+                                borderRadius: '12px',
+                                display: 'inline-flex',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }}>
+                                <QRCodeSVG
+                                    value={getJoinUrl()}
+                                    size={200}
+                                    level="H"
+                                    includeMargin={true}
+                                    bgColor="#ffffff"
+                                    fgColor="#000000"
+                                />
+                            </div>
+                            <div style={{
+                                textAlign: 'center',
+                                width: '100%'
+                            }}>
+                                <p style={{
+                                    fontSize: '0.9rem',
+                                    color: 'var(--text-secondary)',
+                                    marginBottom: '12px'
+                                }}>
+                                    Other players can scan this QR code to join with the room code pre-filled
+                                </p>
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '8px',
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap'
+                                }}>
+                                    <button
+                                        onClick={copyCode}
+                                        style={{
+                                            padding: '8px 16px',
+                                            fontSize: '0.9rem',
+                                            fontWeight: '500',
+                                            backgroundColor: 'var(--primary-color)',
+                                            color: '#fff',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            transition: 'opacity 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                    >
+                                        📋 Copy Code
+                                    </button>
+                                    <button
+                                        onClick={copyJoinUrl}
+                                        style={{
+                                            padding: '8px 16px',
+                                            fontSize: '0.9rem',
+                                            fontWeight: '500',
+                                            backgroundColor: 'var(--bg-tertiary)',
+                                            color: 'var(--text-primary)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
+                                            e.currentTarget.style.borderColor = 'var(--primary-color)'
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'
+                                            e.currentTarget.style.borderColor = 'var(--border-color)'
+                                        }}
+                                    >
+                                        🔗 Copy Join URL
+                                    </button>
+                                </div>
+                                {copyMessage && (
+                                    <div style={{
+                                        marginTop: '12px',
+                                        padding: '8px 16px',
+                                        backgroundColor: 'var(--success-bg)',
+                                        color: 'var(--success-color)',
+                                        borderRadius: '6px',
+                                        fontSize: '0.9rem',
+                                        fontWeight: '500'
+                                    }}>
+                                        ✅ {copyMessage}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
 
