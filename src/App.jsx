@@ -21,6 +21,7 @@ import AuthPage from './Auth'
 import ProfilePage from './Profile'
 import VerifyEmailPage from './VerifyEmail'
 import ResetPasswordPage from './ResetPassword'
+import MultiGameStatistics from './MultiGameStatistics'
 import { AuthProvider } from './contexts/AuthContext'
 import { initGA, trackPageView } from './utils/analytics'
 
@@ -58,6 +59,7 @@ function AppContent() {
                 <Route path="/view" element={<ViewPage />} />
                 <Route path="/view/:code" element={<ViewPage />} />
                 <Route path="/view/:code/mobile/:participantId" element={<MobileViewPage />} />
+                <Route path="/statistics" element={<MultiGameStatistics />} />
                 <Route path="/quick-join" element={<QuickJoinPage />} />
             </Routes>
         </>

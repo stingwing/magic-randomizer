@@ -7,6 +7,7 @@ import { calculateTimeRemaining } from './utils/timerUtils'
 import { isInCustomGroup, getCustomGroupColor } from './utils/customGroupColors'
 import { styles } from './styles/ViewPage.styles'
 import { analytics } from './utils/analytics'
+import GameStatistics from './components/GameStatistics'
 
 // Rate limiters for different actions
 const viewRoomRateLimiter = new RateLimiter(5, 60000)
@@ -263,6 +264,18 @@ export default function ViewPage() {
     const [sortField, setSortField] = useState('created')
     const [sortDirection, setSortDirection] = useState('desc')
     const [searchQuery, setSearchQuery] = useState('')
+    const [selectedRooms, setSelectedRooms] = useState(() => {
+        // Initialize from sessionStorage if available
+        const stored = sessionStorage.getItem('selectedRooms')
+        return stored ? JSON.parse(stored) : []
+    })
+    const [currentPage, setCurrentPage] = useState(1)
+    const [itemsPerPage, setItemsPerPage] = useState(20)
+
+    // Save selectedRooms to sessionStorage whenever it changes
+    useEffect(() => {
+        sessionStorage.setItem('selectedRooms', JSON.stringify(selectedRooms))
+    }, [selectedRooms])
 
     // Validate URL parameter on mount
     useEffect(() => {
@@ -394,9 +407,83 @@ export default function ViewPage() {
         return filtered
     }
 
+    const getPaginatedRoomList = () => {
+        const filtered = getFilteredAndSortedRoomList()
+        const startIndex = (currentPage - 1) * itemsPerPage
+        const endIndex = startIndex + itemsPerPage
+        return {
+            items: filtered.slice(startIndex, endIndex),
+            totalItems: filtered.length,
+            totalPages: Math.ceil(filtered.length / itemsPerPage)
+        }
+    }
+
+    const handleItemsPerPageChange = (e) => {
+        setItemsPerPage(Number(e.target.value))
+        setCurrentPage(1) // Reset to first page when changing items per page
+    }
+
+    const handleNextPage = () => {
+        const { totalPages } = getPaginatedRoomList()
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1)
+        }
+    }
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1)
+        }
+    }
+
     const getSortIcon = (field) => {
         if (sortField !== field) return '⇅'
         return sortDirection === 'asc' ? '↑' : '↓'
+    }
+
+    // Reset to page 1 when search query changes
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchQuery, itemsPerPage])
+
+    const handleToggleRoom = (roomCode, event) => {
+        event.stopPropagation()
+        setSelectedRooms(prev => {
+            if (prev.includes(roomCode)) {
+                return prev.filter(code => code !== roomCode)
+            } else {
+                return [...prev, roomCode]
+            }
+        })
+    }
+
+    const handleSelectAllVisible = () => {
+        const visibleRooms = getFilteredAndSortedRoomList()
+        const visibleCodes = visibleRooms.map(r => r.code)
+
+        const allVisibleSelected = visibleCodes.every(code => selectedRooms.includes(code))
+
+        if (allVisibleSelected) {
+            setSelectedRooms(prev => prev.filter(code => !visibleCodes.includes(code)))
+        } else {
+            setSelectedRooms(prev => {
+                const newSelected = [...prev]
+                visibleCodes.forEach(code => {
+                    if (!newSelected.includes(code)) {
+                        newSelected.push(code)
+                    }
+                })
+                return newSelected
+            })
+        }
+    }
+
+    const handleViewStatistics = () => {
+        if (selectedRooms.length > 0) {
+            // Save to sessionStorage before navigation (in case useEffect hasn't run yet)
+            sessionStorage.setItem('selectedRooms', JSON.stringify(selectedRooms))
+            navigate('/statistics', { state: { roomCodes: selectedRooms } })
+        }
     }
 
     const handleCodeChange = (e) => {
@@ -630,63 +717,79 @@ export default function ViewPage() {
         return (
             <div
                 key={room.code}
-                onClick={() => handleRoomCodeClick(room.code)}
                 style={{
                     padding: '16px',
                     backgroundColor: 'var(--bg-secondary)',
                     borderRadius: '8px',
                     border: '1px solid var(--border-color)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--primary-color)'
-                    e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color)'
-                    e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    gap: '12px'
                 }}
             >
                 <div style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '8px'
+                    alignItems: 'flex-start',
+                    paddingTop: '4px'
                 }}>
-                    <div style={{
-                        fontSize: '1em',
-                        color: 'var(--text-primary)',
-                        fontWeight: '500'
-                    }}>
-                        {room.eventName || '-'}
-                    </div>
-                    {room.archived && (
-                        <div style={{
-                            fontSize: '0.75em',
-                            backgroundColor: '#666',
-                            color: 'white',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontWeight: '600',
-                            textTransform: 'uppercase'
-                        }}>
-                            ARCHIVED
-                        </div>
-                    )}
+                    <input
+                        type="checkbox"
+                        checked={selectedRooms.includes(room.code)}
+                        onChange={(e) => handleToggleRoom(room.code, e)}
+                        style={{
+                            width: '18px',
+                            height: '18px',
+                            cursor: 'pointer'
+                        }}
+                    />
                 </div>
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '0.85em',
-                    color: 'var(--text-secondary)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span>👥</span>
-                        <span>{room.participantCount} players</span>
+                <div
+                    onClick={() => handleRoomCodeClick(room.code)}
+                    style={{
+                        flex: 1,
+                        cursor: 'pointer'
+                    }}
+                >
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '8px'
+                    }}>
+                        <div style={{
+                            fontSize: '1em',
+                            color: 'var(--text-primary)',
+                            fontWeight: '500'
+                        }}>
+                            {room.eventName || '-'}
+                        </div>
+                        {room.archived && (
+                            <div style={{
+                                fontSize: '0.75em',
+                                backgroundColor: '#666',
+                                color: 'white',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontWeight: '600',
+                                textTransform: 'uppercase'
+                            }}>
+                                ARCHIVED
+                            </div>
+                        )}
                     </div>
-                    <div>
-                        {formatDate(room.createdAtUtc)}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: '0.85em',
+                        color: 'var(--text-secondary)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span>👥</span>
+                            <span>{room.participantCount} players</span>
+                        </div>
+                        <div>
+                            {formatDate(room.createdAtUtc)}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -961,6 +1064,170 @@ export default function ViewPage() {
                         )}
                     </div>
 
+                    {/* Pagination Controls */}
+                    {getFilteredAndSortedRoomList().length > 0 && (
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '16px',
+                            gap: '12px',
+                            flexWrap: 'wrap'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                <label style={{
+                                    fontSize: '0.9em',
+                                    color: 'var(--text-secondary)',
+                                    fontWeight: '500'
+                                }}>
+                                    Rows per page:
+                                </label>
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={handleItemsPerPageChange}
+                                    style={{
+                                        padding: '6px 10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--border-color)',
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        color: '#777',
+                                        fontSize: '0.9em',
+                                        cursor: 'pointer',
+                                        outline: 'none'
+                                    }}
+                                >
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                            </div>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px'
+                            }}>
+                                <span style={{
+                                    fontSize: '0.9em',
+                                    color: 'var(--text-secondary)'
+                                }}>
+                                    Page {currentPage} of {getPaginatedRoomList().totalPages}
+                                </span>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={handlePreviousPage}
+                                        disabled={currentPage === 1}
+                                        style={{
+                                            padding: '6px 12px',
+                                            fontSize: '0.9em',
+                                            backgroundColor: currentPage === 1 ? 'var(--bg-secondary)' : 'var(--primary-color)',
+                                            color: currentPage === 1 ? 'var(--text-secondary)' : 'white',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '6px',
+                                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                            fontWeight: '500',
+                                            transition: 'opacity 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (currentPage !== 1) e.currentTarget.style.opacity = '0.9'
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (currentPage !== 1) e.currentTarget.style.opacity = '1'
+                                        }}
+                                    >
+                                        ← Previous
+                                    </button>
+                                    <button
+                                        onClick={handleNextPage}
+                                        disabled={currentPage >= getPaginatedRoomList().totalPages}
+                                        style={{
+                                            padding: '6px 12px',
+                                            fontSize: '0.9em',
+                                            backgroundColor: currentPage >= getPaginatedRoomList().totalPages ? 'var(--bg-secondary)' : 'var(--primary-color)',
+                                            color: currentPage >= getPaginatedRoomList().totalPages ? 'var(--text-secondary)' : 'white',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '6px',
+                                            cursor: currentPage >= getPaginatedRoomList().totalPages ? 'not-allowed' : 'pointer',
+                                            fontWeight: '500',
+                                            transition: 'opacity 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (currentPage < getPaginatedRoomList().totalPages) e.currentTarget.style.opacity = '0.9'
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (currentPage < getPaginatedRoomList().totalPages) e.currentTarget.style.opacity = '1'
+                                        }}
+                                    >
+                                        Next →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {getPaginatedRoomList().totalItems > 0 && (
+                        <div style={{
+                            display: 'flex',
+                            gap: '12px',
+                            alignItems: 'center',
+                            marginTop: '16px',
+                            flexWrap: 'wrap'
+                        }}>
+                            <button
+                                onClick={handleSelectAllVisible}
+                                style={{
+                                    padding: '8px 16px',
+                                    fontSize: '0.9em',
+                                    backgroundColor: 'var(--primary-color)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontWeight: '500',
+                                    transition: 'opacity 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                            >
+                                {getFilteredAndSortedRoomList().every(r => selectedRooms.includes(r.code))
+                                    ? '☐ Deselect All'
+                                    : '☑ Select All (All Filtered)'}
+                            </button>
+                            {selectedRooms.length > 0 && (
+                                <>
+                                    <span style={{
+                                        fontSize: '0.9em',
+                                        color: 'var(--text-secondary)',
+                                        fontWeight: '500'
+                                    }}>
+                                        {selectedRooms.length} game{selectedRooms.length !== 1 ? 's' : ''} selected
+                                    </span>
+                                    <button
+                                        onClick={handleViewStatistics}
+                                        style={{
+                                            padding: '8px 16px',
+                                            fontSize: '0.9em',
+                                            backgroundColor: '#28a745',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontWeight: '500',
+                                            transition: 'opacity 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                    >
+                                        📊 View Statistics
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
+
                     {loadingRoomList ? (
                         <div style={styles.loadingState}>
                             <span style={styles.spinner}></span>
@@ -970,7 +1237,7 @@ export default function ViewPage() {
                         <div style={styles.errorMessage}>
                             <span>⚠️</span> {roomListError}
                         </div>
-                    ) : getFilteredAndSortedRoomList().length > 0 ? (
+                    ) : getPaginatedRoomList().totalItems > 0 ? (
                         <>
                             {isMobile ? (
                                 // Mobile view - card layout
@@ -979,7 +1246,7 @@ export default function ViewPage() {
                                     gap: '12px',
                                     marginTop: '16px'
                                 }}>
-                                    {getFilteredAndSortedRoomList().map((room) => renderMobileRoomCard(room))}
+                                    {getPaginatedRoomList().items.map((room) => renderMobileRoomCard(room))}
                                 </div>
                             ) : (
                                 // Desktop view - table layout
@@ -987,7 +1254,7 @@ export default function ViewPage() {
                             {/* Column Headers */}
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: '2fr 200px 80px 100px',
+                                gridTemplateColumns: '50px 2fr 200px 80px 100px',
                                 gap: '12px',
                                 padding: '12px 16px',
                                 borderBottom: '2px solid var(--border-color)',
@@ -996,6 +1263,9 @@ export default function ViewPage() {
                                 fontSize: '0.9em',
                                 color: 'var(--text-secondary)'
                             }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    ☑
+                                </div>
                                 <div
                                     onClick={() => handleColumnSort('eventName')}
                                     style={{
@@ -1060,59 +1330,80 @@ export default function ViewPage() {
                                 display: 'grid',
                                 gap: '12px'
                             }}>
-                                {getFilteredAndSortedRoomList().map((room, idx) => (
+                                {getPaginatedRoomList().items.map((room, idx) => (
                                     <div
                                         key={idx}
-                                        onClick={() => handleRoomCodeClick(room.code)}
                                         style={{
                                             padding: '12px 16px',
                                             backgroundColor: 'var(--bg-secondary)',
                                             borderRadius: '8px',
                                             border: '1px solid var(--border-color)',
-                                            cursor: 'pointer',
                                             transition: 'all 0.2s',
                                             display: 'grid',
-                                            gridTemplateColumns: '2fr 200px 80px 100px',
+                                            gridTemplateColumns: '50px 2fr 200px 80px 100px',
                                             gap: '12px',
                                             alignItems: 'center'
                                         }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.borderColor = 'var(--primary-color)'
-                                            e.currentTarget.style.backgroundColor = 'var(--hover-bg)'
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.borderColor = 'var(--border-color)'
-                                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
-                                        }}
                                     >
                                         <div style={{
-                                            fontSize: '0.9em',
-                                            color: 'var(--text-primary)',
-                                            fontWeight: '500',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap'
-                                        }}>
-                                            {room.eventName || '-'}
-                                        </div>
-                                        <div style={{
-                                            fontSize: '0.85em',
-                                            color: 'var(--text-secondary)'
-                                        }}>
-                                            {formatDate(room.createdAtUtc)}
-                                        </div>
-                                        <div style={{
-                                            fontSize: '0.9em',
-                                            color: 'var(--text-primary)',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '4px',
                                             justifyContent: 'center'
                                         }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedRooms.includes(room.code)}
+                                                onChange={(e) => handleToggleRoom(room.code, e)}
+                                                style={{
+                                                    width: '18px',
+                                                    height: '18px',
+                                                    cursor: 'pointer'
+                                                }}
+                                            />
+                                        </div>
+                                        <div
+                                            onClick={() => handleRoomCodeClick(room.code)}
+                                            style={{
+                                                fontSize: '0.9em',
+                                                color: 'var(--text-primary)',
+                                                fontWeight: '500',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {room.eventName || '-'}
+                                        </div>
+                                        <div
+                                            onClick={() => handleRoomCodeClick(room.code)}
+                                            style={{
+                                                fontSize: '0.85em',
+                                                color: 'var(--text-secondary)',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {formatDate(room.createdAtUtc)}
+                                        </div>
+                                        <div
+                                            onClick={() => handleRoomCodeClick(room.code)}
+                                            style={{
+                                                fontSize: '0.9em',
+                                                color: 'var(--text-primary)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
                                             <span>👥</span>
                                             <span>{room.participantCount}</span>
                                         </div>
-                                        <div>
+                                        <div
+                                            onClick={() => handleRoomCodeClick(room.code)}
+                                            style={{ cursor: 'pointer' }}
+                                        >
                                             {room.archived && (
                                                 <div style={{
                                                     fontSize: '0.75em',
@@ -1256,6 +1547,17 @@ export default function ViewPage() {
                     </div>
                 )}
             </div>
+
+            {/* Statistics Section */}
+            {(archivedRounds.length > 0 || currentRound) && (
+                <div style={{ marginTop: '40px' }}>
+                    <GameStatistics
+                        archivedRounds={archivedRounds}
+                        currentRound={currentRound}
+                        totalSessions={1}
+                    />
+                </div>
+            )}
         </div>
     )
 }
