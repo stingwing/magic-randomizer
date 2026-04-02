@@ -4,6 +4,7 @@ import { apiBase } from './api'
 import { validateName, validateRoomCode, validateHostId, RateLimiter } from './utils/validation'
 import { styles, modeStyles } from './styles/Join.styles'
 import { useAuth } from './contexts/AuthContext'
+import { analytics } from './utils/analytics'
 
 // Rate limiter to prevent API abuse
 const rejoinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -154,6 +155,9 @@ export default function RejoinPage() {
             }
 
             // Navigate to the room
+            // Track successful player rejoin
+            analytics.rejoinAsPlayer(trimmedCode)
+
             navigate(
                 `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(trimmedName)}`
             )
@@ -211,6 +215,10 @@ export default function RejoinPage() {
             // Navigate to the host dashboard
             sessionStorage.setItem('hostRoomCode', trimmedCode)
             sessionStorage.setItem(`hostId_${trimmedCode}`, trimmedHostId)
+
+            // Track successful host rejoin
+            analytics.rejoinAsHost(trimmedCode)
+
             navigate(`/host/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(trimmedHostId)}`)
 
             setCode('')

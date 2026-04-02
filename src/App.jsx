@@ -22,9 +22,15 @@ import ProfilePage from './Profile'
 import VerifyEmailPage from './VerifyEmail'
 import ResetPasswordPage from './ResetPassword'
 import { AuthProvider } from './contexts/AuthContext'
+import { initGA, trackPageView } from './utils/analytics'
 
 function AppContent() {
     const location = useLocation()
+
+    // Track page views on route changes
+    useEffect(() => {
+        trackPageView(location.pathname + location.search)
+    }, [location])
 
     // Check if current route should hide the main NavBar
     const shouldHideNavBar = location.pathname.match(/^\/room\/[^/]+\/[^/]+(\/.*)?$/) ||
@@ -60,6 +66,11 @@ function AppContent() {
 
 function App() {
     const [serviceStatus, setServiceStatus] = useState(null)
+
+    // Initialize Google Analytics
+    useEffect(() => {
+        initGA()
+    }, [])
 
     // Health check on initial load
     useEffect(() => {

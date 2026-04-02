@@ -12,6 +12,7 @@ import { calculateTimeRemaining } from './utils/timerUtils'
 import { isInCustomGroup, getCustomGroupColor } from './utils/customGroupColors'
 import RoomNav from './components/RoomNav'
 import { styles } from './styles/Room.styles'
+import { analytics } from './utils/analytics'
 
 const reportRateLimiter = new RateLimiter(10, 60000)
 
@@ -297,6 +298,7 @@ export default function RoomPage() {
             await navigator.clipboard.writeText(validatedCode)
             setCopyMessage('Code copied to clipboard!')
             setTimeout(() => setCopyMessage(null), 3000)
+            analytics.copyRoomCode()
         } catch {
             // Fallback for browsers that don't support clipboard API
             const textArea = document.createElement('textarea')
@@ -309,6 +311,7 @@ export default function RoomPage() {
                 document.execCommand('copy')
                 setCopyMessage('Code copied to clipboard!')
                 setTimeout(() => setCopyMessage(null), 3000)
+                analytics.copyRoomCode()
             } catch {
                 alert(`Copy this code: ${validatedCode}`)
             }
@@ -322,6 +325,7 @@ export default function RoomPage() {
             await navigator.clipboard.writeText(url)
             setCopyMessage('Join URL copied to clipboard!')
             setTimeout(() => setCopyMessage(null), 3000)
+            analytics.copyJoinURL()
         } catch {
             // Fallback
             const textArea = document.createElement('textarea')
@@ -334,6 +338,7 @@ export default function RoomPage() {
                 document.execCommand('copy')
                 setCopyMessage('Join URL copied to clipboard!')
                 setTimeout(() => setCopyMessage(null), 3000)
+                analytics.copyJoinURL()
             } catch {
                 alert(`Copy this URL: ${url}`)
             }
@@ -555,6 +560,7 @@ export default function RoomPage() {
                 }))
             }
 
+            analytics.reportResult(result)
             setReportMessage(data?.message || `${result} reported successfully`)
             await fetchGroupResult()
         } catch (err) {
@@ -689,7 +695,12 @@ export default function RoomPage() {
                             <span style={{ ...styles.code, fontSize: '1rem' }}>{validatedParticipantId}</span>
                         </div>
                         <button
-                            onClick={() => setShowQR(!showQR)}
+                            onClick={() => {
+                                setShowQR(!showQR)
+                                if (!showQR) {
+                                    analytics.showQRCode()
+                                }
+                            }}
                             style={{
                                 marginTop: '0.5rem',
                                 padding: '10px 20px',

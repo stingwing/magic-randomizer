@@ -5,6 +5,7 @@ import { validateName, validateRoomCode, validateCommander, validateHostId, vali
 import { useCommanderSearch } from './utils/commanderSearch'
 import { styles, modeStyles } from './styles/Join.styles'
 import { useAuth } from './contexts/AuthContext'
+import { analytics } from './utils/analytics'
 
 // Rate limiter to prevent API abuse
 const joinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -313,6 +314,9 @@ export default function JoinPage() {
                 sessionStorage.setItem(`commander_${trimmedCode}_${returnedParticipantId}`, commanderValue)
             }
 
+            // Track successful room join
+            analytics.joinRoom(trimmedCode)
+
             navigate(
                 `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(returnedParticipantId)}`
             )
@@ -405,6 +409,10 @@ export default function JoinPage() {
                 const validated = validateRoomCode(roomCode)
                 sessionStorage.setItem('hostRoomCode', validated.sanitized)
                 sessionStorage.setItem(`hostId_${validated.sanitized}`, trimmedHostId)
+
+                // Track successful room creation
+                analytics.createRoom(validated.sanitized)
+
                 navigate(`/host/${encodeURIComponent(validated.sanitized)}/${encodeURIComponent(trimmedHostId)}`)
             } else {
                 setError('Unable to create game. Please try again.')

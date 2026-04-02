@@ -6,6 +6,7 @@ import { validateRoomCode, validateUrlParam, RateLimiter } from './utils/validat
 import { calculateTimeRemaining } from './utils/timerUtils'
 import { isInCustomGroup, getCustomGroupColor } from './utils/customGroupColors'
 import { styles } from './styles/ViewPage.styles'
+import { analytics } from './utils/analytics'
 
 // Rate limiters for different actions
 const viewRoomRateLimiter = new RateLimiter(5, 60000)
@@ -506,6 +507,9 @@ export default function ViewPage() {
             setIsViewing(true)
             setValidatedCode(roomCode)
 
+            // Track view room event
+            analytics.viewRoom(roomCode)
+
             // Encode the room code for the URL (base64)
             const encodedCode = btoa(roomCode)
             navigate(`/view/${encodedCode}`, { replace: true })
@@ -553,6 +557,7 @@ export default function ViewPage() {
                 .then(() => {
                     // You could add a toast notification here
                     console.log('Share link copied to clipboard')
+                    analytics.copyViewLink(validatedCode)
                 })
                 .catch(err => console.error('Failed to copy link:', err))
         }

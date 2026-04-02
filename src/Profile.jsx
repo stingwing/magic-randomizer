@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { styles } from './styles/Profile.styles'
+import { analytics } from './utils/analytics'
 
 const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api/Rooms', '') || 'https://localhost:7086'
 
@@ -112,19 +113,23 @@ export default function ProfilePage() {
         if (isHost) {
             // Navigate to host page if unarchived, otherwise view page
             if (!game.archived) {
+                analytics.navigateToHostRoom(game.code)
                 navigate(`/host/${game.code}/${user.username}`)
             } else {
                 // Encode room code for view page and pass state to indicate we came from profile
                 const encodedCode = btoa(game.code)
+                analytics.viewRoom(game.code)
                 navigate(`/view/${encodedCode}`, { state: { from: 'profile' } })
             }
         } else {
             // Try to navigate to player view if we have stored participantId
             if ((!game.archived)) {
+                analytics.navigateToPlayerRoom(game.code)
                 navigate(`/room/${game.code}/${user.username}`)
             } else {
                 // Otherwise go to view page with encoded code and pass state to indicate we came from profile
                 const encodedCode = btoa(game.code)
+                analytics.viewRoom(game.code)
                 navigate(`/view/${encodedCode}`, { state: { from: 'profile' } })
             }
         }
@@ -310,6 +315,7 @@ export default function ProfilePage() {
             }
 
             setPasswordSuccess('Password changed successfully!')
+            analytics.changePassword()
             setPasswordForm({
                 currentPassword: '',
                 newPassword: '',
@@ -369,6 +375,7 @@ export default function ProfilePage() {
             }
 
             setResendVerificationSuccess(true)
+            analytics.resendVerificationEmail()
 
             // Hide success message after 5 seconds
             setTimeout(() => {

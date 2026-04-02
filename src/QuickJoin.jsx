@@ -5,6 +5,7 @@ import { validateName, validateRoomCode, validateCommander, generateTempParticip
 import { useCommanderSearch } from './utils/commanderSearch'
 import { styles } from './styles/Join.styles'
 import { useAuth } from './contexts/AuthContext'
+import { analytics } from './utils/analytics'
 
 // Rate limiter to prevent API abuse
 const joinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -219,6 +220,9 @@ export default function QuickJoinPage() {
             if (commanderValue) {
                 sessionStorage.setItem(`commander_${trimmedCode}_${returnedParticipantId}`, commanderValue)
             }
+
+            // Track successful room join via quick join
+            analytics.joinRoom(trimmedCode)
 
             navigate(
                 `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(returnedParticipantId)}`
