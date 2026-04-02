@@ -34,6 +34,8 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
 
             members.forEach(member => {
                 let commander = member.commander
+                const playerId = member.id || 'Unknown'
+                const playerName = member.name || member.id || 'Unknown'
 
                 // Skip if no commander
                 if (!commander || commander.trim() === '') return
@@ -45,15 +47,20 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                         timesPlayed: 0,
                         wins: 0,
                         draws: 0,
-                        players: new Set()
+                        players: new Set(),
+                        playerNames: {}
                     }
                 }
 
                 stats[commander].timesPlayed++
-                stats[commander].players.add(member.name || member.id || 'Unknown')
+                stats[commander].players.add(playerId)
+                // Store the player name for this ID
+                if (playerId !== 'Unknown') {
+                    stats[commander].playerNames[playerId] = playerName
+                }
 
-                // Check if this player won
-                if (winner && (winner === member.name || winner === member.id)) {
+                // Check if this player won (using ID)
+                if (winner && (winner === playerId)) {
                     stats[commander].wins++
                 }
 
@@ -65,12 +72,22 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
         })
 
         // Convert to array and calculate rates
-        return Object.values(stats).map(stat => ({
-            ...stat,
-            winRate: stat.timesPlayed > 0 ? ((stat.wins / stat.timesPlayed) * 100).toFixed(2) : '0.00',
-            drawRate: stat.timesPlayed > 0 ? ((stat.draws / stat.timesPlayed) * 100).toFixed(2) : '0.00',
-            playersList: Array.from(stat.players).join(', ')
-        })).sort((a, b) => b.timesPlayed - a.timesPlayed)
+        return Object.values(stats).map(stat => {
+            // Convert player IDs to names for display
+            const playersList = Array.from(stat.players)
+                .map(playerId => stat.playerNames[playerId] || playerId)
+                .join(', ')
+
+            return {
+                commander: stat.commander,
+                timesPlayed: stat.timesPlayed,
+                wins: stat.wins,
+                draws: stat.draws,
+                winRate: stat.timesPlayed > 0 ? ((stat.wins / stat.timesPlayed) * 100).toFixed(2) : '0.00',
+                drawRate: stat.timesPlayed > 0 ? ((stat.draws / stat.timesPlayed) * 100).toFixed(2) : '0.00',
+                playersList: playersList
+            }
+        }).sort((a, b) => b.timesPlayed - a.timesPlayed)
     }, [archivedRounds, currentRound])
 
     // Calculate seat position statistics
@@ -101,16 +118,22 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
 
         // Process each group
         allGroups.forEach(group => {
-            const statistics = group.statistics || {}
-            const playerOrder = statistics.PlayerOrder
+            const members = group.members || group.participants || []
             const winner = group.winner
             const draw = group.draw
 
-            // Only process if we have player order
-            if (playerOrder) {
-                // Parse player order - it's a comma-separated string like "Alice, Bob, Charlie, Dave"
-                const playerNames = playerOrder.split(',').map(name => name.trim())
-                const numPlayers = playerNames.length
+            // Only process if we have members
+            if (members.length > 0) {
+                // Sort members by their order property, then filter out dropped players
+                const activePlayers = members.filter(m => m.dropped !== true)
+                const sortedPlayers = [...activePlayers].sort((a, b) => {
+                    if (a.order !== undefined && b.order !== undefined) {
+                        return a.order - b.order
+                    }
+                    return 0
+                })
+
+                const numPlayers = sortedPlayers.length
 
                 // Count no result as a draw
                 const isDraw = draw || (!winner)
@@ -124,8 +147,11 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                         }
                     }
                 } else if (winner) {
-                    // Find which position the winner is in
-                    const winnerPosition = playerNames.findIndex(name => name === winner)
+                    // Find which position the winner is in based on sorted player order (using ID)
+                    const winnerPosition = sortedPlayers.findIndex(player => {
+                        const playerId = player.id
+                        return playerId === winner
+                    })
 
                     if (winnerPosition !== -1) {
                         const seatNumber = winnerPosition + 1 // Convert 0-indexed to 1-indexed
@@ -245,11 +271,13 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
             const isDraw = draw || (!winner)
 
             members.forEach(member => {
+                const playerId = member.id || 'Unknown'
                 const playerName = member.name || member.id || 'Unknown'
 
                 // Initialize stats for this player if not exists
-                if (!stats[playerName]) {
-                    stats[playerName] = {
+                if (!stats[playerId]) {
+                    stats[playerId] = {
+                        playerId: playerId,
                         player: playerName,
                         games: 0,
                         wins: 0,
@@ -260,23 +288,26 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                     }
                 }
 
-                stats[playerName].games++
+                // Update player name in case it changed
+                stats[playerId].player = playerName
+
+                stats[playerId].games++
 
                 // Track commander
                 if (member.commander && member.commander.trim() !== '') {
-                    stats[playerName].commanders.add(member.commander)
-                    stats[playerName].commanderCount[member.commander] = 
-                        (stats[playerName].commanderCount[member.commander] || 0) + 1
+                    stats[playerId].commanders.add(member.commander)
+                    stats[playerId].commanderCount[member.commander] = 
+                        (stats[playerId].commanderCount[member.commander] || 0) + 1
                 }
 
-                // Check if this player won
-                if (winner && (winner === playerName)) {
-                    stats[playerName].wins++
+                // Check if this player won (using ID)
+                if (winner && (winner === playerId)) {
+                    stats[playerId].wins++
                 } else if (isDraw) {
-                    stats[playerName].draws++
+                    stats[playerId].draws++
                 } else if (winner) {
                     // Only count as loss if there was a winner and it wasn't this player
-                    stats[playerName].losses++
+                    stats[playerId].losses++
                 }
             })
         })
@@ -354,7 +385,6 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                             <th style={styles.th}>Games</th>
                             <th style={styles.th}>Wins</th>
                             <th style={styles.th}>Draws</th>
-                            <th style={styles.th}>Losses</th>
                             <th style={styles.th}>Win Rate</th>
                             <th style={styles.th}>Draw Rate</th>
                             <th style={styles.th}>Commanders</th>
@@ -368,7 +398,6 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                                 <td style={styles.tdCenter}>{stat.games}</td>
                                 <td style={styles.tdCenter}>{stat.wins}</td>
                                 <td style={styles.tdCenter}>{stat.draws}</td>
-                                <td style={styles.tdCenter}>{stat.losses}</td>
                                 <td style={styles.tdCenter}>{stat.winRate}%</td>
                                 <td style={styles.tdCenter}>{stat.drawRate}%</td>
                                 <td style={styles.tdCenter}>{stat.commandersCount}</td>
@@ -508,9 +537,9 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                 csv += `"${stat.commander}",${stat.timesPlayed},${stat.wins},${stat.draws},${stat.winRate}%,${stat.drawRate}%,"${stat.playersList}"\n`
             })
         } else if (activeTab === 'players') {
-            csv = 'Player,Games,Wins,Draws,Losses,Win Rate,Draw Rate,Commanders,Most Used Commander\n'
+            csv = 'Player,Games,Wins,Draws,Win Rate,Draw Rate,Commanders,Most Used Commander\n'
             playerStats.forEach(stat => {
-                csv += `"${stat.player}",${stat.games},${stat.wins},${stat.draws},${stat.losses},${stat.winRate}%,${stat.drawRate}%,${stat.commandersCount},"${stat.mostUsedCommander}"\n`
+                csv += `"${stat.player}",${stat.games},${stat.wins},${stat.draws},${stat.winRate}%,${stat.drawRate}%,${stat.commandersCount},"${stat.mostUsedCommander}"\n`
             })
         } else if (activeTab === 'seats') {
             csv = 'Seat Position,Games,Wins,Draws,Win Rate,Draw Rate\n'
