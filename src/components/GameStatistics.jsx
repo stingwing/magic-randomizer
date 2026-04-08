@@ -92,7 +92,7 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
 
             members.forEach(member => {
                 let commander = member.commander
-                const playerId = member.userId || member.id || 'Unknown'
+                const playerId = member.id || 'Unknown'
                 const playerKey = getPlayerKey(member)
                 const playerName = member.name || member.id || 'Unknown'
 
@@ -118,7 +118,7 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                     stats[commander].playerNames[playerKey] = playerName
                 }
 
-                // Check if this player won (using userId or id)
+                // Check if this player won (winner is always stored as id)
                 if (winner && (winner === playerId)) {
                     stats[commander].wins++
                 }
@@ -206,11 +206,8 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                         }
                     }
                 } else if (winner) {
-                    // Find which position the winner is in based on sorted player order (using userId or id)
-                    const winnerPosition = sortedPlayers.findIndex(player => {
-                        const playerId = player.userId || player.id
-                        return playerId === winner
-                    })
+                    // Find which position the winner is in based on sorted player order (winner is always stored as id)
+                    const winnerPosition = sortedPlayers.findIndex(player => player.id === winner)
 
                     if (winnerPosition !== -1) {
                         const seatNumber = winnerPosition + 1 // Convert 0-indexed to 1-indexed
@@ -330,7 +327,7 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
             const isDraw = draw || (!winner)
 
             members.forEach(member => {
-                const playerId = member.userId || member.id || 'Unknown'
+                const playerId = member.id || 'Unknown'
                 const playerKey = getPlayerKey(member)
                 const playerName = member.name || member.id || 'Unknown'
 
@@ -361,7 +358,7 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                         (stats[playerKey].commanderCount[member.commander] || 0) + 1
                 }
 
-                // Check if this player won (using userId or id)
+                // Check if this player won (winner is always stored as id)
                 if (winner && (winner === playerId)) {
                     stats[playerKey].wins++
                 } else if (isDraw) {
