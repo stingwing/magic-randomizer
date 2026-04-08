@@ -125,7 +125,12 @@ function RoundDisplay({ round, index, label }) {
                                         <div style={styles.resultItem}>
                                             <span style={styles.resultLabel}>Winner:</span>
                                             <span style={{ ...styles.resultValue, color: 'var(--success-color)', fontWeight: '600' }}>
-                                                🏆 {winner}
+                                                🏆 {(() => {
+                                                    const winnerMember = members.find(m => 
+                                                        (m.userId || m.id) === winner
+                                                    )
+                                                    return winnerMember?.name || winnerMember?.id || winner
+                                                })()}
                                             </span>
                                         </div>
                                     )}

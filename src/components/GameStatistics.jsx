@@ -339,6 +339,7 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                     stats[playerKey] = {
                         playerId: playerKey,
                         player: playerName,
+                        playerNames: new Set([playerName]), // Track all unique names
                         games: 0,
                         wins: 0,
                         draws: 0,
@@ -346,11 +347,9 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                         commanders: new Set(),
                         commanderCount: {}
                     }
-                }
-
-                // Update player name in case it changed (unless grouping by name)
-                if (!groupByName) {
-                    stats[playerKey].player = playerName
+                } else if (!groupByName) {
+                    // When grouping by userId, track all unique names
+                    stats[playerKey].playerNames.add(playerName)
                 }
 
                 stats[playerKey].games++
@@ -386,8 +385,14 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                 }
             })
 
+            // Combine all unique player names when grouping by userId
+            const displayName = groupByName 
+                ? stat.player 
+                : Array.from(stat.playerNames).sort().join(', ')
+
             return {
                 ...stat,
+                player: displayName,
                 winRate: stat.games > 0 ? ((stat.wins / stat.games) * 100).toFixed(2) : '0.00',
                 drawRate: stat.games > 0 ? ((stat.draws / stat.games) * 100).toFixed(2) : '0.00',
                 commandersCount: stat.commanders.size,

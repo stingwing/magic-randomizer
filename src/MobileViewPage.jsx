@@ -221,7 +221,12 @@ export default function MobileViewPage() {
                                         <div style={styles.resultBadge}>
                                             {group.winner ? (
                                                 <span style={styles.resultWinner}>
-                                                    🏆 Winner: {group.winner}
+                                                    🏆 Winner: {(() => {
+                                                        const winnerMember = group.members?.find(m => 
+                                                            (m.userId || m.id) === group.winner
+                                                        )
+                                                        return winnerMember?.name || winnerMember?.id || group.winner
+                                                    })()}
                                                 </span>
                                             ) : group.draw ? (
                                                 <span style={styles.resultDraw}>🤝 Draw</span>
