@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiBase } from './api'
 import {
@@ -39,7 +39,7 @@ function DraggablePlayerOrder({ members, participantId, onOrderChange }) {
     useEffect(() => {
         if (orderedPlayers.length > 0) {
             const orderString = orderedPlayers
-                .map(player => player.name ?? player.id ?? 'Unknown')
+                .map(player => player.id ?? 'Unknown')
                 .join(', ')
             onOrderChange(orderString)
         }
@@ -347,21 +347,11 @@ export default function RoomStatistics() {
     const buildStatistics = () => {
         const statistics = {}
         
-        const commanderVal = validateCommander(commander)
-        const partnerVal = validateCommander(partner)
         const turnCountVal = validateTurnCount(turnCount)
         const playerOrderVal = validatePlayerOrder(playerOrder)
         const winConditionVal = validateWinCondition(winCondition)
         const bracketVal = validateBracket(bracket)
-        
-        if (commanderVal.sanitized && commanderVal.valid) {
-            let commanderValue = commanderVal.sanitized.trim()
-            if (partnerVal.sanitized && partnerVal.valid) {
-                commanderValue = `${commanderVal.sanitized.trim()} : ${partnerVal.sanitized.trim()}`
-            }
-            statistics[`${validatedParticipantId}_Commander`] = commanderValue
-        }
-        
+                
         if (turnCountVal.sanitized && turnCountVal.valid) {
             statistics['TurnCount'] = turnCountVal.sanitized
         }
@@ -474,81 +464,83 @@ export default function RoomStatistics() {
                     </div>
                 )}
 
-                {/* Commander Section */}
-                <div style={styles.card}>
-                    <h2 style={styles.cardTitle}>Your Commander</h2>
-                    <p style={styles.cardDescription}>Select your Commander for this game</p>
-                    
-                    <label style={styles.inputLabel}>
-                        Commander
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                ref={commanderSearch.inputRef}
-                                type="text"
-                                value={commander}
-                                onChange={handleCommanderChange}
-                                placeholder="Start typing to search..."
-                                style={{
-                                    ...styles.textInput,
-                                    ...(validationErrors.commander ? styles.inputError : {})
-                                }}
-                                disabled={loading}
-                                maxLength={100}
-                            />
-                            {commanderSearch.showDropdown && commanderSearch.results.length > 0 && (
-                                <div ref={commanderSearch.dropdownRef} style={styles.dropdown}>
-                                    {commanderSearch.results.map((result, index) => (
-                                        <div
-                                            key={index}
-                                            onClick={() => handleCommanderSelect(result)}
-                                            style={styles.dropdownItem}
-                                        >
-                                            {result}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        {validationErrors.commander && (
-                            <span style={styles.validationError}>{validationErrors.commander}</span>
-                        )}
-                    </label>
+                {/* Commander Section - Only visible if allowCommandersToBeChanged is not false */}
+                {groupResult?.settings?.allowCommandersToBeChanged !== false && (
+                    <div style={styles.card}>
+                        <h2 style={styles.cardTitle}>Your Commander</h2>
+                        <p style={styles.cardDescription}>Select your Commander for this game</p>
 
-                    <label style={styles.inputLabel}>
-                        Partner (Optional)
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                ref={partnerSearch.inputRef}
-                                type="text"
-                                value={partner}
-                                onChange={handlePartnerChange}
-                                placeholder="Start typing to search..."
-                                style={{
-                                    ...styles.textInput,
-                                    ...(validationErrors.partner ? styles.inputError : {})
-                                }}
-                                disabled={loading}
-                                maxLength={100}
-                            />
-                            {partnerSearch.showDropdown && partnerSearch.results.length > 0 && (
-                                <div ref={partnerSearch.dropdownRef} style={styles.dropdown}>
-                                    {partnerSearch.results.map((result, index) => (
-                                        <div
-                                            key={index}
-                                            onClick={() => handlePartnerSelect(result)}
-                                            style={styles.dropdownItem}
-                                        >
-                                            {result}
-                                        </div>
-                                    ))}
-                                </div>
+                        <label style={styles.inputLabel}>
+                            Commander
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    ref={commanderSearch.inputRef}
+                                    type="text"
+                                    value={commander}
+                                    onChange={handleCommanderChange}
+                                    placeholder="Start typing to search..."
+                                    style={{
+                                        ...styles.textInput,
+                                        ...(validationErrors.commander ? styles.inputError : {})
+                                    }}
+                                    disabled={loading}
+                                    maxLength={100}
+                                />
+                                {commanderSearch.showDropdown && commanderSearch.results.length > 0 && (
+                                    <div ref={commanderSearch.dropdownRef} style={styles.dropdown}>
+                                        {commanderSearch.results.map((result, index) => (
+                                            <div
+                                                key={index}
+                                                onClick={() => handleCommanderSelect(result)}
+                                                style={styles.dropdownItem}
+                                            >
+                                                {result}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            {validationErrors.commander && (
+                                <span style={styles.validationError}>{validationErrors.commander}</span>
                             )}
-                        </div>
-                        {validationErrors.partner && (
-                            <span style={styles.validationError}>{validationErrors.partner}</span>
-                        )}
-                    </label>
-                </div>
+                        </label>
+
+                        <label style={styles.inputLabel}>
+                            Partner (Optional)
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    ref={partnerSearch.inputRef}
+                                    type="text"
+                                    value={partner}
+                                    onChange={handlePartnerChange}
+                                    placeholder="Start typing to search..."
+                                    style={{
+                                        ...styles.textInput,
+                                        ...(validationErrors.partner ? styles.inputError : {})
+                                    }}
+                                    disabled={loading}
+                                    maxLength={100}
+                                />
+                                {partnerSearch.showDropdown && partnerSearch.results.length > 0 && (
+                                    <div ref={partnerSearch.dropdownRef} style={styles.dropdown}>
+                                        {partnerSearch.results.map((result, index) => (
+                                            <div
+                                                key={index}
+                                                onClick={() => handlePartnerSelect(result)}
+                                                style={styles.dropdownItem}
+                                            >
+                                                {result}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            {validationErrors.partner && (
+                                <span style={styles.validationError}>{validationErrors.partner}</span>
+                            )}
+                        </label>
+                    </div>
+                )}
 
                 {/* Game Statistics Section */}
                 {groupResult?.roundStarted && (

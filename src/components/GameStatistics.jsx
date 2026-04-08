@@ -113,9 +113,13 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
 
                 stats[commander].timesPlayed++
                 stats[commander].players.add(playerKey)
-                // Store the player name for this key
+                // Track the frequency of player names for this key
                 if (playerKey !== 'Unknown') {
-                    stats[commander].playerNames[playerKey] = playerName
+                    if (!stats[commander].playerNames[playerKey]) {
+                        stats[commander].playerNames[playerKey] = {}
+                    }
+                    stats[commander].playerNames[playerKey][playerName] = 
+                        (stats[commander].playerNames[playerKey][playerName] || 0) + 1
                 }
 
                 // Check if this player won (winner is always stored as id)
@@ -132,9 +136,27 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
 
         // Convert to array and calculate rates
         return Object.values(stats).map(stat => {
-            // Convert player keys to names for display
+            // Convert player keys to names for display - pick most frequent name for each player
             const playersList = Array.from(stat.players)
-                .map(playerKey => groupByName ? playerKey : (stat.playerNames[playerKey] || playerKey))
+                .map(playerKey => {
+                    if (groupByName) {
+                        return playerKey
+                    }
+                    // Find most frequent name for this playerKey
+                    const nameFrequencies = stat.playerNames[playerKey]
+                    if (!nameFrequencies) {
+                        return playerKey
+                    }
+                    let mostFrequentName = playerKey
+                    let maxCount = 0
+                    Object.entries(nameFrequencies).forEach(([name, count]) => {
+                        if (count > maxCount) {
+                            maxCount = count
+                            mostFrequentName = name
+                        }
+                    })
+                    return mostFrequentName
+                })
                 .join(', ')
 
             return {
@@ -336,7 +358,7 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                     stats[playerKey] = {
                         playerId: playerKey,
                         player: playerName,
-                        playerNames: new Set([playerName]), // Track all unique names
+                        playerNames: { [playerName]: 1 }, // Track name frequencies
                         games: 0,
                         wins: 0,
                         draws: 0,
@@ -345,8 +367,9 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                         commanderCount: {}
                     }
                 } else if (!groupByName) {
-                    // When grouping by userId, track all unique names
-                    stats[playerKey].playerNames.add(playerName)
+                    // When grouping by userId, track name frequencies
+                    stats[playerKey].playerNames[playerName] = 
+                        (stats[playerKey].playerNames[playerName] || 0) + 1
                 }
 
                 stats[playerKey].games++
@@ -382,10 +405,21 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                 }
             })
 
-            // Combine all unique player names when grouping by userId
+            // Display most frequent name when grouping by userId
             const displayName = groupByName 
                 ? stat.player 
-                : Array.from(stat.playerNames).sort().join(', ')
+                : (() => {
+                    // Find most frequent name
+                    let mostFrequentName = stat.player
+                    let maxCount = 0
+                    Object.entries(stat.playerNames).forEach(([name, count]) => {
+                        if (count > maxCount) {
+                            maxCount = count
+                            mostFrequentName = name
+                        }
+                    })
+                    return mostFrequentName
+                })()
 
             return {
                 ...stat,

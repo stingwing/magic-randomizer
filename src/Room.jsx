@@ -6,10 +6,12 @@ import { apiBase, signalRBase } from './api'
 import {
     validateUrlParam,
     validatePlayerOrder,
+    validateCommander,
     RateLimiter
 } from './utils/validation'
 import { calculateTimeRemaining } from './utils/timerUtils'
 import { isInCustomGroup, getCustomGroupColor } from './utils/customGroupColors'
+import { useCommanderSearch } from './utils/commanderSearch'
 import RoomNav from './components/RoomNav'
 import { styles } from './styles/Room.styles'
 import { analytics } from './utils/analytics'
@@ -74,7 +76,7 @@ function RoundResults({ data, participantId, onPlayerOrderChange }) {
     useEffect(() => {
         if (orderedPlayers.length > 0) {
             const orderString = orderedPlayers
-                .map(player => player.name ?? player.id ?? 'Unknown')
+                .map(player => player.id ?? 'Unknown')
                 .join(', ')
             onPlayerOrderChange(orderString)
         }
@@ -274,6 +276,17 @@ export default function RoomPage() {
     const [showQR, setShowQR] = useState(false)
     const [copyMessage, setCopyMessage] = useState(null)
 
+    // Commander update state
+    const [commander, setCommander] = useState('')
+    const [partner, setPartner] = useState('')
+    const [showCommanderBox, setShowCommanderBox] = useState(false)
+    const [commanderValidationErrors, setCommanderValidationErrors] = useState({})
+    const [commanderUpdateMessage, setCommanderUpdateMessage] = useState(null)
+    const [commanderLoading, setCommanderLoading] = useState(false)
+
+    const commanderSearch = useCommanderSearch(300)
+    const partnerSearch = useCommanderSearch(300)
+
     useEffect(() => {
         const codeValidation = validateUrlParam(code)
         const participantValidation = validateUrlParam(participantId)
@@ -370,7 +383,7 @@ export default function RoomPage() {
             if (data) {
                 setGroupResult(data)
                 setStarted(true)
-                
+
                 // Initialize player order from API data
                 if (data.statistics?.PlayerOrder && !playerOrderChanged) {
                     const validated = validatePlayerOrder(data.statistics.PlayerOrder)
@@ -378,7 +391,22 @@ export default function RoomPage() {
                         setPlayerOrder(validated.sanitized)
                     }
                 }
-                
+
+                // Initialize commander from API data
+                if (data.members && Array.isArray(data.members)) {
+                    const currentMember = data.members.find(m => m.id === validatedParticipantId)
+                    if (currentMember?.commander) {
+                        const commanderValue = currentMember.commander.trim()
+                        if (commanderValue.includes(' : ')) {
+                            const [cmd, prt] = commanderValue.split(' : ')
+                            setCommander(cmd.trim())
+                            setPartner(prt.trim())
+                        } else {
+                            setCommander(commanderValue)
+                        }
+                    }
+                }
+
                 return true
             }
             return false
@@ -448,6 +476,138 @@ export default function RoomPage() {
             setPlayerOrderChanged(true)
         }
     }, [])
+
+    const handleCommanderChange = (e) => {
+        const value = e.target.value
+        const validated = validateCommander(value)
+        setCommander(validated.sanitized)
+
+        if (validated.error) {
+            setCommanderValidationErrors(prev => ({ ...prev, commander: validated.error }))
+        } else {
+            setCommanderValidationErrors(prev => {
+                const { commander, ...rest } = prev
+                return rest
+            })
+        }
+        commanderSearch.debouncedSearch(validated.sanitized)
+    }
+
+    const handleCommanderSelect = (commanderName) => {
+        const validated = validateCommander(commanderName)
+        setCommander(validated.sanitized)
+        commanderSearch.setShowDropdown(false)
+        commanderSearch.clearSearch()
+        setCommanderValidationErrors(prev => {
+            const { commander, ...rest } = prev
+            return rest
+        })
+    }
+
+    const handlePartnerChange = (e) => {
+        const value = e.target.value
+        const validated = validateCommander(value)
+        setPartner(validated.sanitized)
+
+        if (validated.error) {
+            setCommanderValidationErrors(prev => ({ ...prev, partner: validated.error }))
+        } else {
+            setCommanderValidationErrors(prev => {
+                const { partner, ...rest } = prev
+                return rest
+            })
+        }
+        partnerSearch.debouncedSearch(validated.sanitized)
+    }
+
+    const handlePartnerSelect = (partnerName) => {
+        const validated = validateCommander(partnerName)
+        setPartner(validated.sanitized)
+        partnerSearch.setShowDropdown(false)
+        partnerSearch.clearSearch()
+        setCommanderValidationErrors(prev => {
+            const { partner, ...rest } = prev
+            return rest
+        })
+    }
+
+    const handleUpdateCommander = async () => {
+        if (!validatedCode || !validatedParticipantId) return
+
+        if (Object.keys(commanderValidationErrors).length > 0) {
+            setRoomError('Please fix validation errors before updating')
+            return
+        }
+
+        if (!reportRateLimiter.canAttempt(validatedParticipantId)) {
+            setRoomError('Too many attempts. Please wait a moment.')
+            return
+        }
+
+        setCommanderLoading(true)
+        setRoomError(null)
+        setCommanderUpdateMessage(null)
+
+        try {
+            const url = `${apiBase}/${encodeURIComponent(validatedCode)}/report`
+
+            const commanderVal = validateCommander(commander)
+            const partnerVal = validateCommander(partner)
+            let commanderValue = ''
+
+            if (commanderVal.sanitized && commanderVal.valid) {
+                commanderValue = commanderVal.sanitized.trim()
+                if (partnerVal.sanitized && partnerVal.valid) {
+                    commanderValue = `${commanderVal.sanitized.trim()} : ${partnerVal.sanitized.trim()}`
+                }
+            }
+
+            const body = {
+                participantId: validatedParticipantId,
+                result: 'data',
+                commander: commanderValue,
+                statistics: {}
+            }
+
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+
+            if (!res.ok) {
+                throw new Error(res.status === 400 ? 'Invalid request' : 'Unable to update commander')
+            }
+
+            const data = await res.json()
+
+            if (data && groupResult) {
+                setGroupResult(prev => ({
+                    ...prev,
+                    members: data.members || prev.members
+                }))
+            }
+
+            if (roomData && data?.members) {
+                setRoomData(prev => ({
+                    ...prev,
+                    participants: data.members || prev.participants
+                }))
+            }
+
+            setCommanderUpdateMessage('Commander updated successfully!')
+            setTimeout(() => setCommanderUpdateMessage(null), 3000)
+
+            // Refresh data
+            await fetchGroupResult()
+            await fetchRoom()
+        } catch (err) {
+            console.error('Update commander error', err)
+            setRoomError(err.message || 'Unable to update commander')
+        } finally {
+            setCommanderLoading(false)
+        }
+    }
 
     const handleUpdateStatistics = async () => {
         if (!validatedCode || !validatedParticipantId || !playerOrder) return
@@ -622,12 +782,12 @@ export default function RoomPage() {
             setConnectionStatus('disconnected')
         })
 
-        connection.on('ParticipantJoined', () => fetchRoom())
+        connection.on('ParticipantJoined', () => { fetchRoom() })
         connection.on('RoundGenerated', () => { fetchRoom(); fetchGroupResult() })
         connection.on('RoundStarted', () => { fetchRoom(); fetchGroupResult() })
         connection.on('ParticipantDroppedOut', () => { fetchRoom(); fetchGroupResult() })
-        connection.on('GroupEnded', () => fetchGroupResult())
-        connection.on('SettingsChanged', () => fetchRoom())
+        connection.on('GroupEnded', () => { fetchGroupResult() })
+        connection.on('SettingsChanged', () => { fetchRoom() })
         connection.on('RoomExpired', () => {
             setRoomError('This room has expired.')
             hubConnectionRef.current?.stop()
@@ -740,6 +900,238 @@ export default function RoomPage() {
                     <div style={styles.errorBanner}>
                         <span style={styles.errorIcon}>⚠️</span>
                         {roomError}
+                    </div>
+                )}
+
+                {/* Commander Update Box - Only visible if allowCommandersToBeChanged is true */}
+                {(roomData?.settings?.allowCommandersToBeChanged !== false || groupResult?.settings?.allowCommandersToBeChanged !== false) && (
+                    <div style={{
+                        ...styles.statisticsCard,
+                        padding: showCommanderBox ? 'clamp(1rem, 3vw, 1.5rem)' : 'clamp(0.75rem, 2vw, 1rem)',
+                        marginBottom: '1.5rem',
+                        transition: 'all 0.2s ease'
+                    }}>
+                        <div 
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer'
+                            }}
+                            onClick={() => setShowCommanderBox(!showCommanderBox)}
+                        >
+                            <h3 style={{
+                                fontSize: 'clamp(1.1rem, 3vw, 1.25rem)',
+                                fontWeight: '600',
+                                color: 'var(--primary-color)',
+                                margin: 0
+                            }}>
+                                Change Commander
+                            </h3>
+                            <span style={{
+                                fontSize: 'clamp(1rem, 3vw, 1.2rem)',
+                                color: 'var(--text-secondary)',
+                                transition: 'transform 0.2s ease',
+                                transform: showCommanderBox ? 'rotate(180deg)' : 'rotate(0deg)'
+                            }}>
+                                ▼
+                            </span>
+                        </div>
+
+                        {showCommanderBox && (
+                            <div style={{ marginTop: 'clamp(1rem, 3vw, 1.5rem)' }}>
+                                {groupResult?.roundStarted && (
+                                    <div style={{
+                                        backgroundColor: '#fff3cd',
+                                        border: '1px solid #ffc107',
+                                        borderRadius: '8px',
+                                        padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                        marginBottom: '1rem',
+                                        color: '#856404',
+                                        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)'
+                                    }}>
+                                        <strong>⚠️ Warning:</strong> The round has started. Updating your commander will change it for the current round.
+                                    </div>
+                                )}
+
+                                {commanderUpdateMessage && (
+                                    <div style={{
+                                        backgroundColor: 'var(--success-bg)',
+                                        color: 'var(--success-text)',
+                                        padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                        borderRadius: '8px',
+                                        marginBottom: '1rem',
+                                        border: '1px solid var(--success-border)',
+                                        fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
+                                        fontWeight: '500',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}>
+                                        <span>✅</span> {commanderUpdateMessage}
+                                    </div>
+                                )}
+
+                                <label style={styles.inputLabel}>
+                                    Commander
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            ref={commanderSearch.inputRef}
+                                            type="text"
+                                            value={commander}
+                                            onChange={handleCommanderChange}
+                                            placeholder="Start typing to search..."
+                                            style={{
+                                                ...styles.textInput,
+                                                ...(commanderValidationErrors.commander ? styles.inputError : {})
+                                            }}
+                                            disabled={commanderLoading}
+                                            maxLength={100}
+                                        />
+                                        {commanderSearch.showDropdown && commanderSearch.results.length > 0 && (
+                                            <div ref={commanderSearch.dropdownRef} style={{
+                                                position: 'absolute',
+                                                top: '100%',
+                                                left: 0,
+                                                right: 0,
+                                                backgroundColor: '#777',
+                                                border: '1px solid var(--border-color)',
+                                                borderRadius: '8px',
+                                                marginTop: '4px',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto',
+                                                boxShadow: '0 4px 12px var(--shadow-color)',
+                                                zIndex: 1000
+                                            }}>
+                                                {commanderSearch.results.map((result, index) => (
+                                                    <div
+                                                        key={index}
+                                                        onClick={() => handleCommanderSelect(result)}
+                                                        style={{
+                                                            padding: 'clamp(10px, 2vw, 12px)',
+                                                            cursor: 'pointer',
+                                                            color: 'var(--text-primary)',
+                                                            borderBottom: index < commanderSearch.results.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                                            transition: 'background-color 0.2s',
+                                                            fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+                                                            minHeight: '44px',
+                                                            display: 'flex',
+                                                            alignItems: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                    >
+                                                        {result}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {commanderValidationErrors.commander && (
+                                        <span style={styles.validationError}>{commanderValidationErrors.commander}</span>
+                                    )}
+                                </label>
+
+                                <label style={styles.inputLabel}>
+                                    Partner (Optional)
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            ref={partnerSearch.inputRef}
+                                            type="text"
+                                            value={partner}
+                                            onChange={handlePartnerChange}
+                                            placeholder="Start typing to search..."
+                                            style={{
+                                                ...styles.textInput,
+                                                ...(commanderValidationErrors.partner ? styles.inputError : {})
+                                            }}
+                                            disabled={commanderLoading}
+                                            maxLength={100}
+                                        />
+                                        {partnerSearch.showDropdown && partnerSearch.results.length > 0 && (
+                                            <div ref={partnerSearch.dropdownRef} style={{
+                                                position: 'absolute',
+                                                top: '100%',
+                                                left: 0,
+                                                right: 0,
+                                                backgroundColor: '#777',
+                                                border: '1px solid var(--border-color)',
+                                                borderRadius: '8px',
+                                                marginTop: '4px',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto',
+                                                boxShadow: '0 4px 12px var(--shadow-color)',
+                                                zIndex: 1000
+                                            }}>
+                                                {partnerSearch.results.map((result, index) => (
+                                                    <div
+                                                        key={index}
+                                                        onClick={() => handlePartnerSelect(result)}
+                                                        style={{
+                                                            padding: 'clamp(10px, 2vw, 12px)',
+                                                            cursor: 'pointer',
+                                                            color: 'var(--text-primary)',
+                                                            borderBottom: index < partnerSearch.results.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                                            transition: 'background-color 0.2s',
+                                                            fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+                                                            minHeight: '44px',
+                                                            display: 'flex',
+                                                            alignItems: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg)'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                    >
+                                                        {result}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {commanderValidationErrors.partner && (
+                                        <span style={styles.validationError}>{commanderValidationErrors.partner}</span>
+                                    )}
+                                </label>
+
+                                <button
+                                    onClick={handleUpdateCommander}
+                                    disabled={commanderLoading || Object.keys(commanderValidationErrors).length > 0}
+                                    style={{
+                                        width: '100%',
+                                        padding: 'clamp(0.875rem, 2vw, 1rem)',
+                                        fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                                        fontWeight: '600',
+                                        backgroundColor: (commanderLoading || Object.keys(commanderValidationErrors).length > 0) 
+                                            ? 'var(--bg-tertiary)' 
+                                            : 'var(--primary-color)',
+                                        color: (commanderLoading || Object.keys(commanderValidationErrors).length > 0) 
+                                            ? 'var(--text-secondary)' 
+                                            : '#fff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: (commanderLoading || Object.keys(commanderValidationErrors).length > 0) 
+                                            ? 'not-allowed' 
+                                            : 'pointer',
+                                        minHeight: '48px',
+                                        transition: 'all 0.2s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        outline: 'none',
+                                        opacity: (commanderLoading || Object.keys(commanderValidationErrors).length > 0) ? 0.5 : 1
+                                    }}
+                                >
+                                    {commanderLoading ? (
+                                        <>
+                                            <span style={styles.spinner}></span>
+                                            Updating...
+                                        </>
+                                    ) : (
+                                        '💾 Update Commander'
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 

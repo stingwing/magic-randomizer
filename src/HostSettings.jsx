@@ -33,12 +33,14 @@ export default function HostSettingsPage() {
     const [tournamentMode, setTournamentMode] = useState(false)
     const [maxRounds, setMaxRounds] = useState(0)
     const [allowPlayersToCreateCustomGroups, setAllowPlayersToCreateCustomGroups] = useState(false)
+    const [allowCommandersToBeChanged, setAllowCommandersToBeChanged] = useState(true)
 
     // UI state
     const [loading, setLoading] = useState(false)
     const [fetchingSettings, setFetchingSettings] = useState(true)
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
+    const [gameStarted, setGameStarted] = useState(false)
 
     // Fetch current settings - now depends on hostValidated
     useEffect(() => {
@@ -50,7 +52,11 @@ export default function HostSettingsPage() {
                 const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}`)
                 if (res.ok) {
                     const data = await res.json()
-                    
+
+                    // Check if game has started - multiple conditions
+                    const hasStarted = data.isGameStarted === true
+                    setGameStarted(hasStarted)
+
                     // Update state with fetched settings
                     if (data.eventName !== undefined) setEventName(data.eventName || '')
                     
@@ -79,6 +85,7 @@ export default function HostSettingsPage() {
                         if (data.settings.tournamentMode !== undefined) setTournamentMode(data.settings.tournamentMode)
                         if (data.settings.maxRounds !== undefined) setMaxRounds(data.settings.maxRounds)
                         if (data.settings.allowPlayersToCreateCustomGroups !== undefined) setAllowPlayersToCreateCustomGroups(data.settings.allowPlayersToCreateCustomGroups)
+                        if (data.settings.allowCommandersToBeChanged !== undefined) setAllowCommandersToBeChanged(data.settings.allowCommandersToBeChanged)
                     }
                 } else {
                     const errorMessage = res.status === 404 ? 'Room not found' : 'Unable to load settings'
@@ -127,7 +134,8 @@ export default function HostSettingsPage() {
                 allowCustomGroups: allowCustomGroups,
                 tournamentMode: tournamentMode,
                 maxRounds: parseInt(maxRounds),
-                allowPlayersToCreateCustomGroups: allowPlayersToCreateCustomGroups
+                allowPlayersToCreateCustomGroups: allowPlayersToCreateCustomGroups,
+                allowCommandersToBeChanged: allowCommandersToBeChanged
             }
 
             const res = await fetch(`${apiBase}/${encodeURIComponent(validatedCode)}/settings`, {
@@ -192,6 +200,25 @@ export default function HostSettingsPage() {
                     ← Back to Host Dashboard
                 </button>
             </div>
+
+            {/* Game Started Warning */}
+            {gameStarted && (
+                <div style={{
+                    backgroundColor: '#fff3cd',
+                    border: '1px solid #ffc107',
+                    borderRadius: '8px',
+                    padding: 'clamp(0.75rem, 2vw, 1rem)',
+                    marginBottom: '1rem',
+                    color: '#856404',
+                    fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                }}>
+                    <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                    <strong>Warning:</strong> Changing settings after the game has started may cause issues.
+                </div>
+            )}
 
             {/* Messages */}
             {error && (
@@ -320,15 +347,15 @@ export default function HostSettingsPage() {
                             <span>Allow Groups of 3</span>
                         </label>
 
-                        <label style={styles.checkboxLabel}>
+                        <label style={styles.checkboxLabel} title="In development">
                             <input
                                 type="checkbox"
                                 checked={allowGroupOfFive}
                                 onChange={(e) => setAllowGroupOfFive(e.target.checked)}
                                 style={styles.checkbox}
-                                disabled={loading}
+                                disabled={true}
                             />
-                            <span>Allow Groups of 5</span>
+                            <span style={{ opacity: 0.5 }}>Allow Groups of 5</span>
                         </label>
 
                         <label style={styles.checkboxLabel}>
@@ -364,26 +391,37 @@ export default function HostSettingsPage() {
                             <span>Allow Players To Create Custom Groups</span>
                         </label>
 
-                        <label style={styles.checkboxLabel}>
+                        <label style={styles.checkboxLabel} title="In development">
                             <input
                                 type="checkbox"
                                 checked={tournamentMode}
                                 onChange={(e) => setTournamentMode(e.target.checked)}
                                 style={styles.checkbox}
-                                disabled={loading}
+                                disabled={true}
                             />
-                            <span>Tournament Mode</span>
+                            <span style={{ opacity: 0.5 }}>Tournament Mode</span>
                         </label>
 
-                        <label style={styles.checkboxLabel}>
+                        <label style={styles.checkboxLabel} title="In development">
                             <input
                                 type="checkbox"
                                 checked={usePoints}
                                 onChange={(e) => setUsePoints(e.target.checked)}
                                 style={styles.checkbox}
+                                disabled={true}
+                            />
+                            <span style={{ opacity: 0.5 }}>Use Points System</span>
+                        </label>
+
+                        <label style={styles.checkboxLabel}>
+                            <input
+                                type="checkbox"
+                                checked={allowCommandersToBeChanged}
+                                onChange={(e) => setAllowCommandersToBeChanged(e.target.checked)}
+                                style={styles.checkbox}
                                 disabled={loading}
                             />
-                            <span>Use Points System</span>
+                            <span>Allow Commanders To Be Changed</span>
                         </label>
                     </div>
 
