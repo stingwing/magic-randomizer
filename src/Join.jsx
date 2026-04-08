@@ -6,6 +6,7 @@ import { useCommanderSearch } from './utils/commanderSearch'
 import { styles, modeStyles } from './styles/Join.styles'
 import { useAuth } from './contexts/AuthContext'
 import { analytics } from './utils/analytics'
+import LoginModal from './components/LoginModal'
 
 // Rate limiter to prevent API abuse
 const joinRateLimiter = new RateLimiter(5, 60000) // 5 attempts per minute
@@ -22,6 +23,8 @@ export default function JoinPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [validationErrors, setValidationErrors] = useState({})
+    const [showLoginModal, setShowLoginModal] = useState(false)
+    const [tempId, setTempId] = useState(localStorage.getItem('tempParticipantId') || '')
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const { user } = useAuth()
@@ -38,6 +41,12 @@ export default function JoinPage() {
             }
             if (user.username) {
                 setHostId(user.username)
+            }
+        } else {
+            // For non-logged-in users, restore previously entered name from localStorage
+            const savedName = localStorage.getItem('savedUserName')
+            if (savedName && !name) {
+                setName(savedName)
             }
         }
     }, [user])
@@ -106,6 +115,13 @@ export default function JoinPage() {
                 const { name, ...rest } = prev
                 return rest
             })
+        }
+
+        // Save name to localStorage for non-logged-in users
+        if (!user && validated.sanitized) {
+            localStorage.setItem('savedUserName', validated.sanitized)
+        } else if (!user && !validated.sanitized) {
+            localStorage.removeItem('savedUserName')
         }
     }
 
@@ -263,12 +279,29 @@ export default function JoinPage() {
         }
 
         // Generate random participantId for non-logged-in users
-        const participantId = user?.username || generateTempParticipantId()
+        // Store in localStorage to maintain consistency across sessions
+        let participantId
+        if (user?.username) {
+            participantId = user.username
+        } else {
+            const storedId = localStorage.getItem('tempParticipantId')
+            if (storedId) {
+                participantId = storedId
+            } else {
+                participantId = generateTempParticipantId()
+                localStorage.setItem('tempParticipantId', participantId)
+                setTempId(participantId)
+            }
+        }
 
         // Combine commander and partner if both are present
         let commanderValue = trimmedCommander
         if (trimmedCommander && trimmedPartner) {
-            commanderValue = `${trimmedCommander} : ${trimmedPartner}`
+            // Order alphabetically
+            const sorted = [trimmedCommander, trimmedPartner].sort((a, b) => 
+                a.localeCompare(b, undefined, { sensitivity: 'base' })
+            )
+            commanderValue = `${sorted[0]} : ${sorted[1]}`
         }
 
         const url = `${apiBase}/${encodeURIComponent(trimmedCode)}/join`
@@ -293,12 +326,22 @@ export default function JoinPage() {
 
             if (!res.ok) {
                 const text = await res.text().catch(() => '')
-                // Don't expose detailed server errors to users
-                //const safeMessage = res.status === 404
-                //    ? 'Room not found'
-                //    : res.status === 400
-                //        ? 'Invalid request'
-                //        : 'Failed to join room'
+
+                // Check if error is "already in game"
+                try {
+                    const errorData = JSON.parse(text)
+                    if (errorData.message && errorData.message.toLowerCase().includes('already in the game')) {
+                        // User is already in the game, navigate directly to the room
+                        analytics.joinRoom(trimmedCode)
+                        navigate(
+                            `/room/${encodeURIComponent(trimmedCode)}/${encodeURIComponent(participantId)}`
+                        )
+                        return
+                    }
+                } catch (e) {
+                    // Not JSON, continue with error handling
+                }
+
                 setError(text)
                 return
             }
@@ -442,6 +485,21 @@ export default function JoinPage() {
         }
     }
 
+    const handleLoginSuccess = (userData) => {
+        // Update name and hostId fields with user data
+        if (userData.displayName) {
+            setName(userData.displayName)
+        }
+        if (userData.username) {
+            setHostId(userData.username)
+        }
+
+        // Clear saved name and temp ID from localStorage when user logs in
+        localStorage.removeItem('savedUserName')
+        localStorage.removeItem('tempParticipantId')
+        setTempId('')
+    }
+
     return (
         <div style={styles.container}>
             <div style={styles.header}>
@@ -510,7 +568,53 @@ export default function JoinPage() {
                                 </label>
                                 {!user && (
                                     <label style={styles.label}>
-                                        Your Name
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem', gap: '8px', flexWrap: 'wrap' }}>
+                                            <span>Your Name</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+                                                {tempId && (
+                                                    <>
+                                                        <span style={{ fontSize: '0.75rem', color: '#666' }}>
+                                                            Temp ID: {tempId}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                localStorage.removeItem('tempParticipantId')
+                                                                setTempId('')
+                                                            }}
+                                                            style={{
+                                                                background: 'none',
+                                                                border: '1px solid #999',
+                                                                color: '#666',
+                                                                fontSize: '0.7rem',
+                                                                cursor: 'pointer',
+                                                                padding: '2px 8px',
+                                                                borderRadius: '3px'
+                                                            }}
+                                                            title="Clear temporary ID"
+                                                        >
+                                                            Clear
+                                                        </button>
+                                                    </>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowLoginModal(true)}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: 'var(--primary-color)',
+                                                        fontSize: '0.85rem',
+                                                        cursor: 'pointer',
+                                                        textDecoration: 'underline',
+                                                        padding: 0,
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    Login (optional)
+                                                </button>
+                                            </div>
+                                        </div>
                                         <input
                                             type="text"
                                             value={name}
@@ -696,7 +800,24 @@ export default function JoinPage() {
                             <>
                                 {!user && (
                                     <label style={styles.label}>
-                                        Host ID
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                            <span>Host ID</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowLoginModal(true)}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    color: 'var(--primary-color)',
+                                                    fontSize: '0.85rem',
+                                                    cursor: 'pointer',
+                                                    textDecoration: 'underline',
+                                                    padding: 0
+                                                }}
+                                            >
+                                                Login (optional)
+                                            </button>
+                                        </div>
                                         <input
                                             type="text"
                                             value={hostId}
@@ -709,17 +830,17 @@ export default function JoinPage() {
                                             }}
                                             disabled={loading}
                                             maxLength={50}
-                                                    aria-invalid={!!validationErrors.hostId}
-                                                    aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
-                                                    autoFocus
-                                                />
-                                                {validationErrors.hostId && (
-                                                    <span id="hostId-error" style={styles.validationError}>
-                                                        {validationErrors.hostId}
-                                                    </span>
-                                                )}
-                                            </label>
+                                            aria-invalid={!!validationErrors.hostId}
+                                            aria-describedby={validationErrors.hostId ? "hostId-error" : undefined}
+                                            autoFocus
+                                        />
+                                        {validationErrors.hostId && (
+                                            <span id="hostId-error" style={styles.validationError}>
+                                                {validationErrors.hostId}
+                                            </span>
                                         )}
+                                    </label>
+                                )}
                                 <label style={styles.label}>
                                     Event Name
                                     <input
@@ -772,6 +893,14 @@ export default function JoinPage() {
                     <span style={styles.errorIcon}>⚠️</span>
                     {error}
                 </div>
+            )}
+
+            {/* Login Modal */}
+            {showLoginModal && (
+                <LoginModal
+                    onClose={() => setShowLoginModal(false)}
+                    onSuccess={handleLoginSuccess}
+                />
             )}
         </div>
     )

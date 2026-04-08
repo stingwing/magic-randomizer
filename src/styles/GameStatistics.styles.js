@@ -2,22 +2,25 @@ export const styles = {
     container: {
         maxWidth: '1400px',
         margin: '0 auto',
-        padding: '20px'
+        padding: '2rem 1rem'
     },
     header: {
         textAlign: 'center',
-        marginBottom: '30px'
+        marginBottom: '2rem'
     },
     title: {
-        fontSize: '2em',
-        color: 'var(--text-primary)',
-        marginBottom: '8px',
-        fontWeight: '600'
+        fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
+        fontWeight: '700',
+        background: 'linear-gradient(135deg, #646cff 0%, #535bf2 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+        margin: 0
     },
     subtitle: {
-        fontSize: '1em',
+        fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)',
         color: 'var(--text-secondary)',
-        margin: '0'
+        marginTop: '0.5rem'
     },
     tabContainer: {
         display: 'flex',
@@ -33,7 +36,7 @@ export const styles = {
         border: 'none',
         borderBottom: '3px solid transparent',
         cursor: 'pointer',
-        fontSize: '1em',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
         fontWeight: '500',
         transition: 'all 0.2s ease',
         position: 'relative',
@@ -58,29 +61,35 @@ export const styles = {
     table: {
         width: '100%',
         borderCollapse: 'collapse',
-        fontSize: '0.95em'
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)'
     },
     th: {
         backgroundColor: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
-        padding: '12px',
+        color: 'var(--text-secondary)',
+        padding: '12px 16px',
         textAlign: 'left',
         fontWeight: '600',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
         borderBottom: '2px solid var(--border-color)',
         position: 'sticky',
         top: 0,
-        zIndex: 1
+        zIndex: 1,
+        transition: 'color 0.2s',
+        userSelect: 'none'
     },
     td: {
-        padding: '12px',
-        color: 'var(--text-primary)',
-        borderBottom: '1px solid var(--border-color)'
-    },
-    tdCenter: {
-        padding: '12px',
+        padding: '12px 16px',
         color: 'var(--text-primary)',
         borderBottom: '1px solid var(--border-color)',
-        textAlign: 'center'
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)',
+        wordBreak: 'break-word'
+    },
+    tdCenter: {
+        padding: '12px 16px',
+        color: 'var(--text-primary)',
+        borderBottom: '1px solid var(--border-color)',
+        textAlign: 'center',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)'
     },
     trEven: {
         backgroundColor: 'var(--bg-secondary)'
@@ -92,7 +101,7 @@ export const styles = {
         textAlign: 'center',
         padding: '40px 20px',
         color: 'var(--text-secondary)',
-        fontSize: '1.1em'
+        fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)'
     },
     filterContainer: {
         marginBottom: '20px',
@@ -105,7 +114,8 @@ export const styles = {
         display: 'block',
         marginBottom: '8px',
         color: 'var(--text-primary)',
-        fontWeight: '500'
+        fontWeight: '500',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)'
     },
     filterCheckboxContainer: {
         display: 'grid',
@@ -125,7 +135,8 @@ export const styles = {
         cursor: 'pointer',
         padding: '4px',
         borderRadius: '4px',
-        transition: 'background-color 0.2s'
+        transition: 'background-color 0.2s',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.9rem)'
     },
     filterCheckbox: {
         cursor: 'pointer'
@@ -144,7 +155,7 @@ export const styles = {
         textAlign: 'center'
     },
     summaryCardTitle: {
-        fontSize: '0.85em',
+        fontSize: 'clamp(0.75rem, 2vw, 0.85rem)',
         color: 'var(--text-secondary)',
         marginBottom: '8px',
         fontWeight: '500',
@@ -152,7 +163,7 @@ export const styles = {
         letterSpacing: '0.5px'
     },
     summaryCardValue: {
-        fontSize: '2em',
+        fontSize: 'clamp(1.5rem, 4vw, 2rem)',
         color: 'var(--primary-color)',
         fontWeight: '700'
     },
@@ -163,7 +174,7 @@ export const styles = {
         border: 'none',
         borderRadius: '6px',
         cursor: 'pointer',
-        fontSize: '0.95em',
+        fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
         fontWeight: '500',
         marginBottom: '16px',
         transition: 'all 0.2s'

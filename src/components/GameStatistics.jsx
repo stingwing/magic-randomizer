@@ -3,6 +3,64 @@ import { styles } from '../styles/GameStatistics.styles'
 
 export default function GameStatistics({ archivedRounds, currentRound, totalSessions }) {
     const [activeTab, setActiveTab] = useState('commanders')
+    const [sortColumn, setSortColumn] = useState(null)
+    const [sortDirection, setSortDirection] = useState('desc') // 'asc' or 'desc'
+    const [groupByName, setGroupByName] = useState(false)
+
+    const handleSort = (column) => {
+        if (sortColumn === column) {
+            // Toggle direction if same column
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+        } else {
+            // New column, default to descending
+            setSortColumn(column)
+            setSortDirection('desc')
+        }
+    }
+
+    // Helper function to get the player grouping key
+    const getPlayerKey = (member) => {
+        if (groupByName) {
+            return member.name || member.id || 'Unknown'
+        } else {
+            // Use userId if available, otherwise use id
+            return member.userId || member.id || 'Unknown'
+        }
+    }
+
+    const sortData = (data, column, direction) => {
+        if (!column) return data
+
+        return [...data].sort((a, b) => {
+            let aVal = a[column]
+            let bVal = b[column]
+
+            // Convert percentage strings to numbers for proper sorting
+            if (typeof aVal === 'string' && aVal.includes('%')) {
+                aVal = parseFloat(aVal)
+                bVal = parseFloat(bVal)
+            }
+            // Also handle numeric strings (like "25.00" for winRate/drawRate)
+            else if (typeof aVal === 'string' && !isNaN(parseFloat(aVal)) && isFinite(aVal)) {
+                const aNum = parseFloat(aVal)
+                const bNum = parseFloat(bVal)
+                // Only use numeric comparison if both are valid numbers
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    aVal = aNum
+                    bVal = bNum
+                }
+            }
+
+            // Handle numeric vs string comparison
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+                return direction === 'asc' ? aVal - bVal : bVal - aVal
+            } else {
+                // String comparison
+                const comparison = String(aVal).localeCompare(String(bVal))
+                return direction === 'asc' ? comparison : -comparison
+            }
+        })
+    }
 
     // Calculate commander statistics
     const commanderStats = useMemo(() => {
@@ -34,7 +92,8 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
 
             members.forEach(member => {
                 let commander = member.commander
-                const playerId = member.id || 'Unknown'
+                const playerId = member.userId || member.id || 'Unknown'
+                const playerKey = getPlayerKey(member)
                 const playerName = member.name || member.id || 'Unknown'
 
                 // Skip if no commander
@@ -53,13 +112,13 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                 }
 
                 stats[commander].timesPlayed++
-                stats[commander].players.add(playerId)
-                // Store the player name for this ID
-                if (playerId !== 'Unknown') {
-                    stats[commander].playerNames[playerId] = playerName
+                stats[commander].players.add(playerKey)
+                // Store the player name for this key
+                if (playerKey !== 'Unknown') {
+                    stats[commander].playerNames[playerKey] = playerName
                 }
 
-                // Check if this player won (using ID)
+                // Check if this player won (using userId or id)
                 if (winner && (winner === playerId)) {
                     stats[commander].wins++
                 }
@@ -73,9 +132,9 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
 
         // Convert to array and calculate rates
         return Object.values(stats).map(stat => {
-            // Convert player IDs to names for display
+            // Convert player keys to names for display
             const playersList = Array.from(stat.players)
-                .map(playerId => stat.playerNames[playerId] || playerId)
+                .map(playerKey => groupByName ? playerKey : (stat.playerNames[playerKey] || playerKey))
                 .join(', ')
 
             return {
@@ -88,7 +147,7 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                 playersList: playersList
             }
         }).sort((a, b) => b.timesPlayed - a.timesPlayed)
-    }, [archivedRounds, currentRound])
+    }, [archivedRounds, currentRound, groupByName])
 
     // Calculate seat position statistics
     const seatStats = useMemo(() => {
@@ -147,9 +206,9 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                         }
                     }
                 } else if (winner) {
-                    // Find which position the winner is in based on sorted player order (using ID)
+                    // Find which position the winner is in based on sorted player order (using userId or id)
                     const winnerPosition = sortedPlayers.findIndex(player => {
-                        const playerId = player.id
+                        const playerId = player.userId || player.id
                         return playerId === winner
                     })
 
@@ -271,13 +330,14 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
             const isDraw = draw || (!winner)
 
             members.forEach(member => {
-                const playerId = member.id || 'Unknown'
+                const playerId = member.userId || member.id || 'Unknown'
+                const playerKey = getPlayerKey(member)
                 const playerName = member.name || member.id || 'Unknown'
 
                 // Initialize stats for this player if not exists
-                if (!stats[playerId]) {
-                    stats[playerId] = {
-                        playerId: playerId,
+                if (!stats[playerKey]) {
+                    stats[playerKey] = {
+                        playerId: playerKey,
                         player: playerName,
                         games: 0,
                         wins: 0,
@@ -288,26 +348,28 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                     }
                 }
 
-                // Update player name in case it changed
-                stats[playerId].player = playerName
+                // Update player name in case it changed (unless grouping by name)
+                if (!groupByName) {
+                    stats[playerKey].player = playerName
+                }
 
-                stats[playerId].games++
+                stats[playerKey].games++
 
                 // Track commander
                 if (member.commander && member.commander.trim() !== '') {
-                    stats[playerId].commanders.add(member.commander)
-                    stats[playerId].commanderCount[member.commander] = 
-                        (stats[playerId].commanderCount[member.commander] || 0) + 1
+                    stats[playerKey].commanders.add(member.commander)
+                    stats[playerKey].commanderCount[member.commander] = 
+                        (stats[playerKey].commanderCount[member.commander] || 0) + 1
                 }
 
-                // Check if this player won (using ID)
+                // Check if this player won (using userId or id)
                 if (winner && (winner === playerId)) {
-                    stats[playerId].wins++
+                    stats[playerKey].wins++
                 } else if (isDraw) {
-                    stats[playerId].draws++
+                    stats[playerKey].draws++
                 } else if (winner) {
                     // Only count as loss if there was a winner and it wasn't this player
-                    stats[playerId].losses++
+                    stats[playerKey].losses++
                 }
             })
         })
@@ -332,11 +394,17 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                 mostUsedCommander: mostUsedCommander
             }
         }).sort((a, b) => b.games - a.games)
-    }, [archivedRounds, currentRound])
+    }, [archivedRounds, currentRound, groupByName])
 
     const renderCommanderStats = () => {
         if (commanderStats.length === 0) {
             return <div style={styles.emptyState}>No commander data available</div>
+        }
+
+        const sortedData = sortData(commanderStats, sortColumn, sortDirection)
+        const getSortIndicator = (column) => {
+            if (sortColumn !== column) return ' ↕️'
+            return sortDirection === 'asc' ? ' ▲' : ' ▼'
         }
 
         return (
@@ -344,17 +412,31 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                 <table style={styles.table}>
                     <thead>
                         <tr>
-                            <th style={styles.th}>Commander</th>
-                            <th style={styles.th}>Times Played</th>
-                            <th style={styles.th}>Wins</th>
-                            <th style={styles.th}>Draws</th>
-                            <th style={styles.th}>Win Rate</th>
-                            <th style={styles.th}>Draw Rate</th>
-                            <th style={styles.th}>Players</th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('commander')}>
+                                Commander{getSortIndicator('commander')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('timesPlayed')}>
+                                Times Played{getSortIndicator('timesPlayed')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('wins')}>
+                                Wins{getSortIndicator('wins')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('draws')}>
+                                Draws{getSortIndicator('draws')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('winRate')}>
+                                Win Rate{getSortIndicator('winRate')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('drawRate')}>
+                                Draw Rate{getSortIndicator('drawRate')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('playersList')}>
+                                Players{getSortIndicator('playersList')}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
-                        {commanderStats.map((stat, idx) => (
+                        {sortedData.map((stat, idx) => (
                             <tr key={idx} style={idx % 2 === 0 ? styles.trEven : styles.trOdd}>
                                 <td style={styles.td}>{stat.commander}</td>
                                 <td style={styles.tdCenter}>{stat.timesPlayed}</td>
@@ -376,23 +458,45 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
             return <div style={styles.emptyState}>No player data available</div>
         }
 
+        const sortedData = sortData(playerStats, sortColumn, sortDirection)
+        const getSortIndicator = (column) => {
+            if (sortColumn !== column) return ' ↕️'
+            return sortDirection === 'asc' ? ' ▲' : ' ▼'
+        }
+
         return (
             <div style={styles.tableContainer}>
                 <table style={styles.table}>
                     <thead>
                         <tr>
-                            <th style={styles.th}>Player</th>
-                            <th style={styles.th}>Games</th>
-                            <th style={styles.th}>Wins</th>
-                            <th style={styles.th}>Draws</th>
-                            <th style={styles.th}>Win Rate</th>
-                            <th style={styles.th}>Draw Rate</th>
-                            <th style={styles.th}>Commanders</th>
-                            <th style={styles.th}>Most Used</th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('player')}>
+                                Player{getSortIndicator('player')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('games')}>
+                                Games{getSortIndicator('games')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('wins')}>
+                                Wins{getSortIndicator('wins')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('draws')}>
+                                Draws{getSortIndicator('draws')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('winRate')}>
+                                Win Rate{getSortIndicator('winRate')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('drawRate')}>
+                                Draw Rate{getSortIndicator('drawRate')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('commandersCount')}>
+                                Commanders{getSortIndicator('commandersCount')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('mostUsedCommander')}>
+                                Most Used{getSortIndicator('mostUsedCommander')}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
-                        {playerStats.map((stat, idx) => (
+                        {sortedData.map((stat, idx) => (
                             <tr key={idx} style={idx % 2 === 0 ? styles.trEven : styles.trOdd}>
                                 <td style={styles.td}>{stat.player}</td>
                                 <td style={styles.tdCenter}>{stat.games}</td>
@@ -415,21 +519,39 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
             return <div style={styles.emptyState}>No seat position data available</div>
         }
 
+        const sortedData = sortData(seatStats, sortColumn, sortDirection)
+        const getSortIndicator = (column) => {
+            if (sortColumn !== column) return ' ↕️'
+            return sortDirection === 'asc' ? ' ▲' : ' ▼'
+        }
+
         return (
             <div style={styles.tableContainer}>
                 <table style={styles.table}>
                     <thead>
                         <tr>
-                            <th style={styles.th}>Seat Position</th>
-                            <th style={styles.th}>Games</th>
-                            <th style={styles.th}>Wins</th>
-                            <th style={styles.th}>Draws</th>
-                            <th style={styles.th}>Win Rate</th>
-                            <th style={styles.th}>Draw Rate</th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('seat')}>
+                                Seat Position{getSortIndicator('seat')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('games')}>
+                                Games{getSortIndicator('games')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('wins')}>
+                                Wins{getSortIndicator('wins')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('draws')}>
+                                Draws{getSortIndicator('draws')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('winRate')}>
+                                Win Rate{getSortIndicator('winRate')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('drawRate')}>
+                                Draw Rate{getSortIndicator('drawRate')}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
-                        {seatStats.map((stat, idx) => (
+                        {sortedData.map((stat, idx) => (
                             <tr key={idx} style={idx % 2 === 0 ? styles.trEven : styles.trOdd}>
                                 <td style={styles.td}>Seat {stat.seat}</td>
                                 <td style={styles.tdCenter}>{stat.games}</td>
@@ -450,22 +572,42 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
             return <div style={styles.emptyState}>No player count data available</div>
         }
 
+        const sortedData = sortData(playerCountStats, sortColumn, sortDirection)
+        const getSortIndicator = (column) => {
+            if (sortColumn !== column) return ' ↕️'
+            return sortDirection === 'asc' ? ' ▲' : ' ▼'
+        }
+
         return (
             <div style={styles.tableContainer}>
                 <table style={styles.table}>
                     <thead>
                         <tr>
-                            <th style={styles.th}>Player Count</th>
-                            <th style={styles.th}>Games</th>
-                            <th style={styles.th}>Wins</th>
-                            <th style={styles.th}>Draws</th>
-                            <th style={styles.th}>% of Total</th>
-                            <th style={styles.th}>Win Rate</th>
-                            <th style={styles.th}>Draw Rate</th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('playerCount')}>
+                                Player Count{getSortIndicator('playerCount')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('games')}>
+                                Games{getSortIndicator('games')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('wins')}>
+                                Wins{getSortIndicator('wins')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('draws')}>
+                                Draws{getSortIndicator('draws')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('percentage')}>
+                                % of Total{getSortIndicator('percentage')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('winRate')}>
+                                Win Rate{getSortIndicator('winRate')}
+                            </th>
+                            <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('drawRate')}>
+                                Draw Rate{getSortIndicator('drawRate')}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
-                        {playerCountStats.map((stat, idx) => (
+                        {sortedData.map((stat, idx) => (
                             <tr key={idx} style={idx % 2 === 0 ? styles.trEven : styles.trOdd}>
                                 <td style={styles.td}>{stat.playerCount} Players</td>
                                 <td style={styles.tdCenter}>{stat.games}</td>
@@ -612,7 +754,7 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                 </button>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '16px', display: 'flex', gap: '16px', alignItems: 'center' }}>
                 <button
                     onClick={exportToCSV}
                     style={styles.exportButton}
@@ -625,6 +767,15 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
                 >
                     📥 Export to CSV
                 </button>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                        type="checkbox"
+                        checked={groupByName}
+                        onChange={(e) => setGroupByName(e.target.checked)}
+                        style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                    />
+                    <span style={{ fontSize: '14px', fontWeight: '500' }}>Group players by name</span>
+                </label>
             </div>
 
             <div style={styles.contentContainer}>
