@@ -1,7 +1,22 @@
+import { useState } from 'react'
+
 export default function About() {
+    const [feedback, setFeedback] = useState('')
+
+    const handleSendFeedback = () => {
+        if (!feedback.trim()) {
+            alert('Please enter your feedback before sending.')
+            return
+        }
+
+        const subject = encodeURIComponent('Magic Randomizer Feedback')
+        const body = encodeURIComponent(feedback)
+        window.location.href = `mailto:admin@commanderpodcreator.com?subject=${subject}&body=${body}`
+    }
+
     return (
         <div style={{ textAlign: "left" }}>
-            <h2>About Magic Randomizer</h2>
+            <h2>About Magic Randomizer - This page needs a rewrite</h2>
             
             <h3>What is this?</h3>
             <p>
@@ -36,6 +51,50 @@ export default function About() {
                 <li>Players who were in pods of 3 are prioritized for pods of 4 in future rounds</li>
                 <li>The algorithm tracks all previous matchups to maximize variety across rounds</li>
             </ul>
+
+            <h3>Feedback & Support</h3>
+            <p>
+                We'd love to hear from you! Whether you have suggestions for new features, 
+                found a bug, or just want to share your experience using Magic Randomizer, 
+                please don't hesitate to reach out.
+            </p>
+            <div style={{ marginTop: '1rem' }}>
+                <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="Enter your feedback here..."
+                    style={{
+                        width: '100%',
+                        minHeight: '120px',
+                        padding: '0.75rem',
+                        fontSize: '1rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        resize: 'vertical',
+                        fontFamily: 'inherit',
+                        boxSizing: 'border-box'
+                    }}
+                />
+                <button
+                    onClick={handleSendFeedback}
+                    style={{
+                        marginTop: '0.5rem',
+                        padding: '0.75rem 1.5rem',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        backgroundColor: '#007bff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+                >
+                    📧 Send Feedback via Email
+                </button>
+            </div>
         </div>
     );
 }
