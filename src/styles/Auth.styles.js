@@ -163,7 +163,9 @@ export const styles = {
         maxWidth: '450px',
         width: '100%',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        border: '1px solid var(--border-color)'
+        border: '1px solid var(--border-color)',
+        opacity: 1,
+        backdropFilter: 'blur(10px)'
     },
     modalHeader: {
         display: 'flex',
