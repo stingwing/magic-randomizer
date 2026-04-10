@@ -564,7 +564,7 @@ export default function RoomPage() {
 
             const body = {
                 participantId: validatedParticipantId,
-                result: 'data',
+                result: 'commander',
                 commander: commanderValue,
                 statistics: {}
             }
@@ -633,7 +633,7 @@ export default function RoomPage() {
 
             const body = {
                 participantId: validatedParticipantId,
-                result: 'data',
+                result: 'order',
                 commander: '',
                 statistics: statistics
             }
