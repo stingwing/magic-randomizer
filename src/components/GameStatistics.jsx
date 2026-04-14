@@ -745,7 +745,7 @@ export default function GameStatistics({ archivedRounds, currentRound, totalSess
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h2 style={styles.title}>📊 Game Statistics</h2>
+                <h2 style={styles.title}>Game Statistics</h2>
                 <p style={styles.subtitle}>Detailed statistics from all completed games</p>
             </div>
 

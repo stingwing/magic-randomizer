@@ -132,7 +132,7 @@ function RoundResults({ data, participantId, onPlayerOrderChange }) {
                                 <span style={{ ...styles.detailValue, color: 'var(--success-color)', fontWeight: '600' }}>
                                     🏆 {(() => {
                                         const winnerMember = members?.find(m => 
-                                            (m.userId || m.id) === winner
+                                            m.userId === winner || m.id === winner
                                         )
                                         return winnerMember?.name || winnerMember?.id || winner
                                     })()}

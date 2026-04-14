@@ -127,7 +127,7 @@ function RoundDisplay({ round, index, label }) {
                                             <span style={{ ...styles.resultValue, color: 'var(--success-color)', fontWeight: '600' }}>
                                                 🏆 {(() => {
                                                     const winnerMember = members.find(m => 
-                                                        (m.userId || m.id) === winner
+                                                        m.userId === winner || m.id === winner
                                                     )
                                                     return winnerMember?.name || winnerMember?.id || winner
                                                 })()}

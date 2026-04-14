@@ -223,7 +223,7 @@ export default function MobileViewPage() {
                                                 <span style={styles.resultWinner}>
                                                     🏆 Winner: {(() => {
                                                         const winnerMember = group.members?.find(m => 
-                                                            (m.userId || m.id) === group.winner
+                                                            m.userId === group.winner || m.id === group.winner
                                                         )
                                                         return winnerMember?.name || winnerMember?.id || group.winner
                                                     })()}

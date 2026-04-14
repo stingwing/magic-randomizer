@@ -118,7 +118,7 @@ function RoundDisplay({ round, index, label }) {
                                             <span style={{ ...styles.resultValue, color: 'var(--success-color)', fontWeight: '600' }}>
                                                 🏆 {(() => {
                                                     const winnerMember = members.find(m => 
-                                                        (m.userId || m.id) === winner
+                                                        m.userId === winner || m.id === winner
                                                     )
                                                     return winnerMember?.name || winnerMember?.id || winner
                                                 })()}
@@ -200,7 +200,7 @@ function RoundDisplay({ round, index, label }) {
                             {/* Display Statistics */}
                             {Object.keys(statistics).length > 0 && (
                                 <div style={styles.statisticsSection}>
-                                    <h5 style={styles.statisticsHeader}>📊 Game Statistics</h5>
+                                    <h5 style={styles.statisticsHeader}>Game Statistics</h5>
                                     <div style={styles.statisticsList}>
                                         {Object.entries(statistics).map(([key, value], statIdx) => {
                                             // Format the key for display
